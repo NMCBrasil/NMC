@@ -136,9 +136,9 @@ Observações: ${obs}`;
     function copiarCarimbo() {
       const campoCarimbo = document.getElementById('carimbo');
       campoCarimbo.select();
-      campoCarimbo.setSelectionRange(0, 99999); // Compatível com mobile
-      document.execCommand("copy");
-      alert("✅ Carimbo copiado para a área de transferência!");
+      campoCarimbo.setSelectionRange(0, 99999); // compatibilidade mobile
+      document.execCommand('copy');
+      alert('✅ Carimbo copiado para a área de transferência!');
     }
   </script>
 
