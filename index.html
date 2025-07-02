@@ -38,6 +38,13 @@
     button:hover {
       background-color: #0056b3;
     }
+    #mensagemCopiado {
+      display: none;
+      color: green;
+      font-weight: bold;
+      margin-top: -10px;
+      margin-bottom: 15px;
+    }
   </style>
 </head>
 <body>
@@ -88,6 +95,7 @@
   <label>📝 O carimbo aparecerá aqui:</label>
   <textarea id="carimbo" readonly></textarea>
   <button onclick="copiarCarimbo()">📋 Copiar Carimbo</button>
+  <div id="mensagemCopiado">✅ Carimbo copiado!</div>
 
   <script>
     function mostrarFormulario() {
@@ -136,9 +144,14 @@ Observações: ${obs}`;
     function copiarCarimbo() {
       const campoCarimbo = document.getElementById('carimbo');
       campoCarimbo.select();
-      campoCarimbo.setSelectionRange(0, 99999); // compatibilidade mobile
+      campoCarimbo.setSelectionRange(0, 99999); // compatível com mobile
       document.execCommand('copy');
-      alert('✅ Carimbo copiado para a área de transferência!');
+
+      const msg = document.getElementById('mensagemCopiado');
+      msg.style.display = 'block';
+      setTimeout(() => {
+        msg.style.display = 'none';
+      }, 2000);
     }
   </script>
 
