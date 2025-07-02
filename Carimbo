@@ -1,0 +1,132 @@
+<h2>Gerador de Carimbos de Chamado</h2>
+
+<label for="tipoCarimbo">Selecione o tipo de carimbo:</label>
+<select id="tipoCarimbo" onchange="mostrarFormulario()">
+  <option value="">-- Selecione --</option>
+  <option value="abertura">Carimbo de Abertura</option>
+  <option value="encerramento">Carimbo de Encerramento</option>
+</select>
+
+<!-- Formulário Carimbo de Abertura -->
+<div id="formAbertura" style="display:none;">
+  <h3>Carimbo de Abertura de Chamado</h3>
+
+  <label>Data e hora do problema:</label>
+  <input type="datetime-local" id="dataHora">
+
+  <label>Cliente:</label>
+  <input type="text" id="cliente">
+
+  <label>Descrição do Alarme:</label>
+  <textarea id="alarme" rows="3"></textarea>
+
+  <label>Ações realizadas pelo NMC:</label>
+  <textarea id="acoes" rows="3"></textarea>
+
+  <label>Caminho/Nome Diagrama da rede Afetada:</label>
+  <input type="text" id="diagrama">
+
+  <label>Próxima Ação:</label>
+  <textarea id="proxima" rows="2"></textarea>
+
+  <button onclick="gerarCarimboAbertura()">Gerar Carimbo de Abertura</button>
+</div>
+
+<!-- Formulário Carimbo de Encerramento -->
+<div id="formEncerramento" style="display:none;">
+  <h3>Carimbo de Encerramento de Chamado</h3>
+
+  <label>Data e hora do encerramento:</label>
+  <input type="datetime-local" id="dataHoraEncerramento">
+
+  <label>Responsável:</label>
+  <input type="text" id="responsavelEncerramento">
+
+  <label>Cliente:</label>
+  <input type="text" id="clienteEncerramento">
+
+  <label>Resumo da Solução:</label>
+  <textarea id="resumoEncerramento" rows="3"></textarea>
+
+  <label>Observações:</label>
+  <textarea id="obsEncerramento" rows="3"></textarea>
+
+  <button onclick="gerarCarimboEncerramento()">Gerar Carimbo de Encerramento</button>
+</div>
+
+<textarea id="carimbo" readonly placeholder="O carimbo aparecerá aqui..."></textarea>
+
+
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  max-width: 700px;
+  margin: auto;
+}
+
+label {
+  font-weight: bold;
+  display: block;
+  margin-top: 10px;
+}
+
+input, textarea, button, select {
+  width: 100%;
+  margin-top: 5px;
+  margin-bottom: 15px;
+  padding: 10px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+textarea#carimbo {
+  height: 220px;
+  background-color: #f3f3f3;
+  resize: vertical;
+}
+function mostrarFormulario() {
+  const tipo = document.getElementById('tipoCarimbo').value;
+  document.getElementById('formAbertura').style.display = (tipo === 'abertura') ? 'block' : 'none';
+  document.getElementById('formEncerramento').style.display = (tipo === 'encerramento') ? 'block' : 'none';
+  document.getElementById('carimbo').value = ''; // limpa área do carimbo ao trocar
+}
+
+function gerarCarimboAbertura() {
+  const dataHora = document.getElementById('dataHora').value || new Date().toLocaleString('pt-BR');
+  const cliente = document.getElementById('cliente').value;
+  const alarme = document.getElementById('alarme').value;
+  const acoes = document.getElementById('acoes').value;
+  const diagrama = document.getElementById('diagrama').value;
+  const proxima = document.getElementById('proxima').value;
+
+  const carimbo = 
+`Carimbo para Abertura de Chamado:
+
+Data e hora do problema: ${dataHora}
+Cliente: ${cliente}
+Descrição do Alarme: ${alarme}
+Ações realizadas pelo NMC: ${acoes}
+Caminho/Nome Diagrama da rede Afetada: ${diagrama}
+Próxima Ação: ${proxima}`;
+
+  document.getElementById('carimbo').value = carimbo;
+}
+
+function gerarCarimboEncerramento() {
+  const dataHora = document.getElementById('dataHoraEncerramento').value || new Date().toLocaleString('pt-BR');
+  const responsavel = document.getElementById('responsavelEncerramento').value;
+  const cliente = document.getElementById('clienteEncerramento').value;
+  const resumo = document.getElementById('resumoEncerramento').value;
+  const obs = document.getElementById('obsEncerramento').value;
+
+  const carimbo = 
+`Carimbo para Encerramento de Chamado:
+
+Data e hora do encerramento: ${dataHora}
+Responsável: ${responsavel}
+Cliente: ${cliente}
+Resumo da Solução: ${resumo}
+Observações: ${obs}`;
+
+  document.getElementById('carimbo').value = carimbo;
+}
