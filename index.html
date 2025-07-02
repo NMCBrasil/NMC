@@ -28,6 +28,16 @@
       background-color: #f3f3f3;
       resize: vertical;
     }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
   </style>
 </head>
 <body>
@@ -52,7 +62,7 @@
     <textarea id="alarme"></textarea>
     <label>Ações realizadas pelo NMC:</label>
     <textarea id="acoes"></textarea>
-    <label>Caminho/Nome Diagrama da Rede Afetada:</label>
+    <label>Caminho/Nome Diagrama da rede Afetada:</label>
     <input type="text" id="diagrama">
     <label>Próxima Ação:</label>
     <input type="text" id="proxima">
@@ -77,6 +87,7 @@
 
   <label>📝 O carimbo aparecerá aqui:</label>
   <textarea id="carimbo" readonly></textarea>
+  <button onclick="copiarCarimbo()">📋 Copiar Carimbo</button>
 
   <script>
     function mostrarFormulario() {
@@ -120,6 +131,14 @@ Resumo da Solução: ${resumo}
 Observações: ${obs}`;
 
       document.getElementById('carimbo').value = carimbo;
+    }
+
+    function copiarCarimbo() {
+      const campoCarimbo = document.getElementById('carimbo');
+      campoCarimbo.select();
+      campoCarimbo.setSelectionRange(0, 99999); // Compatível com mobile
+      document.execCommand("copy");
+      alert("✅ Carimbo copiado para a área de transferência!");
     }
   </script>
 
