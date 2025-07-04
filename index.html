@@ -125,6 +125,7 @@
   <div id="mensagemCopiado">✅ Carimbo copiado!</div>
 
   <script>
+    // Mostrar formulário conforme tipo escolhido
     function mostrarFormulario() {
       const tipo = document.getElementById("tipoCarimbo").value;
       document.getElementById("formAbertura").style.display =
@@ -134,7 +135,30 @@
       document.getElementById("carimbo").innerHTML = "";
     }
 
-    function gerarCarimboAbertura() {
+    // Função para upload ao Cloudinary (upload unsigned)
+    async function uploadParaCloudinary(file) {
+      const url = "https://api.cloudinary.com/v1_1/dfomubczr/upload"; // seu cloud_name aqui
+      const preset = "carimbos_unsigned"; // seu upload preset unsigned
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", preset);
+
+      const response = await fetch(url, {
+        method: "POST",
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro no upload para Cloudinary");
+      }
+
+      const data = await response.json();
+      return data.secure_url; // URL pública do arquivo
+    }
+
+    // Gerar carimbo de abertura com upload do anexo
+    async function gerarCarimboAbertura() {
       const dataHora =
         document.getElementById("dataHora").value ||
         new Date().toLocaleString("pt-BR");
@@ -145,10 +169,16 @@
       const arquivoInput = document.getElementById("diagramaArquivo");
 
       let anexoHTML = "";
+
       if (arquivoInput.files.length > 0) {
         const arquivo = arquivoInput.files[0];
-        const url = URL.createObjectURL(arquivo);
-        anexoHTML = `<p>Anexo: <a href="${url}" target="_blank">${arquivo.name}</a></p>`;
+        try {
+          const urlPublica = await uploadParaCloudinary(arquivo);
+          anexoHTML = `<p>Anexo: <a href="${urlPublica}" target="_blank" rel="noopener noreferrer">${arquivo.name}</a></p>`;
+        } catch (error) {
+          anexoHTML = `<p>Anexo: ${arquivo.name} (Erro ao fazer upload)</p>`;
+          console.error(error);
+        }
       }
 
       const html = `
@@ -163,6 +193,7 @@
       document.getElementById("carimbo").innerHTML = html;
     }
 
+    // Gerar carimbo de encerramento (sem upload para logs, pode adaptar se quiser)
     function gerarCarimboEncerramento() {
       const dataHora =
         document.getElementById("dataHoraEncerramento").value ||
@@ -179,7 +210,7 @@
         for (let i = 0; i < logsInput.files.length; i++) {
           const arquivo = logsInput.files[i];
           const url = URL.createObjectURL(arquivo);
-          links.push(`<a href="${url}" target="_blank">${arquivo.name}</a>`);
+          links.push(`<a href="${url}" target="_blank" rel="noopener noreferrer">${arquivo.name}</a>`);
         }
         logsHTML = `<p>LOGs anexados: ${links.join(", ")}</p>`;
       }
@@ -196,6 +227,7 @@
       document.getElementById("carimbo").innerHTML = html;
     }
 
+    // Copiar texto do carimbo
     function copiarCarimbo() {
       const el = document.createElement("textarea");
       el.value = document.getElementById("carimbo").innerText;
