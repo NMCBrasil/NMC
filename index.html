@@ -161,10 +161,10 @@
       const dataHora =
         document.getElementById("dataHora").value ||
         new Date().toLocaleString("pt-BR");
-      const cliente = document.getElementById("cliente").value.trim();
-      const alarme = document.getElementById("alarme").value.trim();
-      const acoes = document.getElementById("acoes").value.trim();
-      const proxima = document.getElementById("proxima").value.trim();
+      const cliente = document.getElementById("cliente").value;
+      const alarme = document.getElementById("alarme").value;
+      const acoes = document.getElementById("acoes").value;
+      const proxima = document.getElementById("proxima").value;
       const arquivoInput = document.getElementById("diagramaArquivo");
 
       let anexoHTML = "";
@@ -179,12 +179,14 @@
         }
       }
 
-      let html = `<p>Data e hora do problema: ${dataHora}</p>`;
-      if (cliente) html += `<p>Cliente: ${cliente}</p>`;
-      if (alarme) html += `<p>Descrição do Alarme: ${alarme}</p>`;
-      if (acoes) html += `<p>Ações realizadas pelo NMC: ${acoes}</p>`;
-      if (anexoHTML) html += anexoHTML;
-      if (proxima) html += `<p>Próxima Ação: ${proxima}</p>`;
+      const html = `
+        <p>Data e hora do problema: ${dataHora}</p>
+        <p>Cliente: ${cliente}</p>
+        <p>Descrição do Alarme: ${alarme}</p>
+        <p>Ações realizadas pelo NMC: ${acoes}</p>
+        ${anexoHTML}
+        <p>Próxima Ação: ${proxima}</p>
+      `;
 
       document.getElementById("carimbo").innerHTML = html;
     }
@@ -193,10 +195,10 @@
       const dataHora =
         document.getElementById("dataHoraEncerramento").value ||
         new Date().toLocaleString("pt-BR");
-      const responsavel = document.getElementById("responsavelEncerramento").value.trim();
-      const cliente = document.getElementById("clienteEncerramento").value.trim();
-      const resumo = document.getElementById("resumoEncerramento").value.trim();
-      const obs = document.getElementById("obsEncerramento").value.trim();
+      const responsavel = document.getElementById("responsavelEncerramento").value;
+      const cliente = document.getElementById("clienteEncerramento").value;
+      const resumo = document.getElementById("resumoEncerramento").value;
+      const obs = document.getElementById("obsEncerramento").value;
       const logsInput = document.getElementById("logsArquivo");
 
       let logsHTML = "";
@@ -210,12 +212,14 @@
         logsHTML = `<p>LOGs anexados: ${links.join(", ")}</p>`;
       }
 
-      let html = `<p>Data e hora do encerramento: ${dataHora}</p>`;
-      if (responsavel) html += `<p>Responsável: ${responsavel}</p>`;
-      if (cliente) html += `<p>Cliente: ${cliente}</p>`;
-      if (resumo) html += `<p>Resumo da Solução: ${resumo}</p>`;
-      if (obs) html += `<p>Observações: ${obs}</p>`;
-      if (logsHTML) html += logsHTML;
+      const html = `
+        <p>Data e hora do encerramento: ${dataHora}</p>
+        <p>Responsável: ${responsavel}</p>
+        <p>Cliente: ${cliente}</p>
+        <p>Resumo da Solução: ${resumo}</p>
+        <p>Observações: ${obs}</p>
+        ${logsHTML}
+      `;
 
       document.getElementById("carimbo").innerHTML = html;
     }
