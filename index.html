@@ -102,7 +102,7 @@
       const tipo = document.getElementById('tipoCarimbo').value;
       document.getElementById('formAbertura').style.display = (tipo === 'abertura') ? 'block' : 'none';
       document.getElementById('formEncerramento').style.display = (tipo === 'encerramento') ? 'block' : 'none';
-      document.getElementById('carimbo').value = ''; // limpa área do carimbo ao trocar
+      document.getElementById('carimbo').value = '';
     }
 
     function gerarCarimboAbertura() {
@@ -142,16 +142,16 @@ Observações: ${obs}`;
     }
 
     function copiarCarimbo() {
-      const campoCarimbo = document.getElementById('carimbo');
-      campoCarimbo.select();
-      campoCarimbo.setSelectionRange(0, 99999); // compatível com mobile
-      document.execCommand('copy');
-
-      const msg = document.getElementById('mensagemCopiado');
-      msg.style.display = 'block';
-      setTimeout(() => {
-        msg.style.display = 'none';
-      }, 2000);
+      const texto = document.getElementById('carimbo').value;
+      navigator.clipboard.writeText(texto).then(() => {
+        const msg = document.getElementById('mensagemCopiado');
+        msg.style.display = 'block';
+        setTimeout(() => {
+          msg.style.display = 'none';
+        }, 2000);
+      }).catch(err => {
+        console.error('Erro ao copiar carimbo: ', err);
+      });
     }
   </script>
 
