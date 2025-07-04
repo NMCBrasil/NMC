@@ -136,8 +136,8 @@
     }
 
     async function uploadParaCloudinary(file) {
-      const url = "https://api.cloudinary.com/v1_1/dfomubczr/upload";
-      const preset = "carimbos_unsigned";
+      const url = "https://api.cloudinary.com/v1_1/dfomubczr/upload"; // Substitua se necessário
+      const preset = "unsigned_present"; // Corrigido aqui
 
       const formData = new FormData();
       formData.append("file", file);
@@ -149,7 +149,8 @@
       });
 
       if (!response.ok) {
-        throw new Error("Erro no upload para Cloudinary");
+        const errorText = await response.text();
+        throw new Error(`Erro no upload: ${errorText}`);
       }
 
       const data = await response.json();
@@ -226,7 +227,6 @@
 
     function copiarCarimbo() {
       const el = document.createElement("textarea");
-      // Copiar o HTML para permitir links clicáveis ao colar
       el.value = document.getElementById("carimbo").innerHTML;
       document.body.appendChild(el);
       el.select();
