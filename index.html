@@ -10,11 +10,13 @@
       max-width: 700px;
       margin: auto;
     }
+
     label {
       font-weight: bold;
       display: block;
       margin-top: 10px;
     }
+
     input, textarea, button, select {
       width: 100%;
       margin-top: 5px;
@@ -23,13 +25,20 @@
       font-size: 16px;
       box-sizing: border-box;
     }
+
     #carimbo {
       background-color: #f3f3f3;
       border: 1px solid #ccc;
       padding: 15px;
-      min-height: 200px;
-      white-space: pre-wrap;
+      min-height: 100px;
+      font-size: 16px;
+      line-height: 1.3; /* espaçamento compacto */
     }
+
+    #carimbo p {
+      margin: 2px 0; /* margens quase zero entre as linhas */
+    }
+
     button {
       background-color: #007bff;
       color: white;
@@ -37,9 +46,11 @@
       border-radius: 4px;
       cursor: pointer;
     }
+
     button:hover {
       background-color: #0056b3;
     }
+
     #mensagemCopiado {
       display: none;
       color: green;
@@ -94,7 +105,7 @@
     <button onclick="gerarCarimboEncerramento()">Gerar Carimbo</button>
   </div>
 
-  <!-- Área onde o carimbo aparece -->
+  <!-- Área do Carimbo -->
   <div id="carimbo"></div>
 
   <button onclick="copiarCarimbo()">📋 Copiar Carimbo</button>
@@ -124,12 +135,12 @@
       }
 
       const html = `
-Data e hora do problema: ${dataHora}<br>
-Cliente: ${cliente}<br>
-Descrição do Alarme: ${alarme}<br>
-Ações realizadas pelo NMC: ${acoes}<br>
-Anexo: ${anexoTexto}<br>
-Próxima Ação: ${proxima}
+        <p>Data e hora do problema: ${dataHora}</p>
+        <p>Cliente: ${cliente}</p>
+        <p>Descrição do Alarme: ${alarme}</p>
+        <p>Ações realizadas pelo NMC: ${acoes}</p>
+        <p>Anexo: ${anexoTexto}</p>
+        <p>Próxima Ação: ${proxima}</p>
       `;
 
       document.getElementById('carimbo').innerHTML = html;
@@ -143,11 +154,11 @@ Próxima Ação: ${proxima}
       const obs = document.getElementById('obsEncerramento').value;
 
       const html = `
-Data e hora do encerramento: ${dataHora}<br>
-Responsável: ${responsavel}<br>
-Cliente: ${cliente}<br>
-Resumo da Solução: ${resumo}<br>
-Observações: ${obs}
+        <p>Data e hora do encerramento: ${dataHora}</p>
+        <p>Responsável: ${responsavel}</p>
+        <p>Cliente: ${cliente}</p>
+        <p>Resumo da Solução: ${resumo}</p>
+        <p>Observações: ${obs}</p>
       `;
 
       document.getElementById('carimbo').innerHTML = html;
