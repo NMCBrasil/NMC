@@ -220,12 +220,33 @@
       document.getElementById("carimbo").innerHTML = html;
     }
 
-    function copiarCarimbo() {
+    async function copiarCarimbo() {
       const carimbo = document.getElementById("carimbo");
-      const textoParaCopiar = carimbo.innerText || carimbo.textContent;
+      const html = carimbo.innerHTML;
+      const text = carimbo.innerText || carimbo.textContent;
 
+      if (navigator.clipboard && navigator.clipboard.write) {
+        try {
+          const blobInput = new ClipboardItem({
+            "text/html": new Blob([html], { type: "text/html" }),
+            "text/plain": new Blob([text], { type: "text/plain" })
+          });
+          await navigator.clipboard.write([blobInput]);
+
+          const msg = document.getElementById("mensagemCopiado");
+          msg.style.display = "block";
+          setTimeout(() => {
+            msg.style.display = "none";
+          }, 2000);
+          return;
+        } catch (err) {
+          console.error("Erro ao copiar HTML para clipboard:", err);
+        }
+      }
+
+      // Fallback texto puro
       const el = document.createElement("textarea");
-      el.value = textoParaCopiar;
+      el.value = text;
       document.body.appendChild(el);
       el.select();
       document.execCommand("copy");
