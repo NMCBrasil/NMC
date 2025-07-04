@@ -95,8 +95,6 @@
     <h3>Carimbo de Encerramento de Chamado</h3>
     <label>Data e Hora do Encerramento:</label>
     <input type="datetime-local" id="dataHoraEncerramento" />
-    <label>Responsável pelo Atendimento:</label>
-    <input type="text" id="responsavelEncerramento" />
     <label>Cliente:</label>
     <input type="text" id="clienteEncerramento" />
     <label>Resumo da Solução:</label>
@@ -164,7 +162,6 @@
 
     function gerarCarimboEncerramento() {
       const dataHora = document.getElementById("dataHoraEncerramento").value || new Date().toLocaleString("pt-BR");
-      const responsavel = document.getElementById("responsavelEncerramento").value || "(não informado)";
       const cliente = document.getElementById("clienteEncerramento").value || "(não informado)";
       const resumo = document.getElementById("resumoEncerramento").value || "(não informado)";
       const obs = document.getElementById("obsEncerramento").value || "(nenhuma observação)";
@@ -183,7 +180,6 @@
 
       const html = `
         <p>Data e hora do encerramento: ${dataHora}</p>
-        <p>Responsável pelo atendimento: ${responsavel}</p>
         <p>Cliente: ${cliente}</p>
         <p>Resumo da solução: ${resumo}</p>
         <p>Observações: ${obs}</p>
