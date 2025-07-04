@@ -23,10 +23,12 @@
       font-size: 16px;
       box-sizing: border-box;
     }
-    textarea#carimbo {
-      height: 220px;
+    #carimbo {
       background-color: #f3f3f3;
-      resize: vertical;
+      border: 1px solid #ccc;
+      padding: 15px;
+      min-height: 200px;
+      white-space: pre-wrap;
     }
     button {
       background-color: #007bff;
@@ -93,7 +95,8 @@
   </div>
 
   <label>📝 O carimbo aparecerá aqui:</label>
-  <textarea id="carimbo" readonly></textarea>
+  <div id="carimbo"></div>
+
   <button onclick="copiarCarimbo()">📋 Copiar Carimbo</button>
   <div id="mensagemCopiado">✅ Carimbo copiado!</div>
 
@@ -102,7 +105,7 @@
       const tipo = document.getElementById('tipoCarimbo').value;
       document.getElementById('formAbertura').style.display = (tipo === 'abertura') ? 'block' : 'none';
       document.getElementById('formEncerramento').style.display = (tipo === 'encerramento') ? 'block' : 'none';
-      document.getElementById('carimbo').value = '';
+      document.getElementById('carimbo').innerHTML = '';
     }
 
     function gerarCarimboAbertura() {
@@ -110,27 +113,27 @@
       const cliente = document.getElementById('cliente').value;
       const alarme = document.getElementById('alarme').value;
       const acoes = document.getElementById('acoes').value;
-      const diagramaInput = document.getElementById('diagramaArquivo');
       const proxima = document.getElementById('proxima').value;
+      const arquivoInput = document.getElementById('diagramaArquivo');
 
-      let nomeArquivo = "Nenhum arquivo anexado";
-      let urlArquivo = "";
-
-      if (diagramaInput.files.length > 0) {
-        const arquivo = diagramaInput.files[0];
-        nomeArquivo = arquivo.name;
-        urlArquivo = URL.createObjectURL(arquivo);
+      let anexoTexto = "Nenhum arquivo anexado";
+      if (arquivoInput.files.length > 0) {
+        const arquivo = arquivoInput.files[0];
+        const url = URL.createObjectURL(arquivo);
+        anexoTexto = `<a href="${url}" target="_blank">${arquivo.name}</a>`;
       }
 
-      const carimbo = `Carimbo para Abertura de Chamado:
-Data e hora do problema: ${dataHora}
-Cliente: ${cliente}
-Descrição do Alarme: ${alarme}
-Ações realizadas pelo NMC: ${acoes}
-Anexo: ${nomeArquivo}${urlArquivo ? ` (${urlArquivo})` : ""}
-Próxima Ação: ${proxima}`;
+      const html = `
+<b>Carimbo para Abertura de Chamado:</b><br>
+Data e hora do problema: ${dataHora}<br>
+Cliente: ${cliente}<br>
+Descrição do Alarme: ${alarme}<br>
+Ações realizadas pelo NMC: ${acoes}<br>
+Anexo: ${anexoTexto}<br>
+Próxima Ação: ${proxima}
+      `;
 
-      document.getElementById('carimbo').value = carimbo;
+      document.getElementById('carimbo').innerHTML = html;
     }
 
     function gerarCarimboEncerramento() {
@@ -140,27 +143,31 @@ Próxima Ação: ${proxima}`;
       const resumo = document.getElementById('resumoEncerramento').value;
       const obs = document.getElementById('obsEncerramento').value;
 
-      const carimbo = `Carimbo para Encerramento de Chamado:
-Data e hora do encerramento: ${dataHora}
-Responsável: ${responsavel}
-Cliente: ${cliente}
-Resumo da Solução: ${resumo}
-Observações: ${obs}`;
+      const html = `
+<b>Carimbo para Encerramento de Chamado:</b><br>
+Data e hora do encerramento: ${dataHora}<br>
+Responsável: ${responsavel}<br>
+Cliente: ${cliente}<br>
+Resumo da Solução: ${resumo}<br>
+Observações: ${obs}
+      `;
 
-      document.getElementById('carimbo').value = carimbo;
+      document.getElementById('carimbo').innerHTML = html;
     }
 
     function copiarCarimbo() {
-      const texto = document.getElementById('carimbo').value;
-      navigator.clipboard.writeText(texto).then(() => {
-        const msg = document.getElementById('mensagemCopiado');
-        msg.style.display = 'block';
-        setTimeout(() => {
-          msg.style.display = 'none';
-        }, 2000);
-      }).catch(err => {
-        console.error('Erro ao copiar carimbo: ', err);
-      });
+      const el = document.createElement("textarea");
+      el.value = document.getElementById("carimbo").innerText;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+
+      const msg = document.getElementById('mensagemCopiado');
+      msg.style.display = 'block';
+      setTimeout(() => {
+        msg.style.display = 'none';
+      }, 2000);
     }
   </script>
 
