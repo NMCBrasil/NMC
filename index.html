@@ -125,7 +125,6 @@
   <div id="mensagemCopiado">✅ Carimbo copiado!</div>
 
   <script>
-    // Mostrar formulário conforme tipo escolhido
     function mostrarFormulario() {
       const tipo = document.getElementById("tipoCarimbo").value;
       document.getElementById("formAbertura").style.display =
@@ -135,10 +134,9 @@
       document.getElementById("carimbo").innerHTML = "";
     }
 
-    // Função para upload ao Cloudinary (upload unsigned)
     async function uploadParaCloudinary(file) {
-      const url = "https://api.cloudinary.com/v1_1/dfomubczr/upload"; // seu cloud_name aqui
-      const preset = "carimbos_unsigned"; // seu upload preset unsigned
+      const url = "https://api.cloudinary.com/v1_1/dfomubczr/upload";
+      const preset = "carimbos_unsigned";
 
       const formData = new FormData();
       formData.append("file", file);
@@ -154,10 +152,9 @@
       }
 
       const data = await response.json();
-      return data.secure_url; // URL pública do arquivo
+      return data.secure_url;
     }
 
-    // Gerar carimbo de abertura com upload do anexo
     async function gerarCarimboAbertura() {
       const dataHora =
         document.getElementById("dataHora").value ||
@@ -193,7 +190,6 @@
       document.getElementById("carimbo").innerHTML = html;
     }
 
-    // Gerar carimbo de encerramento (sem upload para logs, pode adaptar se quiser)
     function gerarCarimboEncerramento() {
       const dataHora =
         document.getElementById("dataHoraEncerramento").value ||
@@ -227,20 +223,25 @@
       document.getElementById("carimbo").innerHTML = html;
     }
 
-    // Copiar texto do carimbo
     function copiarCarimbo() {
-      const el = document.createElement("textarea");
-      el.value = document.getElementById("carimbo").innerText;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
+      const carimboDiv = document.getElementById("carimbo");
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(carimboDiv);
+      selection.removeAllRanges();
+      selection.addRange(range);
 
-      const msg = document.getElementById("mensagemCopiado");
-      msg.style.display = "block";
-      setTimeout(() => {
-        msg.style.display = "none";
-      }, 2000);
+      try {
+        document.execCommand('copy');
+        selection.removeAllRanges();
+        const msg = document.getElementById("mensagemCopiado");
+        msg.style.display = "block";
+        setTimeout(() => {
+          msg.style.display = "none";
+        }, 2000);
+      } catch (err) {
+        alert('Erro ao copiar. Tente manualmente.');
+      }
     }
   </script>
 </body>
