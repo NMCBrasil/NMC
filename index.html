@@ -94,7 +94,7 @@
     <button onclick="gerarCarimboEncerramento()">Gerar Carimbo</button>
   </div>
 
-  <label>📝 O carimbo aparecerá aqui:</label>
+  <!-- Área onde o carimbo aparece -->
   <div id="carimbo"></div>
 
   <button onclick="copiarCarimbo()">📋 Copiar Carimbo</button>
@@ -124,7 +124,6 @@
       }
 
       const html = `
-<b>Carimbo para Abertura de Chamado:</b><br>
 Data e hora do problema: ${dataHora}<br>
 Cliente: ${cliente}<br>
 Descrição do Alarme: ${alarme}<br>
@@ -144,7 +143,6 @@ Próxima Ação: ${proxima}
       const obs = document.getElementById('obsEncerramento').value;
 
       const html = `
-<b>Carimbo para Encerramento de Chamado:</b><br>
 Data e hora do encerramento: ${dataHora}<br>
 Responsável: ${responsavel}<br>
 Cliente: ${cliente}<br>
