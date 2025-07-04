@@ -45,6 +45,10 @@
       margin-top: -10px;
       margin-bottom: 15px;
     }
+    #linkArquivo {
+      margin-bottom: 15px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -94,6 +98,12 @@
 
   <label>📝 O carimbo aparecerá aqui:</label>
   <textarea id="carimbo" readonly></textarea>
+
+  <!-- Link gerado do arquivo -->
+  <div id="linkArquivo">
+    📎 <strong>Anexo:</strong> <a id="arquivoLink" href="#" target="_blank">Clique aqui para abrir o anexo</a>
+  </div>
+
   <button onclick="copiarCarimbo()">📋 Copiar Carimbo</button>
   <div id="mensagemCopiado">✅ Carimbo copiado!</div>
 
@@ -103,6 +113,7 @@
       document.getElementById('formAbertura').style.display = (tipo === 'abertura') ? 'block' : 'none';
       document.getElementById('formEncerramento').style.display = (tipo === 'encerramento') ? 'block' : 'none';
       document.getElementById('carimbo').value = '';
+      document.getElementById('linkArquivo').style.display = 'none';
     }
 
     function gerarCarimboAbertura() {
@@ -114,8 +125,20 @@
       const proxima = document.getElementById('proxima').value;
 
       let nomeArquivo = "Nenhum arquivo anexado";
+      let linkArquivo = "";
+      const linkDiv = document.getElementById('linkArquivo');
+
       if (diagramaInput.files.length > 0) {
-        nomeArquivo = diagramaInput.files[0].name;
+        const arquivo = diagramaInput.files[0];
+        nomeArquivo = arquivo.name;
+        const url = URL.createObjectURL(arquivo);
+
+        const link = document.getElementById('arquivoLink');
+        link.href = url;
+        link.textContent = nomeArquivo;
+        linkDiv.style.display = 'block';
+      } else {
+        linkDiv.style.display = 'none';
       }
 
       const carimbo = `Carimbo para Abertura de Chamado:
@@ -123,7 +146,7 @@ Data e hora do problema: ${dataHora}
 Cliente: ${cliente}
 Descrição do Alarme: ${alarme}
 Ações realizadas pelo NMC: ${acoes}
-Arquivo do Diagrama da rede Afetada: ${nomeArquivo}
+Anexo: ${nomeArquivo}
 Próxima Ação: ${proxima}`;
 
       document.getElementById('carimbo').value = carimbo;
@@ -135,6 +158,8 @@ Próxima Ação: ${proxima}`;
       const cliente = document.getElementById('clienteEncerramento').value;
       const resumo = document.getElementById('resumoEncerramento').value;
       const obs = document.getElementById('obsEncerramento').value;
+
+      document.getElementById('linkArquivo').style.display = 'none';
 
       const carimbo = `Carimbo para Encerramento de Chamado:
 Data e hora do encerramento: ${dataHora}
