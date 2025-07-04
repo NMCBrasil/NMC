@@ -69,8 +69,8 @@
     <textarea id="alarme"></textarea>
     <label>Ações realizadas pelo NMC:</label>
     <textarea id="acoes"></textarea>
-    <label>Diagrama da rede Afetada:</label>
-    <input type="text" id="diagrama">
+    <label>Diagrama da rede Afetada (anexo):</label>
+    <input type="file" id="diagramaArquivo" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx">
     <label>Próxima Ação:</label>
     <input type="text" id="proxima">
     <button onclick="gerarCarimboAbertura()">Gerar Carimbo</button>
@@ -110,15 +110,20 @@
       const cliente = document.getElementById('cliente').value;
       const alarme = document.getElementById('alarme').value;
       const acoes = document.getElementById('acoes').value;
-      const diagrama = document.getElementById('diagrama').value;
+      const diagramaInput = document.getElementById('diagramaArquivo');
       const proxima = document.getElementById('proxima').value;
+
+      let nomeArquivo = "Nenhum arquivo anexado";
+      if (diagramaInput.files.length > 0) {
+        nomeArquivo = diagramaInput.files[0].name;
+      }
 
       const carimbo = `Carimbo para Abertura de Chamado:
 Data e hora do problema: ${dataHora}
 Cliente: ${cliente}
 Descrição do Alarme: ${alarme}
 Ações realizadas pelo NMC: ${acoes}
-Caminho/Nome Diagrama da rede Afetada: ${diagrama}
+Arquivo do Diagrama da rede Afetada: ${nomeArquivo}
 Próxima Ação: ${proxima}`;
 
       document.getElementById('carimbo').value = carimbo;
