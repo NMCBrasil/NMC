@@ -38,10 +38,9 @@
       white-space: pre-line;
     }
 
-    /* Sem espaço entre linhas */
     #carimbo p {
       margin: 0;
-      line-height: 1;
+      line-height: 1.2;
     }
 
     button {
@@ -66,7 +65,7 @@
   </style>
 </head>
 <body>
-  <h2>Carimbos de Chamado</h2>
+  <h2>Gerador de Carimbos de Chamado</h2>
 
   <label for="tipoCarimbo">Selecione o tipo de carimbo:</label>
   <select id="tipoCarimbo" onchange="mostrarFormulario()">
@@ -75,7 +74,6 @@
     <option value="encerramento">Carimbo de Encerramento</option>
   </select>
 
-  <!-- Formulário Carimbo de Abertura -->
   <div id="formAbertura" style="display: none">
     <h3>Carimbo de Abertura de Chamado</h3>
     <label>Data e Hora do Problema:</label>
@@ -87,17 +85,12 @@
     <label>Ações Realizadas pelo NMC:</label>
     <textarea id="acoes"></textarea>
     <label>Diagrama da Rede Afetada (anexo):</label>
-    <input
-      type="file"
-      id="diagramaArquivo"
-      accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx"
-    />
+    <input type="file" id="diagramaArquivo" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx" />
     <label>Próxima Ação:</label>
     <input type="text" id="proxima" />
     <button onclick="gerarCarimboAbertura()">Gerar Carimbo</button>
   </div>
 
-  <!-- Formulário Carimbo de Encerramento -->
   <div id="formEncerramento" style="display: none">
     <h3>Carimbo de Encerramento de Chamado</h3>
     <label>Data e Hora do Encerramento:</label>
@@ -111,72 +104,50 @@
     <label>Observações:</label>
     <textarea id="obsEncerramento"></textarea>
     <label>Anexar LOGs (se houver):</label>
-    <input
-      type="file"
-      id="logsArquivo"
-      accept=".log,.txt,.zip,.rar"
-      multiple
-    />
+    <input type="file" id="logsArquivo" accept=".log,.txt,.zip,.rar" multiple />
     <button onclick="gerarCarimboEncerramento()">Gerar Carimbo</button>
   </div>
 
-  <!-- Área do Carimbo -->
   <div id="carimbo"></div>
-
   <button onclick="copiarCarimbo()">📋 Copiar Carimbo</button>
   <div id="mensagemCopiado">✅ Carimbo copiado!</div>
 
   <script>
     function mostrarFormulario() {
       const tipo = document.getElementById("tipoCarimbo").value;
-      document.getElementById("formAbertura").style.display =
-        tipo === "abertura" ? "block" : "none";
-      document.getElementById("formEncerramento").style.display =
-        tipo === "encerramento" ? "block" : "none";
+      document.getElementById("formAbertura").style.display = tipo === "abertura" ? "block" : "none";
+      document.getElementById("formEncerramento").style.display = tipo === "encerramento" ? "block" : "none";
       document.getElementById("carimbo").innerHTML = "";
     }
 
     async function uploadParaCloudinary(file) {
       const url = "https://api.cloudinary.com/v1_1/dfomubczr/upload";
       const preset = "unsigned_present";
-
       const formData = new FormData();
       formData.append("file", file);
       formData.append("upload_preset", preset);
-
-      const response = await fetch(url, {
-        method: "POST",
-        body: formData
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Erro no upload: ${errorText}`);
-      }
-
+      const response = await fetch(url, { method: "POST", body: formData });
+      if (!response.ok) throw new Error("Erro no upload");
       const data = await response.json();
       return data.secure_url;
     }
 
     async function gerarCarimboAbertura() {
-      const dataHora =
-        document.getElementById("dataHora").value ||
-        new Date().toLocaleString("pt-BR");
-      const cliente = document.getElementById("cliente").value || "";
-      const alarme = document.getElementById("alarme").value || "";
-      const acoes = document.getElementById("acoes").value || "";
-      const proxima = document.getElementById("proxima").value || "";
+      const dataHora = document.getElementById("dataHora").value || new Date().toLocaleString("pt-BR");
+      const cliente = document.getElementById("cliente").value || "(não informado)";
+      const alarme = document.getElementById("alarme").value || "(não informado)";
+      const acoes = document.getElementById("acoes").value || "(não informado)";
+      const proxima = document.getElementById("proxima").value || "(não informada)";
       const arquivoInput = document.getElementById("diagramaArquivo");
 
-      let anexoHTML = "<p>Anexo: Nenhum</p>";
+      let anexoHTML = "<p>Anexo: (não informado)</p>";
       if (arquivoInput.files.length > 0) {
         const arquivo = arquivoInput.files[0];
         try {
           const urlPublica = await uploadParaCloudinary(arquivo);
           anexoHTML = `<p>Anexo: <a href="${urlPublica}" target="_blank" rel="noopener noreferrer">${arquivo.name}</a></p>`;
-        } catch (error) {
-          anexoHTML = `<p>Anexo: ${arquivo.name} (Erro ao fazer upload)</p>`;
-          console.error(error);
+        } catch {
+          anexoHTML = `<p>Anexo: ${arquivo.name} (erro no upload)</p>`;
         }
       }
 
@@ -188,21 +159,18 @@
         ${anexoHTML}
         <p>Próxima Ação: ${proxima}</p>
       `;
-
       document.getElementById("carimbo").innerHTML = html;
     }
 
     function gerarCarimboEncerramento() {
-      const dataHora =
-        document.getElementById("dataHoraEncerramento").value ||
-        new Date().toLocaleString("pt-BR");
-      const responsavel = document.getElementById("responsavelEncerramento").value || "";
-      const cliente = document.getElementById("clienteEncerramento").value || "";
-      const resumo = document.getElementById("resumoEncerramento").value || "";
-      const obs = document.getElementById("obsEncerramento").value || "";
+      const dataHora = document.getElementById("dataHoraEncerramento").value || new Date().toLocaleString("pt-BR");
+      const responsavel = document.getElementById("responsavelEncerramento").value || "(não informado)";
+      const cliente = document.getElementById("clienteEncerramento").value || "(não informado)";
+      const resumo = document.getElementById("resumoEncerramento").value || "(não informado)";
+      const obs = document.getElementById("obsEncerramento").value || "(nenhuma observação)";
       const logsInput = document.getElementById("logsArquivo");
 
-      let logsHTML = "<p>LOGs anexados: Nenhum</p>";
+      let logsHTML = "<p>LOGs anexados: (nenhum)</p>";
       if (logsInput.files.length > 0) {
         let links = [];
         for (let i = 0; i < logsInput.files.length; i++) {
@@ -215,13 +183,12 @@
 
       const html = `
         <p>Data e hora do encerramento: ${dataHora}</p>
-        <p>Responsável: ${responsavel}</p>
+        <p>Responsável pelo atendimento: ${responsavel}</p>
         <p>Cliente: ${cliente}</p>
-        <p>Resumo da Solução: ${resumo}</p>
+        <p>Resumo da solução: ${resumo}</p>
         <p>Observações: ${obs}</p>
         ${logsHTML}
       `;
-
       document.getElementById("carimbo").innerHTML = html;
     }
 
@@ -229,7 +196,6 @@
       const carimbo = document.getElementById("carimbo");
       const html = carimbo.innerHTML;
       const text = carimbo.innerText || carimbo.textContent;
-
       if (navigator.clipboard && navigator.clipboard.write) {
         try {
           const blobInput = new ClipboardItem({
@@ -237,30 +203,24 @@
             "text/plain": new Blob([text], { type: "text/plain" })
           });
           await navigator.clipboard.write([blobInput]);
-
-          const msg = document.getElementById("mensagemCopiado");
-          msg.style.display = "block";
+          document.getElementById("mensagemCopiado").style.display = "block";
           setTimeout(() => {
-            msg.style.display = "none";
+            document.getElementById("mensagemCopiado").style.display = "none";
           }, 2000);
           return;
         } catch (err) {
           console.error("Erro ao copiar HTML para clipboard:", err);
         }
       }
-
-      // Fallback texto puro
       const el = document.createElement("textarea");
       el.value = text;
       document.body.appendChild(el);
       el.select();
       document.execCommand("copy");
       document.body.removeChild(el);
-
-      const msg = document.getElementById("mensagemCopiado");
-      msg.style.display = "block";
+      document.getElementById("mensagemCopiado").style.display = "block";
       setTimeout(() => {
-        msg.style.display = "none";
+        document.getElementById("mensagemCopiado").style.display = "none";
       }, 2000);
     }
   </script>
