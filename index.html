@@ -150,6 +150,8 @@
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Erro no upload:", errorText);
         throw new Error("Erro no upload para Cloudinary");
       }
 
@@ -230,7 +232,7 @@
     // Copiar texto do carimbo
     function copiarCarimbo() {
       const el = document.createElement("textarea");
-      el.value = document.getElementById("carimbo").innerText;
+      el.value = document.getElementById("carimbo").innerHTML; // copiado o HTML pra manter links
       document.body.appendChild(el);
       el.select();
       document.execCommand("copy");
