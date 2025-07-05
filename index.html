@@ -1,215 +1,171 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <title>Gerador de Carimbos</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      max-width: 700px;
-      margin: auto;
-    }
-
-    label {
-      font-weight: bold;
-      display: block;
-      margin-top: 10px;
-    }
-
-    input,
-    textarea,
-    button,
-    select {
-      width: 100%;
-      margin-top: 5px;
-      margin-bottom: 15px;
-      padding: 10px;
-      font-size: 16px;
-      box-sizing: border-box;
-    }
-
-    #carimbo {
-      background-color: #f3f3f3;
-      border: 1px solid #ccc;
-      padding: 15px;
-      min-height: 100px;
-      font-size: 16px;
-      white-space: normal;
-      line-height: 1.3;
-    }
-
-    #carimbo p {
-      margin: 0;
-      padding: 0;
-    }
-
-    button {
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-
-    #mensagemCopiado {
-      display: none;
-      color: green;
-      font-weight: bold;
-      margin-top: -10px;
-      margin-bottom: 15px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gerador de Carimbos</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 700px;
+    margin: 20px auto;
+    padding: 0 15px;
+  }
+  label {
+    font-weight: bold;
+    display: block;
+    margin-top: 10px;
+  }
+  input[type="text"],
+  input[type="datetime-local"],
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 5px;
+    font-size: 14px;
+    padding: 6px;
+  }
+  textarea {
+    resize: vertical;
+    min-height: 60px;
+  }
+  button {
+    margin-top: 15px;
+    padding: 10px 15px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  #carimbo {
+    white-space: pre-line;
+    margin-top: 20px;
+    border: 1px solid #ddd;
+    padding: 15px;
+    background-color: #f9f9f9;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.1; /* menor espaçamento entre linhas */
+  }
+</style>
 </head>
 <body>
-  <h2>Gerador de Carimbos de Chamado</h2>
 
-  <label for="tipoCarimbo">Selecione o tipo de carimbo:</label>
-  <select id="tipoCarimbo" onchange="mostrarFormulario()">
-    <option value="">-- Selecione --</option>
-    <option value="abertura">Carimbo de Abertura</option>
-    <option value="encerramento">Carimbo de Encerramento</option>
-  </select>
+<h2>Gerador de Carimbo - Abertura</h2>
+<form id="formAbertura">
+  <label for="dataHoraInicio">Data e Hora do Início da Falha:</label>
+  <input type="datetime-local" id="dataHoraInicio" name="dataHoraInicio" />
 
-  <div id="formAbertura" style="display: none">
-    <h3>Carimbo de Abertura de Chamado</h3>
-    <label>Data e Hora do Início da Falha:</label>
-    <input type="datetime-local" id="dataHora" />
-    <label>Tecnologia:</label>
-    <input type="text" id="tecnologia" />
-    <label>Cliente(s) Afetado(s):</label>
-    <input type="text" id="cliente" />
-    <label>Descrição do(s) Alarme(s):</label>
-    <textarea id="alarme"></textarea>
-    <label>Descrição do(s) Equipamento(s):</label>
-    <textarea id="equipamento"></textarea>
-    <label>Link do Diagrama de Rede:</label>
-    <input type="text" id="linkDiagrama" placeholder="https://exemplo.com/diagrama" />
-    <label>Ferramentas Utilizadas no Troubleshooting:</label>
-    <textarea id="ferramentas"></textarea>
-    <label>Testes Realizados pelo NMC:</label>
-    <textarea id="testes"></textarea>
-    <button onclick="gerarCarimboAbertura()">Gerar Carimbo</button>
-  </div>
+  <label for="tecnologia">Tecnologia:</label>
+  <input type="text" id="tecnologia" name="tecnologia" />
 
-  <div id="formEncerramento" style="display: none">
-    <h3>Carimbo de Encerramento de Chamado</h3>
-    <label>Data e Hora do Encerramento:</label>
-    <input type="datetime-local" id="dataHoraEncerramento" />
-    <label>Cliente:</label>
-    <input type="text" id="clienteEncerramento" />
-    <label>Resumo da Solução:</label>
-    <textarea id="resumoEncerramento"></textarea>
-    <label>Observações:</label>
-    <textarea id="obsEncerramento"></textarea>
-    <label>Anexar LOGs (se houver):</label>
-    <input type="file" id="logsArquivo" accept=".log,.txt,.zip,.rar" multiple />
-    <button onclick="gerarCarimboEncerramento()">Gerar Carimbo</button>
-  </div>
+  <label for="clientesAfetados">Cliente(s) Afetado(s):</label>
+  <input type="text" id="clientesAfetados" name="clientesAfetados" />
 
-  <div id="carimbo"></div>
-  <button onclick="copiarCarimbo()">📋 Copiar Carimbo</button>
-  <div id="mensagemCopiado">✅ Carimbo copiado!</div>
+  <label for="descricaoAlarmes">Descrição do(s) Alarme(s):</label>
+  <textarea id="descricaoAlarmes" name="descricaoAlarmes"></textarea>
 
-  <script>
-    function mostrarFormulario() {
-      const tipo = document.getElementById("tipoCarimbo").value;
-      document.getElementById("formAbertura").style.display = tipo === "abertura" ? "block" : "none";
-      document.getElementById("formEncerramento").style.display = tipo === "encerramento" ? "block" : "none";
-      document.getElementById("carimbo").innerHTML = "";
-    }
+  <label for="descricaoEquipamentos">Descrição do(s) Equipamento(s):</label>
+  <textarea id="descricaoEquipamentos" name="descricaoEquipamentos"></textarea>
 
-    function gerarCarimboAbertura() {
-      const dataHora = document.getElementById("dataHora").value || "(não informado)";
-      const tecnologia = document.getElementById("tecnologia").value || "(não informado)";
-      const cliente = document.getElementById("cliente").value || "(não informado)";
-      const alarme = document.getElementById("alarme").value || "(não informado)";
-      const equipamento = document.getElementById("equipamento").value || "(não informado)";
-      const linkDiagrama = document.getElementById("linkDiagrama").value || "";
-      const ferramentas = document.getElementById("ferramentas").value || "(não informado)";
-      const testes = document.getElementById("testes").value || "(não informado)";
+  <label for="linkDiagrama">Link do Diagrama (opcional):</label>
+  <input type="text" id="linkDiagrama" name="linkDiagrama" />
 
-      let linkDiagramaHTML = "";
-      if (linkDiagrama.trim() !== "") {
-        linkDiagramaHTML = `<p>Link do Diagrama de Rede: <a href="${linkDiagrama}" target="_blank" rel="noopener noreferrer">${linkDiagrama}</a></p>`;
-      }
+  <button type="button" onclick="gerarCarimboAbertura()">Gerar Carimbo</button>
+</form>
 
-      const html = `
-        <p>Data e Hora do Início da Falha: ${dataHora}</p>
-        <p>Tecnologia: ${tecnologia}</p>
-        <p>Cliente(s) Afetado(s): ${cliente}</p>
-        <p>Descrição do(s) Alarme(s): ${alarme}</p>
-        <p>Descrição do(s) Equipamento(s): ${equipamento}</p>
-        ${linkDiagramaHTML}
-        <p>Ferramentas Utilizadas no Troubleshooting: ${ferramentas}</p>
-        <p>Testes Realizados pelo NMC: ${testes}</p>
-      `;
-      document.getElementById("carimbo").innerHTML = html;
-    }
+<h2>Gerador de Carimbo - Encerramento</h2>
+<form id="formEncerramento">
+  <label for="dataHoraSolucao">Data e Hora da Solução:</label>
+  <input type="datetime-local" id="dataHoraSolucao" name="dataHoraSolucao" />
 
-    function gerarCarimboEncerramento() {
-      const dataHora = document.getElementById("dataHoraEncerramento").value || "(não informado)";
-      const cliente = document.getElementById("clienteEncerramento").value || "(não informado)";
-      const resumo = document.getElementById("resumoEncerramento").value || "(não informado)";
-      const obs = document.getElementById("obsEncerramento").value || "(nenhuma observação)";
-      const logsInput = document.getElementById("logsArquivo");
+  <label for="clientesAtendidos">Cliente(s) Atendido(s):</label>
+  <input type="text" id="clientesAtendidos" name="clientesAtendidos" />
 
-      let logsHTML = "";
-      if (logsInput.files.length > 0) {
-        let links = [];
-        for (let i = 0; i < logsInput.files.length; i++) {
-          const arquivo = logsInput.files[i];
-          const url = URL.createObjectURL(arquivo);
-          links.push(`<a href="${url}" target="_blank" rel="noopener noreferrer">${arquivo.name}</a>`);
-        }
-        logsHTML = `<p>LOGs anexados: ${links.join(", ")}</p>`;
-      }
+  <label for="acoesNMC">Ações Realizadas pelo NMC:</label>
+  <textarea id="acoesNMC" name="acoesNMC"></textarea>
 
-      const html = `
-        <p>Data e Hora do Encerramento: ${dataHora}</p>
-        <p>Cliente: ${cliente}</p>
-        <p>Resumo da Solução: ${resumo}</p>
-        <p>Observações: ${obs}</p>
-        ${logsHTML}
-      `;
-      document.getElementById("carimbo").innerHTML = html;
-    }
+  <label for="anexosLogs">Anexos de Logs (opcional):</label>
+  <input type="text" id="anexosLogs" name="anexosLogs" />
 
-    async function copiarCarimbo() {
-      const carimbo = document.getElementById("carimbo");
-      const html = carimbo.innerHTML;
-      const text = carimbo.innerText || carimbo.textContent;
-      if (navigator.clipboard && navigator.clipboard.write) {
-        try {
-          const blobInput = new ClipboardItem({
-            "text/html": new Blob([html], { type: "text/html" }),
-            "text/plain": new Blob([text], { type: "text/plain" })
-          });
-          await navigator.clipboard.write([blobInput]);
-          document.getElementById("mensagemCopiado").style.display = "block";
-          setTimeout(() => {
-            document.getElementById("mensagemCopiado").style.display = "none";
-          }, 2000);
-          return;
-        } catch (err) {
-          console.error("Erro ao copiar HTML para clipboard:", err);
-        }
-      }
-      const el = document.createElement("textarea");
-      el.value = text;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand("copy");
-      document.body.removeChild(el);
-      document.getElementById("mensagemCopiado").style.display = "block";
-      setTimeout(() => {
-        document.getElementById("mensagemCopiado").style.display = "none";
-      }, 2000);
-    }
-  </script>
+  <button type="button" onclick="gerarCarimboEncerramento()">Gerar Carimbo</button>
+</form>
+
+<button onclick="copiarCarimbo()" style="margin-top:15px;">Copiar Carimbo</button>
+
+<div id="carimbo"></div>
+
+<script>
+function pad(str) {
+  return str && str.trim() !== '' ? str.trim() : '(não informado)';
+}
+
+function formatDataHora(dataHora) {
+  if (!dataHora) return '(não informado)';
+  const dt = new Date(dataHora);
+  if (isNaN(dt)) return '(não informado)';
+  return dt.toLocaleString('pt-BR', { 
+    day: '2-digit', month: '2-digit', year: 'numeric', 
+    hour: '2-digit', minute: '2-digit', second: '2-digit' 
+  });
+}
+
+function gerarCarimboAbertura() {
+  const dataHoraInicio = formatDataHora(document.getElementById('dataHoraInicio').value);
+  const tecnologia = pad(document.getElementById('tecnologia').value);
+  const clientesAfetados = pad(document.getElementById('clientesAfetados').value);
+  const descricaoAlarmes = pad(document.getElementById('descricaoAlarmes').value);
+  const descricaoEquipamentos = pad(document.getElementById('descricaoEquipamentos').value);
+  const linkDiagrama = document.getElementById('linkDiagrama').value.trim();
+
+  let texto = '';
+  texto += `Data e Hora do Início da Falha: ${dataHoraInicio}\n`;
+  texto += `Tecnologia: ${tecnologia}\n`;
+  texto += `Cliente(s) Afetado(s): ${clientesAfetados}\n`;
+  texto += `Descrição do(s) Alarme(s): ${descricaoAlarmes}\n`;
+  texto += `Descrição do(s) Equipamento(s): ${descricaoEquipamentos}`;
+  if (linkDiagrama !== '') {
+    texto += `\nLink do Diagrama: ${linkDiagrama}`;
+  }
+
+  document.getElementById('carimbo').textContent = texto;
+}
+
+function gerarCarimboEncerramento() {
+  const dataHoraSolucao = formatDataHora(document.getElementById('dataHoraSolucao').value);
+  const clientesAtendidos = pad(document.getElementById('clientesAtendidos').value);
+  const acoesNMC = pad(document.getElementById('acoesNMC').value);
+  const anexosLogs = document.getElementById('anexosLogs').value.trim();
+
+  let texto = '';
+  texto += `Data e Hora da Solução: ${dataHoraSolucao}\n`;
+  texto += `Cliente(s) Atendido(s): ${clientesAtendidos}\n`;
+  texto += `Ações Realizadas pelo NMC: ${acoesNMC}`;
+  if (anexosLogs !== '') {
+    texto += `\nAnexos de Logs: ${anexosLogs}`;
+  }
+
+  document.getElementById('carimbo').textContent = texto;
+}
+
+function copiarCarimbo() {
+  const carimbo = document.getElementById('carimbo').textContent;
+  if (!carimbo) return alert('Nenhum carimbo gerado para copiar.');
+  navigator.clipboard.writeText(carimbo).then(() => {
+    // Mensagem simples sem modal de confirmação
+    const msg = document.createElement('div');
+    msg.textContent = 'Carimbo copiado para a área de transferência.';
+    msg.style.position = 'fixed';
+    msg.style.bottom = '10px';
+    msg.style.right = '10px';
+    msg.style.backgroundColor = '#4caf50';
+    msg.style.color = '#fff';
+    msg.style.padding = '8px 12px';
+    msg.style.borderRadius = '5px';
+    msg.style.fontSize = '14px';
+    document.body.appendChild(msg);
+    setTimeout(() => document.body.removeChild(msg), 2000);
+  });
+}
+</script>
+
 </body>
 </html>
