@@ -18,7 +18,8 @@
   }
   input[type="text"],
   input[type="datetime-local"],
-  textarea {
+  textarea,
+  select {
     width: 100%;
     box-sizing: border-box;
     margin-top: 5px;
@@ -55,7 +56,21 @@
   <input type="datetime-local" id="dataHoraInicio" name="dataHoraInicio" />
 
   <label for="tecnologia">Tecnologia:</label>
-  <input type="text" id="tecnologia" name="tecnologia" />
+  <select id="tecnologia" name="tecnologia">
+    <option value="">(não informado)</option>
+    <option>Manaus Banda C</option>
+    <option>Manaus SCPC</option>
+    <option>HN</option>
+    <option>HN2</option>
+    <option>HX</option>
+    <option>Jup Banda C</option>
+    <option>Jup Banda KU</option>
+    <option>OneWeb</option>
+    <option>BGANs</option>
+    <option>Frotas</option>
+    <option>HughesON</option>
+    <option>LTE</option>
+  </select>
 
   <label for="clientesAfetados">Cliente(s) Afetado(s):</label>
   <input type="text" id="clientesAfetados" name="clientesAfetados" />
@@ -110,7 +125,8 @@ function formatDataHora(dataHora) {
 
 function gerarCarimboAbertura() {
   const dataHoraInicio = formatDataHora(document.getElementById('dataHoraInicio').value);
-  const tecnologia = pad(document.getElementById('tecnologia').value);
+  const tecnologiaRaw = document.getElementById('tecnologia').value;
+  const tecnologia = tecnologiaRaw.trim() !== '' ? tecnologiaRaw : '(não informado)';
   const clientesAfetados = pad(document.getElementById('clientesAfetados').value);
   const descricaoAlarmes = pad(document.getElementById('descricaoAlarmes').value);
   const descricaoEquipamentos = pad(document.getElementById('descricaoEquipamentos').value);
