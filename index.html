@@ -76,18 +76,22 @@
 
   <div id="formAbertura" style="display: none">
     <h3>Carimbo de Abertura de Chamado</h3>
-    <label>Data e Hora do Problema:</label>
+    <label>Data e Hora do Início da Falha:</label>
     <input type="datetime-local" id="dataHora" />
-    <label>Cliente:</label>
+    <label>Tecnologia:</label>
+    <input type="text" id="tecnologia" />
+    <label>Cliente(s) Afetado(s):</label>
     <input type="text" id="cliente" />
-    <label>Descrição do Alarme:</label>
+    <label>Descrição do(s) Alarme(s):</label>
     <textarea id="alarme"></textarea>
-    <label>Ações Realizadas pelo NMC:</label>
-    <textarea id="acoes"></textarea>
-    <label>Diagrama da Rede Afetada (anexo):</label>
-    <input type="file" id="diagramaArquivo" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx" />
-    <label>Próxima Ação:</label>
-    <input type="text" id="proxima" />
+    <label>Descrição do(s) Equipamento(s):</label>
+    <textarea id="equipamento"></textarea>
+    <label>Link do Diagrama de Rede:</label>
+    <input type="text" id="linkDiagrama" placeholder="https://exemplo.com/diagrama" />
+    <label>Ferramentas Utilizadas no Troubleshooting:</label>
+    <textarea id="ferramentas"></textarea>
+    <label>Testes Realizados pelo NMC:</label>
+    <textarea id="testes"></textarea>
     <button onclick="gerarCarimboAbertura()">Gerar Carimbo</button>
   </div>
 
@@ -118,56 +122,42 @@
       document.getElementById("carimbo").innerHTML = "";
     }
 
-    async function uploadParaCloudinary(file) {
-      const url = "https://api.cloudinary.com/v1_1/dfomubczr/upload";
-      const preset = "unsigned_present";
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", preset);
-      const response = await fetch(url, { method: "POST", body: formData });
-      if (!response.ok) throw new Error("Erro no upload");
-      const data = await response.json();
-      return data.secure_url;
-    }
-
-    async function gerarCarimboAbertura() {
-      const dataHora = document.getElementById("dataHora").value || new Date().toLocaleString("pt-BR");
+    function gerarCarimboAbertura() {
+      const dataHora = document.getElementById("dataHora").value || "(não informado)";
+      const tecnologia = document.getElementById("tecnologia").value || "(não informado)";
       const cliente = document.getElementById("cliente").value || "(não informado)";
       const alarme = document.getElementById("alarme").value || "(não informado)";
-      const acoes = document.getElementById("acoes").value || "(não informado)";
-      const proxima = document.getElementById("proxima").value || "(não informada)";
-      const arquivoInput = document.getElementById("diagramaArquivo");
+      const equipamento = document.getElementById("equipamento").value || "(não informado)";
+      const linkDiagrama = document.getElementById("linkDiagrama").value || "";
+      const ferramentas = document.getElementById("ferramentas").value || "(não informado)";
+      const testes = document.getElementById("testes").value || "(não informado)";
 
-      let anexoHTML = "<p>Anexo: (não informado)</p>";
-      if (arquivoInput.files.length > 0) {
-        const arquivo = arquivoInput.files[0];
-        try {
-          const urlPublica = await uploadParaCloudinary(arquivo);
-          anexoHTML = `<p>Anexo: <a href="${urlPublica}" target="_blank" rel="noopener noreferrer">${arquivo.name}</a></p>`;
-        } catch {
-          anexoHTML = `<p>Anexo: ${arquivo.name} (erro no upload)</p>`;
-        }
+      let linkDiagramaHTML = "";
+      if (linkDiagrama.trim() !== "") {
+        linkDiagramaHTML = `<p>Link do Diagrama de Rede: <a href="${linkDiagrama}" target="_blank" rel="noopener noreferrer">${linkDiagrama}</a></p>`;
       }
 
       const html = `
-        <p>Data e hora do problema: ${dataHora}</p>
-        <p>Cliente: ${cliente}</p>
-        <p>Descrição do Alarme: ${alarme}</p>
-        <p>Ações realizadas pelo NMC: ${acoes}</p>
-        ${anexoHTML}
-        <p>Próxima Ação: ${proxima}</p>
+        <p>Data e Hora do Início da Falha: ${dataHora}</p>
+        <p>Tecnologia: ${tecnologia}</p>
+        <p>Cliente(s) Afetado(s): ${cliente}</p>
+        <p>Descrição do(s) Alarme(s): ${alarme}</p>
+        <p>Descrição do(s) Equipamento(s): ${equipamento}</p>
+        ${linkDiagramaHTML}
+        <p>Ferramentas Utilizadas no Troubleshooting: ${ferramentas}</p>
+        <p>Testes Realizados pelo NMC: ${testes}</p>
       `;
       document.getElementById("carimbo").innerHTML = html;
     }
 
     function gerarCarimboEncerramento() {
-      const dataHora = document.getElementById("dataHoraEncerramento").value || new Date().toLocaleString("pt-BR");
+      const dataHora = document.getElementById("dataHoraEncerramento").value || "(não informado)";
       const cliente = document.getElementById("clienteEncerramento").value || "(não informado)";
       const resumo = document.getElementById("resumoEncerramento").value || "(não informado)";
       const obs = document.getElementById("obsEncerramento").value || "(nenhuma observação)";
       const logsInput = document.getElementById("logsArquivo");
 
-      let logsHTML = "<p>LOGs anexados: (nenhum)</p>";
+      let logsHTML = "";
       if (logsInput.files.length > 0) {
         let links = [];
         for (let i = 0; i < logsInput.files.length; i++) {
@@ -179,9 +169,9 @@
       }
 
       const html = `
-        <p>Data e hora do encerramento: ${dataHora}</p>
+        <p>Data e Hora do Encerramento: ${dataHora}</p>
         <p>Cliente: ${cliente}</p>
-        <p>Resumo da solução: ${resumo}</p>
+        <p>Resumo da Solução: ${resumo}</p>
         <p>Observações: ${obs}</p>
         ${logsHTML}
       `;
