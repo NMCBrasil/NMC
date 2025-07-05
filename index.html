@@ -1,189 +1,147 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <title>Gerador de Carimbo</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 750px;
-      margin: 20px auto;
-      padding: 0 15px;
-    }
-    label {
-      font-weight: bold;
-      display: block;
-      margin-top: 12px;
-    }
-    input[type="text"],
-    input[type="datetime-local"],
-    textarea,
-    select {
-      width: 100%;
-      box-sizing: border-box;
-      font-size: 14px;
-      padding: 6px;
-      margin-top: 5px;
-    }
-    textarea {
-      min-height: 60px;
-      resize: vertical;
-    }
-    button {
-      margin-top: 15px;
-      padding: 10px 15px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    #carimbo {
-      white-space: pre-line;
-      margin-top: 20px;
-      border: 1px solid #ccc;
-      padding: 15px;
-      background-color: #f9f9f9;
-      font-family: monospace;
-      font-size: 14px;
-      line-height: 1.15;
-    }
-    .msg {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      background: #28a745;
-      color: white;
-      padding: 8px 12px;
-      border-radius: 5px;
-      font-weight: bold;
-      font-size: 14px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gerador de Carimbos</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 700px;
+    margin: 20px auto;
+    padding: 0 15px;
+  }
+  label {
+    font-weight: bold;
+    display: block;
+    margin-top: 10px;
+  }
+  input[type="text"],
+  input[type="datetime-local"],
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 5px;
+    font-size: 14px;
+    padding: 6px;
+  }
+  textarea {
+    resize: vertical;
+    min-height: 60px;
+  }
+  button {
+    margin-top: 15px;
+    padding: 10px 15px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  #carimbo {
+    white-space: pre-line;
+    margin-top: 20px;
+    border: 1px solid #ddd;
+    padding: 15px;
+    background-color: #f9f9f9;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.1; /* menor espaçamento entre linhas */
+  }
+</style>
 </head>
 <body>
 
-<h2>Gerador de Carimbo</h2>
+<h2>Gerador de Carimbo - Abertura</h2>
+<form id="formAbertura">
+  <label for="dataHoraInicio">Data e Hora do Início da Falha:</label>
+  <input type="datetime-local" id="dataHoraInicio" name="dataHoraInicio" />
 
-<label for="tipoCarimbo">Tipo de Carimbo:</label>
-<select id="tipoCarimbo" onchange="alternarFormulario()">
-  <option value="abertura">Abertura</option>
-  <option value="encerramento">Encerramento</option>
-</select>
+  <label for="tecnologia">Tecnologia:</label>
+  <input type="text" id="tecnologia" name="tecnologia" />
 
-<!-- Formulário de Abertura -->
-<div id="formAbertura">
-  <label>Data e Hora do Início da Falha:</label>
-  <input type="datetime-local" id="dataHoraInicio" />
+  <label for="clientesAfetados">Cliente(s) Afetado(s):</label>
+  <input type="text" id="clientesAfetados" name="clientesAfetados" />
 
-  <label>Tecnologia:</label>
-  <select id="tecnologia">
-    <option value="">(não informado)</option>
-    <option>Manaus Banda C</option>
-    <option>Manaus SCPC</option>
-    <option>HN</option>
-    <option>HN2</option>
-    <option>HX</option>
-    <option>Jup Banda C</option>
-    <option>Jup Banda KU</option>
-    <option>OneWeb</option>
-    <option>BGANs</option>
-    <option>Frotas</option>
-    <option>HughesON</option>
-    <option>LTE</option>
-  </select>
+  <label for="descricaoAlarmes">Descrição do(s) Alarme(s):</label>
+  <textarea id="descricaoAlarmes" name="descricaoAlarmes"></textarea>
 
-  <label>Cliente(s) Afetado(s):</label>
-  <input type="text" id="clientesAfetados" />
+  <label for="descricaoEquipamentos">Descrição do(s) Equipamento(s):</label>
+  <textarea id="descricaoEquipamentos" name="descricaoEquipamentos"></textarea>
 
-  <label>Descrição do(s) Alarme(s):</label>
-  <textarea id="descricaoAlarmes"></textarea>
+  <label for="linkDiagrama">Link do Diagrama (opcional):</label>
+  <input type="text" id="linkDiagrama" name="linkDiagrama" />
 
-  <label>Descrição do(s) Equipamento(s):</label>
-  <textarea id="descricaoEquipamentos"></textarea>
+  <button type="button" onclick="gerarCarimboAbertura()">Gerar Carimbo</button>
+</form>
 
-  <label>Link do Diagrama de Rede:</label>
-  <input type="text" id="linkDiagrama" />
+<h2>Gerador de Carimbo - Encerramento</h2>
+<form id="formEncerramento">
+  <label for="dataHoraSolucao">Data e Hora da Solução:</label>
+  <input type="datetime-local" id="dataHoraSolucao" name="dataHoraSolucao" />
 
-  <label>Ferramentas Utilizadas no Troubleshooting:</label>
-  <textarea id="ferramentasTroubleshooting"></textarea>
+  <label for="clientesAtendidos">Cliente(s) Atendido(s):</label>
+  <input type="text" id="clientesAtendidos" name="clientesAtendidos" />
 
-  <label>Testes Realizados pelo NMC:</label>
-  <textarea id="testesNMC"></textarea>
-</div>
+  <label for="acoesNMC">Ações Realizadas pelo NMC:</label>
+  <textarea id="acoesNMC" name="acoesNMC"></textarea>
 
-<!-- Formulário de Encerramento -->
-<div id="formEncerramento" style="display:none;">
-  <label>Data e Hora da Solução:</label>
-  <input type="datetime-local" id="dataHoraSolucao" />
+  <label for="anexosLogs">Anexos de Logs (opcional):</label>
+  <input type="text" id="anexosLogs" name="anexosLogs" />
 
-  <label>Cliente(s) Atendido(s):</label>
-  <input type="text" id="clientesAtendidos" />
+  <button type="button" onclick="gerarCarimboEncerramento()">Gerar Carimbo</button>
+</form>
 
-  <label>Ações Realizadas pelo NMC:</label>
-  <textarea id="acoesNMC"></textarea>
-
-  <label>Anexos de Logs (opcional):</label>
-  <input type="text" id="anexosLogs" />
-</div>
-
-<button onclick="gerarCarimbo()">Gerar Carimbo</button>
-<button onclick="copiarCarimbo()">Copiar Carimbo</button>
+<button onclick="copiarCarimbo()" style="margin-top:15px;">Copiar Carimbo</button>
 
 <div id="carimbo"></div>
 
 <script>
-function pad(valor) {
-  return valor.trim() !== '' ? valor.trim() : '(não informado)';
+function pad(str) {
+  return str && str.trim() !== '' ? str.trim() : '(não informado)';
 }
 
-function formatarDataHora(valor) {
-  if (!valor) return '(não informado)';
-  const dt = new Date(valor);
+function formatDataHora(dataHora) {
+  if (!dataHora) return '(não informado)';
+  const dt = new Date(dataHora);
   if (isNaN(dt)) return '(não informado)';
-  return dt.toLocaleString('pt-BR', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  return dt.toLocaleString('pt-BR', { 
+    day: '2-digit', month: '2-digit', year: 'numeric', 
+    hour: '2-digit', minute: '2-digit', second: '2-digit' 
   });
 }
 
-function alternarFormulario() {
-  const tipo = document.getElementById('tipoCarimbo').value;
-  document.getElementById('formAbertura').style.display = tipo === 'abertura' ? 'block' : 'none';
-  document.getElementById('formEncerramento').style.display = tipo === 'encerramento' ? 'block' : 'none';
-  document.getElementById('carimbo').textContent = '';
+function gerarCarimboAbertura() {
+  const dataHoraInicio = formatDataHora(document.getElementById('dataHoraInicio').value);
+  const tecnologia = pad(document.getElementById('tecnologia').value);
+  const clientesAfetados = pad(document.getElementById('clientesAfetados').value);
+  const descricaoAlarmes = pad(document.getElementById('descricaoAlarmes').value);
+  const descricaoEquipamentos = pad(document.getElementById('descricaoEquipamentos').value);
+  const linkDiagrama = document.getElementById('linkDiagrama').value.trim();
+
+  let texto = '';
+  texto += `Data e Hora do Início da Falha: ${dataHoraInicio}\n`;
+  texto += `Tecnologia: ${tecnologia}\n`;
+  texto += `Cliente(s) Afetado(s): ${clientesAfetados}\n`;
+  texto += `Descrição do(s) Alarme(s): ${descricaoAlarmes}\n`;
+  texto += `Descrição do(s) Equipamento(s): ${descricaoEquipamentos}`;
+  if (linkDiagrama !== '') {
+    texto += `\nLink do Diagrama: ${linkDiagrama}`;
+  }
+
+  document.getElementById('carimbo').textContent = texto;
 }
 
-function gerarCarimbo() {
-  const tipo = document.getElementById('tipoCarimbo').value;
+function gerarCarimboEncerramento() {
+  const dataHoraSolucao = formatDataHora(document.getElementById('dataHoraSolucao').value);
+  const clientesAtendidos = pad(document.getElementById('clientesAtendidos').value);
+  const acoesNMC = pad(document.getElementById('acoesNMC').value);
+  const anexosLogs = document.getElementById('anexosLogs').value.trim();
+
   let texto = '';
-
-  if (tipo === 'abertura') {
-    const inicio = formatarDataHora(document.getElementById('dataHoraInicio').value);
-    const tecnologia = pad(document.getElementById('tecnologia').value);
-    const clientes = pad(document.getElementById('clientesAfetados').value);
-    const alarmes = pad(document.getElementById('descricaoAlarmes').value);
-    const equipamentos = pad(document.getElementById('descricaoEquipamentos').value);
-    const diagrama = document.getElementById('linkDiagrama').value.trim();
-    const ferramentas = pad(document.getElementById('ferramentasTroubleshooting').value);
-    const testes = pad(document.getElementById('testesNMC').value);
-
-    texto += `Data e Hora do Início da Falha: ${inicio}\r\n`;
-    texto += `Tecnologia: ${tecnologia}\r\n`;
-    texto += `Cliente(s) Afetado(s): ${clientes}\r\n`;
-    texto += `Descrição do(s) Alarme(s): ${alarmes}\r\n`;
-    texto += `Descrição do(s) Equipamento(s): ${equipamentos}\r\n`;
-    if (diagrama !== '') texto += `Link do Diagrama de Rede: ${diagrama}\r\n`;
-    texto += `Ferramentas Utilizadas no Troubleshooting: ${ferramentas}\r\n`;
-    texto += `Testes Realizados pelo NMC: ${testes}`;
-
-  } else if (tipo === 'encerramento') {
-    const solucao = formatarDataHora(document.getElementById('dataHoraSolucao').value);
-    const clientes = pad(document.getElementById('clientesAtendidos').value);
-    const acoes = pad(document.getElementById('acoesNMC').value);
-    const anexos = document.getElementById('anexosLogs').value.trim();
-
-    texto += `Data e Hora da Solução: ${solucao}\r\n`;
-    texto += `Cliente(s) Atendido(s): ${clientes}\r\n`;
-    texto += `Ações Realizadas pelo NMC: ${acoes}`;
-    if (anexos !== '') texto += `\r\nAnexos de Logs: ${anexos}`;
+  texto += `Data e Hora da Solução: ${dataHoraSolucao}\n`;
+  texto += `Cliente(s) Atendido(s): ${clientesAtendidos}\n`;
+  texto += `Ações Realizadas pelo NMC: ${acoesNMC}`;
+  if (anexosLogs !== '') {
+    texto += `\nAnexos de Logs: ${anexosLogs}`;
   }
 
   document.getElementById('carimbo').textContent = texto;
@@ -191,13 +149,21 @@ function gerarCarimbo() {
 
 function copiarCarimbo() {
   const carimbo = document.getElementById('carimbo').textContent;
-  if (!carimbo) return;
+  if (!carimbo) return alert('Nenhum carimbo gerado para copiar.');
   navigator.clipboard.writeText(carimbo).then(() => {
+    // Mensagem simples sem modal de confirmação
     const msg = document.createElement('div');
     msg.textContent = 'Carimbo copiado para a área de transferência.';
-    msg.className = 'msg';
+    msg.style.position = 'fixed';
+    msg.style.bottom = '10px';
+    msg.style.right = '10px';
+    msg.style.backgroundColor = '#4caf50';
+    msg.style.color = '#fff';
+    msg.style.padding = '8px 12px';
+    msg.style.borderRadius = '5px';
+    msg.style.fontSize = '14px';
     document.body.appendChild(msg);
-    setTimeout(() => msg.remove(), 2500);
+    setTimeout(() => document.body.removeChild(msg), 2000);
   });
 }
 </script>
