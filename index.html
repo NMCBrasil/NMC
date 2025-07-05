@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -79,20 +78,43 @@
     <h3>Carimbo de Abertura de Chamado</h3>
     <label>Data e Hora do Início da Falha:</label>
     <input type="datetime-local" id="dataHora" />
+
     <label>Tecnologia:</label>
-    <input type="text" id="tecnologia" />
+    <select id="tecnologia">
+      <option value="">(não informado)</option>
+      <option>Manaus Banda C</option>
+      <option>Manaus SCPC</option>
+      <option>HN</option>
+      <option>HN2</option>
+      <option>HX</option>
+      <option>Jup Banda C</option>
+      <option>Jup Banda KU</option>
+      <option>OneWeb</option>
+      <option>BGANs</option>
+      <option>Frotas</option>
+      <option>HughesON</option>
+      <option>LTE</option>
+      <option>Link Backhaul</option>
+    </select>
+
     <label>Cliente(s) Afetado(s):</label>
     <input type="text" id="cliente" />
+
     <label>Descrição do(s) Alarme(s):</label>
     <textarea id="alarme"></textarea>
+
     <label>Descrição do(s) Equipamento(s):</label>
     <textarea id="equipamento"></textarea>
+
     <label>Link do Diagrama de Rede:</label>
     <input type="text" id="linkDiagrama" placeholder="https://exemplo.com/diagrama" />
+
     <label>Ferramentas Utilizadas no Troubleshooting:</label>
     <textarea id="ferramentas"></textarea>
+
     <label>Testes Realizados pelo NMC:</label>
     <textarea id="testes"></textarea>
+
     <button onclick="gerarCarimboAbertura()">Gerar Carimbo</button>
   </div>
 
@@ -100,14 +122,19 @@
     <h3>Carimbo de Encerramento de Chamado</h3>
     <label>Data e Hora do Encerramento:</label>
     <input type="datetime-local" id="dataHoraEncerramento" />
+
     <label>Cliente:</label>
     <input type="text" id="clienteEncerramento" />
+
     <label>Resumo da Solução:</label>
     <textarea id="resumoEncerramento"></textarea>
+
     <label>Observações:</label>
     <textarea id="obsEncerramento"></textarea>
+
     <label>Anexar LOGs (se houver):</label>
     <input type="file" id="logsArquivo" accept=".log,.txt,.zip,.rar" multiple />
+
     <button onclick="gerarCarimboEncerramento()">Gerar Carimbo</button>
   </div>
 
