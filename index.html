@@ -43,7 +43,7 @@
     background-color: #f9f9f9;
     font-family: monospace;
     font-size: 14px;
-    line-height: 1.1; /* menor espaçamento entre linhas */
+    line-height: 1.1;
   }
 </style>
 </head>
@@ -117,13 +117,13 @@ function gerarCarimboAbertura() {
   const linkDiagrama = document.getElementById('linkDiagrama').value.trim();
 
   let texto = '';
-  texto += `Data e Hora do Início da Falha: ${dataHoraInicio}\n`;
-  texto += `Tecnologia: ${tecnologia}\n`;
-  texto += `Cliente(s) Afetado(s): ${clientesAfetados}\n`;
-  texto += `Descrição do(s) Alarme(s): ${descricaoAlarmes}\n`;
+  texto += `Data e Hora do Início da Falha: ${dataHoraInicio}\r\n`;
+  texto += `Tecnologia: ${tecnologia}\r\n`;
+  texto += `Cliente(s) Afetado(s): ${clientesAfetados}\r\n`;
+  texto += `Descrição do(s) Alarme(s): ${descricaoAlarmes}\r\n`;
   texto += `Descrição do(s) Equipamento(s): ${descricaoEquipamentos}`;
   if (linkDiagrama !== '') {
-    texto += `\nLink do Diagrama: ${linkDiagrama}`;
+    texto += `\r\nLink do Diagrama: ${linkDiagrama}`;
   }
 
   document.getElementById('carimbo').textContent = texto;
@@ -136,11 +136,11 @@ function gerarCarimboEncerramento() {
   const anexosLogs = document.getElementById('anexosLogs').value.trim();
 
   let texto = '';
-  texto += `Data e Hora da Solução: ${dataHoraSolucao}\n`;
-  texto += `Cliente(s) Atendido(s): ${clientesAtendidos}\n`;
+  texto += `Data e Hora da Solução: ${dataHoraSolucao}\r\n`;
+  texto += `Cliente(s) Atendido(s): ${clientesAtendidos}\r\n`;
   texto += `Ações Realizadas pelo NMC: ${acoesNMC}`;
   if (anexosLogs !== '') {
-    texto += `\nAnexos de Logs: ${anexosLogs}`;
+    texto += `\r\nAnexos de Logs: ${anexosLogs}`;
   }
 
   document.getElementById('carimbo').textContent = texto;
@@ -150,7 +150,6 @@ function copiarCarimbo() {
   const carimbo = document.getElementById('carimbo').textContent;
   if (!carimbo) return alert('Nenhum carimbo gerado para copiar.');
   navigator.clipboard.writeText(carimbo).then(() => {
-    // Mensagem simples sem modal de confirmação
     const msg = document.createElement('div');
     msg.textContent = 'Carimbo copiado para a área de transferência.';
     msg.style.position = 'fixed';
