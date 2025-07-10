@@ -147,14 +147,16 @@
 
     function obterDataHoraBrasiliaFormatada() {
       const agora = new Date();
-      const fusoHorarioBrasilia = -3 * 60;
-      const localTime = new Date(agora.getTime() + (fusoHorarioBrasilia - agora.getTimezoneOffset()) * 60000);
-      const dia = String(localTime.getDate()).padStart(2, '0');
-      const mes = String(localTime.getMonth() + 1).padStart(2, '0');
-      const ano = localTime.getFullYear();
-      const hora = String(localTime.getHours()).padStart(2, '0');
-      const minutos = String(localTime.getMinutes()).padStart(2, '0');
-      return `${dia}/${mes}/${ano} ${hora}:${minutos}`;
+      const opcoes = {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      };
+      return agora.toLocaleString('pt-BR', opcoes).replace(',', '');
     }
 
     function gerarCarimboAbertura() {
