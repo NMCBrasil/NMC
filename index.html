@@ -35,7 +35,7 @@
       padding: 15px;
       min-height: 100px;
       font-size: 16px;
-      white-space: pre-wrap;
+      white-space: pre-line;
     }
 
     button {
@@ -145,8 +145,22 @@
       document.getElementById("carimbo").textContent = "";
     }
 
+    function obterDataHoraBrasiliaFormatada() {
+      const agora = new Date();
+      const fusoHorarioBrasilia = -3 * 60;
+      const localTime = new Date(agora.getTime() + (fusoHorarioBrasilia - agora.getTimezoneOffset()) * 60000);
+      const dia = String(localTime.getDate()).padStart(2, '0');
+      const mes = String(localTime.getMonth() + 1).padStart(2, '0');
+      const ano = localTime.getFullYear();
+      const hora = String(localTime.getHours()).padStart(2, '0');
+      const minutos = String(localTime.getMinutes()).padStart(2, '0');
+      return `${dia}/${mes}/${ano} ${hora}:${minutos}`;
+    }
+
     function gerarCarimboAbertura() {
-      const dataHora = document.getElementById("dataHora").value || "(não informado)";
+      let dataHora = document.getElementById("dataHora").value;
+      if (!dataHora) dataHora = obterDataHoraBrasiliaFormatada();
+
       const tecnologia = document.getElementById("tecnologia").value || "(não informado)";
       const cliente = document.getElementById("cliente").value || "(não informado)";
       const alarme = document.getElementById("alarme").value || "(não informado)";
@@ -171,7 +185,9 @@
     }
 
     function gerarCarimboEncerramento() {
-      const dataHora = document.getElementById("dataHoraEncerramento").value || "(não informado)";
+      let dataHora = document.getElementById("dataHoraEncerramento").value;
+      if (!dataHora) dataHora = obterDataHoraBrasiliaFormatada();
+
       const cliente = document.getElementById("clienteEncerramento").value || "(não informado)";
       const resumo = document.getElementById("resumoEncerramento").value || "(não informado)";
       const obs = document.getElementById("obsEncerramento").value || "(nenhuma observação)";
