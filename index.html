@@ -127,8 +127,9 @@
     <label>Observações:</label>
     <textarea id="obsEncerramento"></textarea>
 
-    <label>Anexar LOGs (se houver):</label>
-    <input type="file" id="logsArquivo" accept=".log,.txt,.zip,.rar" multiple />
+    <!-- Campo removido conforme pedido -->
+    <!-- <label>Anexar LOGs (se houver):</label>
+    <input type="file" id="logsArquivo" accept=".log,.txt,.zip,.rar" multiple /> -->
 
     <button onclick="gerarCarimboEncerramento()">Gerar Carimbo</button>
   </div>
@@ -193,21 +194,12 @@
       const cliente = document.getElementById("clienteEncerramento").value || "(não informado)";
       const resumo = document.getElementById("resumoEncerramento").value || "(não informado)";
       const obs = document.getElementById("obsEncerramento").value || "(nenhuma observação)";
-      const logsInput = document.getElementById("logsArquivo");
 
       let texto = "";
       texto += `Data e Hora do Encerramento: ${dataHora}\n`;
       texto += `Cliente: ${cliente}\n`;
       texto += `Resumo da Solução: ${resumo}\n`;
       texto += `Observações: ${obs}`;
-
-      if (logsInput.files.length > 0) {
-        let nomes = [];
-        for (let i = 0; i < logsInput.files.length; i++) {
-          nomes.push(logsInput.files[i].name);
-        }
-        texto += `\nLOGs anexados: ${nomes.join(", ")}`;
-      }
 
       document.getElementById("carimbo").textContent = texto;
     }
