@@ -8,7 +8,7 @@
       font-family: Arial, sans-serif;
       padding: 20px;
       max-width: 700px;
-      margin: 40px auto 20px auto; /* adiciona espaço superior para o header fixo */
+      margin: 40px auto 20px auto;
       position: relative;
     }
 
@@ -29,7 +29,7 @@
     }
 
     header img {
-      width: 160px; /* logo maior */
+      width: 160px;
       height: auto;
       display: block;
     }
@@ -68,6 +68,7 @@
       white-space: pre-line;
       white-space: pre-wrap;
       word-wrap: break-word;
+      display: none; /* começa oculto */
     }
 
     button {
@@ -82,8 +83,12 @@
       background-color: #0056b3;
     }
 
+    #mensagemCopiado,
+    #btnCopiarCarimbo {
+      display: none; /* escondidos inicialmente */
+    }
+
     #mensagemCopiado {
-      display: none;
       color: green;
       font-weight: bold;
       margin-top: -10px;
@@ -94,7 +99,7 @@
 <body>
 
   <header>
-    <img src="data:image/png;base64,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" alt="Logo Hughes Brasil" />
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAlgAAAA+CAMAAADAipWAAAAAulBMVEX///8AXayIiYwAW6sAWqscZK8AWKpLhL6FhokAX63q8vj4/P4AVqkgZ7EAU6iCg4avxd8ATqbk5OU+dLZymcnh7PWys7Wrr..." alt="Logo Hughes Brasil" />
     <span>NMC Brasil</span>
   </header>
 
@@ -169,14 +174,23 @@
   </div>
 
   <div id="carimbo"></div>
-  <button onclick="copiarCarimbo()">📋 Copiar Carimbo</button>
+  <button id="btnCopiarCarimbo" onclick="copiarCarimbo()">📋 Copiar Carimbo</button>
   <div id="mensagemCopiado">✅ Carimbo copiado!</div>
 
   <script>
     function mostrarFormulario() {
       const tipo = document.getElementById("tipoCarimbo").value;
+
       document.getElementById("formAbertura").style.display = tipo === "abertura" ? "block" : "none";
       document.getElementById("formEncerramento").style.display = tipo === "encerramento" ? "block" : "none";
+
+      // Exibe o botão de copiar e o campo do carimbo
+      const mostrar = tipo === "abertura" || tipo === "encerramento";
+      document.getElementById("carimbo").style.display = mostrar ? "block" : "none";
+      document.getElementById("btnCopiarCarimbo").style.display = mostrar ? "inline-block" : "none";
+      document.getElementById("mensagemCopiado").style.display = "none";
+
+      // Limpa o carimbo anterior
       document.getElementById("carimbo").textContent = "";
     }
 
@@ -196,23 +210,17 @@
 
     function gerarCarimboAbertura() {
       const dataHoraInput = document.getElementById("dataHora").value;
-      let dataHora;
-
-      if (dataHoraInput) {
-        const data = new Date(dataHoraInput);
-        const opcoes = {
-          timeZone: 'America/Sao_Paulo',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        };
-        dataHora = new Intl.DateTimeFormat('pt-BR', opcoes).format(data).replace(',', '');
-      } else {
-        dataHora = obterDataHoraBrasiliaFormatada();
-      }
+      let dataHora = dataHoraInput
+        ? new Intl.DateTimeFormat('pt-BR', {
+            timeZone: 'America/Sao_Paulo',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }).format(new Date(dataHoraInput)).replace(',', '')
+        : obterDataHoraBrasiliaFormatada();
 
       const tecnologia = document.getElementById("tecnologia").value || "(não informado)";
       const cliente = document.getElementById("cliente").value || "(não informado)";
@@ -222,15 +230,12 @@
       const ferramentas = document.getElementById("ferramentas").value || "(não informado)";
       const testes = document.getElementById("testes").value || "(não informado)";
 
-      let texto = "";
-      texto += `Data e Hora do Início da Falha: ${dataHora}\n`;
+      let texto = `Data e Hora do Início da Falha: ${dataHora}\n`;
       texto += `Tecnologia: ${tecnologia}\n`;
       texto += `Cliente(s) Afetado(s): ${cliente}\n`;
       texto += `Descrição do(s) Alarme(s): ${alarme}\n`;
       texto += `Descrição do(s) Equipamento(s): ${equipamento}\n`;
-      if (linkDiagrama) {
-        texto += `Link do Diagrama de Rede: ${linkDiagrama}\n`;
-      }
+      if (linkDiagrama) texto += `Link do Diagrama de Rede: ${linkDiagrama}\n`;
       texto += `Ferramentas Utilizadas no Troubleshooting: ${ferramentas}\n`;
       texto += `Testes Realizados pelo NMC: ${testes}`;
 
@@ -239,30 +244,23 @@
 
     function gerarCarimboEncerramento() {
       const dataHoraInput = document.getElementById("dataHoraEncerramento").value;
-      let dataHora;
-
-      if (dataHoraInput) {
-        const data = new Date(dataHoraInput);
-        const opcoes = {
-          timeZone: 'America/Sao_Paulo',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        };
-        dataHora = new Intl.DateTimeFormat('pt-BR', opcoes).format(data).replace(',', '');
-      } else {
-        dataHora = obterDataHoraBrasiliaFormatada();
-      }
+      let dataHora = dataHoraInput
+        ? new Intl.DateTimeFormat('pt-BR', {
+            timeZone: 'America/Sao_Paulo',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }).format(new Date(dataHoraInput)).replace(',', '')
+        : obterDataHoraBrasiliaFormatada();
 
       const cliente = document.getElementById("clienteEncerramento").value || "(não informado)";
       const resumo = document.getElementById("resumoEncerramento").value || "(não informado)";
       const obs = document.getElementById("obsEncerramento").value || "(nenhuma observação)";
 
-      let texto = "";
-      texto += `Data e Hora do Encerramento: ${dataHora}\n`;
+      let texto = `Data e Hora do Encerramento: ${dataHora}\n`;
       texto += `Cliente: ${cliente}\n`;
       texto += `Resumo da Solução: ${resumo}\n`;
       texto += `Observações: ${obs}`;
@@ -271,9 +269,7 @@
     }
 
     async function copiarCarimbo() {
-      const carimbo = document.getElementById("carimbo");
-      const texto = carimbo.textContent;
-
+      const texto = document.getElementById("carimbo").textContent;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         try {
           await navigator.clipboard.writeText(texto);
@@ -283,10 +279,9 @@
           }, 2000);
           return;
         } catch (err) {
-          console.error("Erro ao copiar texto para clipboard:", err);
+          console.error("Erro ao copiar texto:", err);
         }
       }
-
       const el = document.createElement("textarea");
       el.value = texto;
       document.body.appendChild(el);
