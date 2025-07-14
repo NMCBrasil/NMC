@@ -8,37 +8,24 @@
       font-family: Arial, sans-serif;
       padding: 20px;
       max-width: 700px;
-      margin: 40px auto 20px auto;
-      position: relative;
+      margin: auto;
     }
 
-    header {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 6px;
-      z-index: 1000;
-      background: white;
-      padding: 5px 10px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    .logo-area {
+      text-align: left;
+      margin-bottom: 20px;
     }
 
-    header img {
-      width: 160px;
+    .logo-area img {
+      width: 200px; /* Tamanho maior */
       height: auto;
-      display: block;
     }
 
-    header span {
+    .logo-area span {
+      display: block;
       font-weight: bold;
-      font-size: 1.4em;
-      color: #333;
-      user-select: none;
+      font-size: 1.3em;
+      margin-top: 5px;
     }
 
     label {
@@ -65,10 +52,9 @@
       padding: 15px;
       min-height: 100px;
       font-size: 16px;
-      white-space: pre-line;
       white-space: pre-wrap;
       word-wrap: break-word;
-      display: none; /* começa oculto */
+      display: none;
     }
 
     button {
@@ -83,9 +69,9 @@
       background-color: #0056b3;
     }
 
-    #mensagemCopiado,
-    #btnCopiarCarimbo {
-      display: none; /* escondidos inicialmente */
+    #btnCopiarCarimbo,
+    #mensagemCopiado {
+      display: none;
     }
 
     #mensagemCopiado {
@@ -98,10 +84,10 @@
 </head>
 <body>
 
-  <header>
-    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAlgAAAA+CAMAAADAipWAAAAAulBMVEX///8AXayIiYwAW6sAWqscZK8AWKpLhL6FhokAX63q8vj4/P4AVqkgZ7EAU6iCg4avxd8ATqbk5OU+dLZymcnh7PWys7Wrr..." alt="Logo Hughes Brasil" />
+  <div class="logo-area">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAlgAAAA+CAMAAADAipWAAAAAulBMVEX///8AXayIiYwAW6sAWqscZK8AWKpLhL6FhokAX63q8vj4/P4AVqkgZ7EAU6iCg4avxd8ATqbk5OU+dLZymcnh7PWys7Wrr..." alt="Logo Hughes" />
     <span>NMC Brasil</span>
-  </header>
+  </div>
 
   <h2>Carimbos Chamados Enterprise</h2>
 
@@ -180,23 +166,19 @@
   <script>
     function mostrarFormulario() {
       const tipo = document.getElementById("tipoCarimbo").value;
-
       document.getElementById("formAbertura").style.display = tipo === "abertura" ? "block" : "none";
       document.getElementById("formEncerramento").style.display = tipo === "encerramento" ? "block" : "none";
 
-      // Exibe o botão de copiar e o campo do carimbo
       const mostrar = tipo === "abertura" || tipo === "encerramento";
       document.getElementById("carimbo").style.display = mostrar ? "block" : "none";
       document.getElementById("btnCopiarCarimbo").style.display = mostrar ? "inline-block" : "none";
       document.getElementById("mensagemCopiado").style.display = "none";
-
-      // Limpa o carimbo anterior
       document.getElementById("carimbo").textContent = "";
     }
 
     function obterDataHoraBrasiliaFormatada() {
       const agora = new Date();
-      const opcoes = {
+      return new Intl.DateTimeFormat('pt-BR', {
         timeZone: 'America/Sao_Paulo',
         year: 'numeric',
         month: '2-digit',
@@ -204,8 +186,7 @@
         hour: '2-digit',
         minute: '2-digit',
         hour12: false
-      };
-      return new Intl.DateTimeFormat('pt-BR', opcoes).format(agora).replace(',', '');
+      }).format(agora).replace(',', '');
     }
 
     function gerarCarimboAbertura() {
@@ -282,6 +263,7 @@
           console.error("Erro ao copiar texto:", err);
         }
       }
+
       const el = document.createElement("textarea");
       el.value = texto;
       document.body.appendChild(el);
