@@ -127,10 +127,6 @@
     <label>Observações:</label>
     <textarea id="obsEncerramento"></textarea>
 
-    <!-- Campo removido conforme pedido -->
-    <!-- <label>Anexar LOGs (se houver):</label>
-    <input type="file" id="logsArquivo" accept=".log,.txt,.zip,.rar" multiple /> -->
-
     <button onclick="gerarCarimboEncerramento()">Gerar Carimbo</button>
   </div>
 
@@ -157,12 +153,28 @@
         minute: '2-digit',
         hour12: false
       };
-      return agora.toLocaleString('pt-BR', opcoes).replace(',', '');
+      return new Intl.DateTimeFormat('pt-BR', opcoes).format(agora).replace(',', '');
     }
 
     function gerarCarimboAbertura() {
-      let dataHora = document.getElementById("dataHora").value;
-      if (!dataHora) dataHora = obterDataHoraBrasiliaFormatada();
+      const dataHoraInput = document.getElementById("dataHora").value;
+      let dataHora;
+
+      if (dataHoraInput) {
+        const data = new Date(dataHoraInput);
+        const opcoes = {
+          timeZone: 'America/Sao_Paulo',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        };
+        dataHora = new Intl.DateTimeFormat('pt-BR', opcoes).format(data).replace(',', '');
+      } else {
+        dataHora = obterDataHoraBrasiliaFormatada();
+      }
 
       const tecnologia = document.getElementById("tecnologia").value || "(não informado)";
       const cliente = document.getElementById("cliente").value || "(não informado)";
@@ -188,8 +200,24 @@
     }
 
     function gerarCarimboEncerramento() {
-      let dataHora = document.getElementById("dataHoraEncerramento").value;
-      if (!dataHora) dataHora = obterDataHoraBrasiliaFormatada();
+      const dataHoraInput = document.getElementById("dataHoraEncerramento").value;
+      let dataHora;
+
+      if (dataHoraInput) {
+        const data = new Date(dataHoraInput);
+        const opcoes = {
+          timeZone: 'America/Sao_Paulo',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        };
+        dataHora = new Intl.DateTimeFormat('pt-BR', opcoes).format(data).replace(',', '');
+      } else {
+        dataHora = obterDataHoraBrasiliaFormatada();
+      }
 
       const cliente = document.getElementById("clienteEncerramento").value || "(não informado)";
       const resumo = document.getElementById("resumoEncerramento").value || "(não informado)";
