@@ -9,15 +9,18 @@
       padding: 20px;
       max-width: 700px;
       margin: auto;
+      text-align: left;
     }
 
     .logo-area {
-      text-align: left;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
       margin-bottom: 20px;
     }
 
     .logo-area img {
-      width: 200px; /* Tamanho maior */
+      width: 200px;
       height: auto;
     }
 
@@ -85,7 +88,7 @@
 <body>
 
   <div class="logo-area">
-    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAlgAAAA+CAMAAADAipWAAAAAulBMVEX///8AXayIiYwAW6sAWqscZK8AWKpLhL6FhokAX63q8vj4/P4AVqkgZ7EAU6iCg4avxd8ATqbk5OU+dLZymcnh7PWys7Wrr..." alt="Logo Hughes" />
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEwAAAAoCAYAAACaq43EAAAACXBIWXMAAAsTAAALEwEAmpwYAAABUklEQVRoge3YP0pDQRQF0UciEoWkBFgo6QnBJN7DRS0gkjQSXIXkFBCuUKdpEcXkWwcmYMHbE0zG/fbHYc9uzuzs7uC+K8DcZgAAAAAAAAB4Jz0FveQEN1WwbqXwFzW7hq3b4Et1ewen+w7EVkSPY0QLHuHoOxF5CLWIsb3kERt8ykYkXsoGoCuwfkpK9xZ6SzHnHZBG/nAbgq2rGeAlZto5o0+XZBWc9lHJuItYiwve4B5rONmcF+MejRjWrIfl4C8SnL+YcfDnMi1ZjcvxNdvYUd7eGtfJX9hR/tE88N8L2GwPzM12JkW+1H+E8r7FwYAAAAAAAAA+GcHHK/k9dYX2VoAAAAASUVORK5CYII=" alt="Logo Hughes" />
     <span>NMC Brasil</span>
   </div>
 
@@ -170,8 +173,8 @@
       document.getElementById("formEncerramento").style.display = tipo === "encerramento" ? "block" : "none";
 
       const mostrar = tipo === "abertura" || tipo === "encerramento";
-      document.getElementById("carimbo").style.display = mostrar ? "block" : "none";
-      document.getElementById("btnCopiarCarimbo").style.display = mostrar ? "inline-block" : "none";
+      document.getElementById("carimbo").style.display = "none";
+      document.getElementById("btnCopiarCarimbo").style.display = "none";
       document.getElementById("mensagemCopiado").style.display = "none";
       document.getElementById("carimbo").textContent = "";
     }
@@ -221,6 +224,8 @@
       texto += `Testes Realizados pelo NMC: ${testes}`;
 
       document.getElementById("carimbo").textContent = texto;
+      document.getElementById("carimbo").style.display = "block";
+      document.getElementById("btnCopiarCarimbo").style.display = "inline-block";
     }
 
     function gerarCarimboEncerramento() {
@@ -247,6 +252,8 @@
       texto += `Observações: ${obs}`;
 
       document.getElementById("carimbo").textContent = texto;
+      document.getElementById("carimbo").style.display = "block";
+      document.getElementById("btnCopiarCarimbo").style.display = "inline-block";
     }
 
     async function copiarCarimbo() {
