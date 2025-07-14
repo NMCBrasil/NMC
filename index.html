@@ -9,6 +9,7 @@
       padding: 20px;
       max-width: 700px;
       margin: auto;
+      position: relative;
     }
 
     label {
@@ -35,7 +36,7 @@
       padding: 15px;
       min-height: 100px;
       font-size: 16px;
-      white-space: pre-line;
+      white-space: pre-wrap;
     }
 
     button {
@@ -57,9 +58,35 @@
       margin-top: -10px;
       margin-bottom: 15px;
     }
+
+    .logo-nmc {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      text-align: center;
+    }
+
+    .logo-nmc img {
+      height: 50px;
+    }
+
+    .logo-nmc div {
+      font-size: 14px;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    h2 {
+      margin-top: 100px;
+    }
   </style>
 </head>
 <body>
+  <div class="logo-nmc">
+    <img src="f43a4b96-0f98-4d78-9f70-9ad658af53ab.png" alt="Logo Hughes Brasil" />
+    <div>NMC Brasil</div>
+  </div>
+
   <h2>Carimbos Chamados Enterprise</h2>
 
   <label for="tipoCarimbo">Selecione o tipo de carimbo:</label>
@@ -171,7 +198,7 @@
           minute: '2-digit',
           hour12: false
         };
-        dataHora = new Intl.DateTimeFormat('pt-BR', opcoes).format(data).replace(',', '');
+        dataHora = new Intl.DateTimeFormat('pt-BR", opcoes).format(data).replace(',', '');
       } else {
         dataHora = obterDataHoraBrasiliaFormatada();
       }
