@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <title>Gerador de Carimbos</title>
   <style>
-    body {
+    main {
       font-family: Arial, sans-serif;
       padding: 20px;
       max-width: 700px;
@@ -89,11 +89,14 @@
     }
   </style>
 </head>
+<body>
+  <header>
   <div class="logo-area">
     <img src="Hughes.png" />
     <span>NMC Brasil</span>
   </div>
-  <body>
+  </header>
+  <main>
   <h2>Carimbos Chamados Enterprise</h2>
 
   <label for="tipoCarimbo">Selecione o tipo de carimbo:</label>
@@ -167,7 +170,7 @@
   <div id="carimbo"></div>
   <button id="btnCopiarCarimbo" onclick="copiarCarimbo()">📋 Copiar Carimbo</button>
   <div id="mensagemCopiado">✅ Carimbo copiado!</div>
-
+</main>
   <script>
     function mostrarFormulario() {
       const tipo = document.getElementById("tipoCarimbo").value;
