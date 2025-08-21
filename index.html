@@ -136,24 +136,6 @@
     <label>Data e Hora do Encerramento:</label>
     <input type="datetime-local" id="dataHoraEncerramento" />
 
-    <label>Tecnologia:</label>
-    <select id="tecnologiaEnc">
-      <option value="">--Selecione--</option>
-      <option>Manaus Banda C</option>
-      <option>Manaus SCPC</option>
-      <option>HN</option>
-      <option>HN2</option>
-      <option>HX</option>
-      <option>Jup Banda C</option>
-      <option>Jup Banda KU</option>
-      <option>OneWeb</option>
-      <option>BGANs</option>
-      <option>Frotas</option>
-      <option>HughesON</option>
-      <option>LTE</option>
-      <option>Link Backhaul</option>
-    </select>
-
     <label>Descrição do(s) Alarme(s):</label>
     <textarea id="alarmeEnc"></textarea>
 
@@ -243,7 +225,6 @@
           }).format(new Date(dataHoraInput)).replace(',', '')
         : obterDataHoraBrasiliaFormatada();
 
-      const tecnologia = document.getElementById("tecnologiaEnc").value || "(não informado)";
       const alarme = document.getElementById("alarmeEnc").value || "(não informado)";
       const equipamento = document.getElementById("equipamentoEnc").value || "(não informado)";
       const linkDiagrama = document.getElementById("linkDiagramaEnc").value.trim();
@@ -251,7 +232,6 @@
       const resumo = document.getElementById("resumoEncerramento").value || "(não informado)";
 
       let texto = `Data e Hora do Encerramento: ${dataHora}\n`;
-      texto += `Tecnologia: ${tecnologia}\n`;
       texto += `Descrição do(s) Alarme(s): ${alarme}\n`;
       texto += `Descrição do(s) Equipamento(s): ${equipamento}\n`;
       if (linkDiagrama) texto += `Link do Diagrama de Rede: ${linkDiagrama}\n`;
