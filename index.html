@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -93,7 +92,6 @@
   <header>
   <div class="logo-area">
     <img src="Hughes.png" />
-    <span>NMC Brasil</span>
   </div>
   </header>
   <main>
@@ -156,9 +154,6 @@
 
     <label>Ferramentas Utilizadas no Troubleshooting:</label>
     <textarea id="ferramentasEnc"></textarea>
-
-    <label>Problema Relatado:</label>
-    <textarea id="problemaEnc"></textarea>
 
     <label>Resumo da Solução:</label>
     <textarea id="resumoEncerramento"></textarea>
@@ -242,7 +237,6 @@
       const equipamento = document.getElementById("equipamentoEnc").value || "(não informado)";
       const linkDiagrama = document.getElementById("linkDiagramaEnc").value.trim();
       const ferramentas = document.getElementById("ferramentasEnc").value || "(não informado)";
-      const problema = document.getElementById("problemaEnc").value || "(não informado)";
       const resumo = document.getElementById("resumoEncerramento").value || "(não informado)";
       const obs = document.getElementById("obsEncerramento").value || "(nenhuma observação)";
 
@@ -253,7 +247,6 @@
       texto += `Descrição do(s) Equipamento(s): ${equipamento}\n`;
       if (linkDiagrama) texto += `Link do Diagrama de Rede: ${linkDiagrama}\n`;
       texto += `Ferramentas Utilizadas no Troubleshooting: ${ferramentas}\n`;
-      texto += `Problema Relatado: ${problema}\n`;
       texto += `Resumo da Solução: ${resumo}\n`;
       texto += `Observações: ${obs}`;
 
