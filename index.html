@@ -111,41 +111,8 @@
     <label>Data e Hora do Início da Falha:</label>
     <input type="datetime-local" id="dataHora" />
 
-    <label>Tecnologia:</label>
-    <select id="tecnologia">
-      <option value="">--Selecione--</option>
-      <option>Manaus Banda C</option>
-      <option>Manaus SCPC</option>
-      <option>HN</option>
-      <option>HN2</option>
-      <option>HX</option>
-      <option>Jup Banda C</option>
-      <option>Jup Banda KU</option>
-      <option>OneWeb</option>
-      <option>BGANs</option>
-      <option>Frotas</option>
-      <option>HughesON</option>
-      <option>LTE</option>
-      <option>Link Backhaul</option>
-    </select>
-
-    <label>Cliente(s) Afetado(s):</label>
-    <input type="text" id="cliente" />
-
-    <label>Descrição do(s) Alarme(s):</label>
-    <textarea id="alarme"></textarea>
-
-    <label>Descrição do(s) Equipamento(s):</label>
-    <textarea id="equipamento"></textarea>
-
-    <label>Link do Diagrama de Rede:</label>
-    <input type="text" id="linkDiagrama" placeholder="https://exemplo.com/diagrama" />
-
-    <label>Ferramentas Utilizadas no Troubleshooting:</label>
-    <textarea id="ferramentas"></textarea>
-
     <label>Problema Relatado:</label>
-    <textarea id="testes"></textarea>
+    <textarea id="problemaAbertura"></textarea>
 
     <button onclick="gerarCarimboAbertura()">Gerar Carimbo</button>
   </div>
@@ -244,21 +211,9 @@
           }).format(new Date(dataHoraInput)).replace(',', '')
         : obterDataHoraBrasiliaFormatada();
 
-      const tecnologia = document.getElementById("tecnologia").value || "(não informado)";
-      const cliente = document.getElementById("cliente").value || "(não informado)";
-      const alarme = document.getElementById("alarme").value || "(não informado)";
-      const equipamento = document.getElementById("equipamento").value || "(não informado)";
-      const linkDiagrama = document.getElementById("linkDiagrama").value.trim();
-      const ferramentas = document.getElementById("ferramentas").value || "(não informado)";
-      const problema = document.getElementById("testes").value || "(não informado)";
+      const problema = document.getElementById("problemaAbertura").value || "(não informado)";
 
       let texto = `Data e Hora do Início da Falha: ${dataHora}\n`;
-      texto += `Tecnologia: ${tecnologia}\n`;
-      texto += `Cliente(s) Afetado(s): ${cliente}\n`;
-      texto += `Descrição do(s) Alarme(s): ${alarme}\n`;
-      texto += `Descrição do(s) Equipamento(s): ${equipamento}\n`;
-      if (linkDiagrama) texto += `Link do Diagrama de Rede: ${linkDiagrama}\n`;
-      texto += `Ferramentas Utilizadas no Troubleshooting: ${ferramentas}\n`;
       texto += `Problema Relatado: ${problema}`;
 
       document.getElementById("carimbo").textContent = texto;
