@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -106,6 +105,7 @@
     <option value="encerramento">Carimbo de Encerramento</option>
   </select>
 
+  <!-- FORMULÁRIO ABERTURA -->
   <div id="formAbertura" style="display: none">
     <h3>Carimbo de Abertura de Chamado</h3>
     <label>Data e Hora do Início da Falha:</label>
@@ -144,19 +144,53 @@
     <label>Ferramentas Utilizadas no Troubleshooting:</label>
     <textarea id="ferramentas"></textarea>
 
-    <label>Testes Realizados pelo NMC:</label>
+    <label>Problema Relatado:</label>
     <textarea id="testes"></textarea>
 
     <button onclick="gerarCarimboAbertura()">Gerar Carimbo</button>
   </div>
 
+  <!-- FORMULÁRIO ENCERRAMENTO -->
   <div id="formEncerramento" style="display: none">
     <h3>Carimbo de Encerramento de Chamado</h3>
     <label>Data e Hora do Encerramento:</label>
     <input type="datetime-local" id="dataHoraEncerramento" />
 
-    <label>Cliente:</label>
-    <input type="text" id="clienteEncerramento" />
+    <label>Tecnologia:</label>
+    <select id="tecnologiaEnc">
+      <option value="">--Selecione--</option>
+      <option>Manaus Banda C</option>
+      <option>Manaus SCPC</option>
+      <option>HN</option>
+      <option>HN2</option>
+      <option>HX</option>
+      <option>Jup Banda C</option>
+      <option>Jup Banda KU</option>
+      <option>OneWeb</option>
+      <option>BGANs</option>
+      <option>Frotas</option>
+      <option>HughesON</option>
+      <option>LTE</option>
+      <option>Link Backhaul</option>
+    </select>
+
+    <label>Cliente(s) Afetado(s):</label>
+    <input type="text" id="clienteEnc" />
+
+    <label>Descrição do(s) Alarme(s):</label>
+    <textarea id="alarmeEnc"></textarea>
+
+    <label>Descrição do(s) Equipamento(s):</label>
+    <textarea id="equipamentoEnc"></textarea>
+
+    <label>Link do Diagrama de Rede:</label>
+    <input type="text" id="linkDiagramaEnc" placeholder="https://exemplo.com/diagrama" />
+
+    <label>Ferramentas Utilizadas no Troubleshooting:</label>
+    <textarea id="ferramentasEnc"></textarea>
+
+    <label>Problema Relatado:</label>
+    <textarea id="problemaEnc"></textarea>
 
     <label>Resumo da Solução:</label>
     <textarea id="resumoEncerramento"></textarea>
@@ -177,7 +211,6 @@
       document.getElementById("formAbertura").style.display = tipo === "abertura" ? "block" : "none";
       document.getElementById("formEncerramento").style.display = tipo === "encerramento" ? "block" : "none";
 
-      const mostrar = tipo === "abertura" || tipo === "encerramento";
       document.getElementById("carimbo").style.display = "none";
       document.getElementById("btnCopiarCarimbo").style.display = "none";
       document.getElementById("mensagemCopiado").style.display = "none";
@@ -217,7 +250,7 @@
       const equipamento = document.getElementById("equipamento").value || "(não informado)";
       const linkDiagrama = document.getElementById("linkDiagrama").value.trim();
       const ferramentas = document.getElementById("ferramentas").value || "(não informado)";
-      const testes = document.getElementById("testes").value || "(não informado)";
+      const problema = document.getElementById("testes").value || "(não informado)";
 
       let texto = `Data e Hora do Início da Falha: ${dataHora}\n`;
       texto += `Tecnologia: ${tecnologia}\n`;
@@ -226,7 +259,7 @@
       texto += `Descrição do(s) Equipamento(s): ${equipamento}\n`;
       if (linkDiagrama) texto += `Link do Diagrama de Rede: ${linkDiagrama}\n`;
       texto += `Ferramentas Utilizadas no Troubleshooting: ${ferramentas}\n`;
-      texto += `Testes Realizados pelo NMC: ${testes}`;
+      texto += `Problema Relatado: ${problema}`;
 
       document.getElementById("carimbo").textContent = texto;
       document.getElementById("carimbo").style.display = "block";
@@ -247,12 +280,24 @@
           }).format(new Date(dataHoraInput)).replace(',', '')
         : obterDataHoraBrasiliaFormatada();
 
-      const cliente = document.getElementById("clienteEncerramento").value || "(não informado)";
+      const tecnologia = document.getElementById("tecnologiaEnc").value || "(não informado)";
+      const cliente = document.getElementById("clienteEnc").value || "(não informado)";
+      const alarme = document.getElementById("alarmeEnc").value || "(não informado)";
+      const equipamento = document.getElementById("equipamentoEnc").value || "(não informado)";
+      const linkDiagrama = document.getElementById("linkDiagramaEnc").value.trim();
+      const ferramentas = document.getElementById("ferramentasEnc").value || "(não informado)";
+      const problema = document.getElementById("problemaEnc").value || "(não informado)";
       const resumo = document.getElementById("resumoEncerramento").value || "(não informado)";
       const obs = document.getElementById("obsEncerramento").value || "(nenhuma observação)";
 
       let texto = `Data e Hora do Encerramento: ${dataHora}\n`;
-      texto += `Cliente: ${cliente}\n`;
+      texto += `Tecnologia: ${tecnologia}\n`;
+      texto += `Cliente(s) Afetado(s): ${cliente}\n`;
+      texto += `Descrição do(s) Alarme(s): ${alarme}\n`;
+      texto += `Descrição do(s) Equipamento(s): ${equipamento}\n`;
+      if (linkDiagrama) texto += `Link do Diagrama de Rede: ${linkDiagrama}\n`;
+      texto += `Ferramentas Utilizadas no Troubleshooting: ${ferramentas}\n`;
+      texto += `Problema Relatado: ${problema}\n`;
       texto += `Resumo da Solução: ${resumo}\n`;
       texto += `Observações: ${obs}`;
 
