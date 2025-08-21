@@ -1,111 +1,126 @@
+
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <title>Gerador de Carimbo</title>
+  <title>Gerador de Carimbos</title>
   <style>
-    body {
+    main {
       font-family: Arial, sans-serif;
-      margin: 20px;
+      padding: 20px;
+      max-width: 700px;
+      margin: auto;
+      text-align: left;
     }
-    .logo {
+
+    .logo-area {
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-start;
+      width: 100%;
       margin-bottom: 20px;
     }
-    .logo img {
-      height: 60px;
-      margin-right: 10px;
+
+    .logo-area img {
+      width: 200px;
+      height: auto;
+      display: block;
     }
-    h2 {
-      margin-top: 0;
+
+    .logo-area span {
+      display: block;
+      font-weight: bold;
+      font-size: 1.3em;
+      margin-top: 5px;
     }
-    textarea, input, select {
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 10px;
+    }
+
+    input,
+    textarea,
+    button,
+    select {
       width: 100%;
-      margin-bottom: 10px;
-      padding: 5px;
-    }
-    button {
-      margin-top: 10px;
-      padding: 8px 15px;
-    }
-    #carimbo {
-      margin-top: 20px;
-      white-space: pre-line;
-      background: #f4f4f4;
+      margin-top: 5px;
+      margin-bottom: 15px;
       padding: 10px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    #carimbo {
+      background-color: #f3f3f3;
       border: 1px solid #ccc;
+      padding: 15px;
+      min-height: 100px;
+      font-size: 16px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
       display: none;
     }
-    #btnCopiarCarimbo {
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #btnCopiarCarimbo,
+    #mensagemCopiado {
       display: none;
-      margin-top: 10px;
+    }
+
+    #mensagemCopiado {
+      color: green;
+      font-weight: bold;
+      margin-top: -10px;
+      margin-bottom: 15px;
     }
   </style>
 </head>
 <body>
-  <div class="logo">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/3/33/Hughes_Network_Systems_logo.svg" alt="Hughes Logo" />
+  <header>
+  <div class="logo-area">
+    <img src="Hughes.png" />
+    <span>NMC Brasil</span>
   </div>
-  <h2>Gerador de Carimbo</h2>
+  </header>
+  <main>
+  <h2>Carimbos Chamados Enterprise</h2>
 
-  <label>Selecione o tipo de carimbo:</label>
+  <label for="tipoCarimbo">Selecione o tipo de carimbo:</label>
   <select id="tipoCarimbo" onchange="mostrarFormulario()">
-    <option value="">--Selecione--</option>
-    <option value="abertura">Abertura</option>
-    <option value="encerramento">Encerramento</option>
+    <option value="">-- Selecione --</option>
+    <option value="abertura">Carimbo de Abertura</option>
+    <option value="encerramento">Carimbo de Encerramento</option>
   </select>
 
-  <!-- Formulário Abertura -->
+  <!-- FORMULÁRIO ABERTURA -->
   <div id="formAbertura" style="display: none">
     <h3>Carimbo de Abertura de Chamado</h3>
-    
     <label>Data e Hora do Início da Falha:</label>
-    <input type="datetime-local" id="dataHoraAbertura" />
+    <input type="datetime-local" id="dataHora" />
 
-    <label>Tecnologia:</label>
-    <select id="tecnologiaAbert">
-      <option value="">--Selecione--</option>
-      <option>Manaus Banda C</option>
-      <option>Manaus SCPC</option>
-      <option>HN</option>
-      <option>HN2</option>
-      <option>HX</option>
-      <option>Jup Banda C</option>
-      <option>Jup Banda KU</option>
-      <option>OneWeb</option>
-      <option>BGANs</option>
-      <option>Frotas</option>
-      <option>HughesON</option>
-      <option>LTE</option>
-      <option>Link Backhaul</option>
-    </select>
-
-    <label>Cliente(s) Afetado(s):</label>
-    <input type="text" id="clienteAbert" />
-
-    <label>Descrição do(s) Alarme(s):</label>
-    <textarea id="alarmeAbert"></textarea>
-
-    <label>Descrição do(s) Equipamento(s):</label>
-    <textarea id="equipamentoAbert"></textarea>
-
-    <label>Link do Diagrama de Rede:</label>
-    <input type="text" id="linkDiagramaAbert" placeholder="https://exemplo.com/diagrama" />
-
-    <label>Ferramentas Utilizadas no Troubleshooting:</label>
-    <textarea id="ferramentasAbert"></textarea>
-
-    <label>Testes Realizados pelo NMC:</label>
-    <textarea id="testesAbert"></textarea>
+    <label>Problema Relatado:</label>
+    <textarea id="problemaAbertura"></textarea>
 
     <button onclick="gerarCarimboAbertura()">Gerar Carimbo</button>
   </div>
 
-  <!-- Formulário Encerramento -->
+  <!-- FORMULÁRIO ENCERRAMENTO -->
   <div id="formEncerramento" style="display: none">
     <h3>Carimbo de Encerramento de Chamado</h3>
-    
     <label>Data e Hora do Encerramento:</label>
     <input type="datetime-local" id="dataHoraEncerramento" />
 
@@ -142,6 +157,9 @@
     <label>Ferramentas Utilizadas no Troubleshooting:</label>
     <textarea id="ferramentasEnc"></textarea>
 
+    <label>Problema Relatado:</label>
+    <textarea id="problemaEnc"></textarea>
+
     <label>Resumo da Solução:</label>
     <textarea id="resumoEncerramento"></textarea>
 
@@ -151,20 +169,24 @@
     <button onclick="gerarCarimboEncerramento()">Gerar Carimbo</button>
   </div>
 
-  <!-- Exibição do carimbo -->
-  <pre id="carimbo"></pre>
-  <button id="btnCopiarCarimbo" onclick="copiarCarimbo()">Copiar Carimbo</button>
-
+  <div id="carimbo"></div>
+  <button id="btnCopiarCarimbo" onclick="copiarCarimbo()">📋 Copiar Carimbo</button>
+  <div id="mensagemCopiado">✅ Carimbo copiado!</div>
+</main>
   <script>
     function mostrarFormulario() {
       const tipo = document.getElementById("tipoCarimbo").value;
       document.getElementById("formAbertura").style.display = tipo === "abertura" ? "block" : "none";
       document.getElementById("formEncerramento").style.display = tipo === "encerramento" ? "block" : "none";
+
       document.getElementById("carimbo").style.display = "none";
       document.getElementById("btnCopiarCarimbo").style.display = "none";
+      document.getElementById("mensagemCopiado").style.display = "none";
+      document.getElementById("carimbo").textContent = "";
     }
 
     function obterDataHoraBrasiliaFormatada() {
+      const agora = new Date();
       return new Intl.DateTimeFormat('pt-BR', {
         timeZone: 'America/Sao_Paulo',
         year: 'numeric',
@@ -173,11 +195,11 @@
         hour: '2-digit',
         minute: '2-digit',
         hour12: false
-      }).format(new Date()).replace(',', '');
+      }).format(agora).replace(',', '');
     }
 
     function gerarCarimboAbertura() {
-      const dataHoraInput = document.getElementById("dataHoraAbertura").value;
+      const dataHoraInput = document.getElementById("dataHora").value;
       let dataHora = dataHoraInput
         ? new Intl.DateTimeFormat('pt-BR', {
             timeZone: 'America/Sao_Paulo',
@@ -190,22 +212,10 @@
           }).format(new Date(dataHoraInput)).replace(',', '')
         : obterDataHoraBrasiliaFormatada();
 
-      const tecnologia = document.getElementById("tecnologiaAbert").value || "(não informado)";
-      const cliente = document.getElementById("clienteAbert").value || "(não informado)";
-      const alarme = document.getElementById("alarmeAbert").value || "(não informado)";
-      const equipamento = document.getElementById("equipamentoAbert").value || "(não informado)";
-      const linkDiagrama = document.getElementById("linkDiagramaAbert").value.trim();
-      const ferramentas = document.getElementById("ferramentasAbert").value || "(não informado)";
-      const testes = document.getElementById("testesAbert").value || "(não informado)";
+      const problema = document.getElementById("problemaAbertura").value || "(não informado)";
 
       let texto = `Data e Hora do Início da Falha: ${dataHora}\n`;
-      texto += `Tecnologia: ${tecnologia}\n`;
-      texto += `Cliente(s) Afetado(s): ${cliente}\n`;
-      texto += `Descrição do(s) Alarme(s): ${alarme}\n`;
-      texto += `Descrição do(s) Equipamento(s): ${equipamento}\n`;
-      if (linkDiagrama) texto += `Link do Diagrama de Rede: ${linkDiagrama}\n`;
-      texto += `Ferramentas Utilizadas no Troubleshooting: ${ferramentas}\n`;
-      texto += `Testes Realizados pelo NMC: ${testes}`;
+      texto += `Problema Relatado: ${problema}`;
 
       document.getElementById("carimbo").textContent = texto;
       document.getElementById("carimbo").style.display = "block";
@@ -232,6 +242,7 @@
       const equipamento = document.getElementById("equipamentoEnc").value || "(não informado)";
       const linkDiagrama = document.getElementById("linkDiagramaEnc").value.trim();
       const ferramentas = document.getElementById("ferramentasEnc").value || "(não informado)";
+      const problema = document.getElementById("problemaEnc").value || "(não informado)";
       const resumo = document.getElementById("resumoEncerramento").value || "(não informado)";
       const obs = document.getElementById("obsEncerramento").value || "(nenhuma observação)";
 
@@ -242,6 +253,7 @@
       texto += `Descrição do(s) Equipamento(s): ${equipamento}\n`;
       if (linkDiagrama) texto += `Link do Diagrama de Rede: ${linkDiagrama}\n`;
       texto += `Ferramentas Utilizadas no Troubleshooting: ${ferramentas}\n`;
+      texto += `Problema Relatado: ${problema}\n`;
       texto += `Resumo da Solução: ${resumo}\n`;
       texto += `Observações: ${obs}`;
 
@@ -250,11 +262,31 @@
       document.getElementById("btnCopiarCarimbo").style.display = "inline-block";
     }
 
-    function copiarCarimbo() {
-      const carimbo = document.getElementById("carimbo").textContent;
-      navigator.clipboard.writeText(carimbo).then(() => {
-        alert("Carimbo copiado!");
-      });
+    async function copiarCarimbo() {
+      const texto = document.getElementById("carimbo").textContent;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(texto);
+          document.getElementById("mensagemCopiado").style.display = "block";
+          setTimeout(() => {
+            document.getElementById("mensagemCopiado").style.display = "none";
+          }, 2000);
+          return;
+        } catch (err) {
+          console.error("Erro ao copiar texto:", err);
+        }
+      }
+
+      const el = document.createElement("textarea");
+      el.value = texto;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      document.getElementById("mensagemCopiado").style.display = "block";
+      setTimeout(() => {
+        document.getElementById("mensagemCopiado").style.display = "none";
+      }, 2000);
     }
   </script>
 </body>
