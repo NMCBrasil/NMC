@@ -145,7 +145,7 @@
     <label>Link do Diagrama de Rede:</label>
     <input type="text" id="linkDiagramaEnc" placeholder="https://exemplo.com/diagrama" />
 
-    <label>Ferramentas Utilizadas no Troubleshooting:</label>
+    <label>Testes Realizados no Troubleshooting:</label>
     <textarea id="ferramentasEnc"></textarea>
 
     <label>Resumo da Solução:</label>
@@ -235,7 +235,7 @@
       texto += `Descrição do(s) Alarme(s): ${alarme}\n`;
       texto += `Descrição do(s) Equipamento(s): ${equipamento}\n`;
       if (linkDiagrama) texto += `Link do Diagrama de Rede: ${linkDiagrama}\n`;
-      texto += `Ferramentas Utilizadas no Troubleshooting: ${ferramentas}\n`;
+      texto += `Testes Realizados no Troubleshooting: ${ferramentas}\n`;
       texto += `Resumo da Solução: ${resumo}`;
 
       document.getElementById("carimbo").textContent = texto;
