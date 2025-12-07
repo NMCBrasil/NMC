@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS customizado: fundo azul claro, letras pretas, botão download legível
+# CSS customizado: fundo azul claro, letras pretas, botão download legível, gráficos com fundo cinza
 st.markdown("""
 <style>
 /* Fundo azul claro e letras pretas */
@@ -97,7 +97,7 @@ if uploaded_file is not None:
     </div>
     """, unsafe_allow_html=True)
 
-    # Função para criar gráficos
+    # Função para criar gráficos com fundo cinza claro
     def plot_bar(campo, titulo):
         if campo in df_filtrado.columns and not df_filtrado[campo].dropna().empty:
             contagem = df_filtrado[campo].value_counts()
@@ -108,10 +108,16 @@ if uploaded_file is not None:
                 labels={"x": campo, "y": "Quantidade"},
                 title=titulo,
                 color=contagem.values,
-                color_continuous_scale='Blues'
+                color_continuous_scale='Blues',
+                template='plotly_white'
+            )
+            fig.update_layout(
+                plot_bgcolor='#f2f2f2',  # fundo do gráfico cinza claro
+                paper_bgcolor='#f2f2f2',
+                xaxis=dict(title=campo, gridcolor='white'),
+                yaxis=dict(title='Quantidade', gridcolor='white')
             )
             fig.update_traces(textposition='outside')
-            fig.update_layout(yaxis=dict(title="Quantidade"), xaxis=dict(title=campo))
             st.plotly_chart(fig, use_container_width=True)
             return fig
         return None
@@ -127,7 +133,7 @@ if uploaded_file is not None:
                       'Reclamação', 'Diagnóstico']
     st.dataframe(df_filtrado[colunas_exibir].sort_values(by='Data de abertura', ascending=False), use_container_width=True)
 
-    # Exportar dashboard como HTML (idêntico ao app)
+    # Exportar dashboard como HTML
     def to_html():
         buffer = io.StringIO()
         buffer.write("<html><head><meta charset='utf-8'><title>Dashboard NMC</title>")
@@ -135,8 +141,10 @@ if uploaded_file is not None:
         <style>
         body {background-color: #e6f2ff; color: black; font-family: Arial, sans-serif;}
         h1, h2, h4, p {color: black;}
-        table {border-collapse: collapse; width: 100%;}
+        table {border-collapse: collapse; width: 100%; font-size:14px;}
         th, td {border: 1px solid black; padding: 4px; text-align: left;}
+        th {background-color: #d9d9d9;}
+        tr:nth-child(even) {background-color: #f2f2f2;}
         </style>
         """)
         buffer.write("</head><body>")
@@ -144,7 +152,6 @@ if uploaded_file is not None:
         buffer.write(f"<p>Tempo médio: {tempo_medio:.2f} min</p>")
         buffer.write(f"<p>Maior ofensor: {maior_ofensor} ({qtd_ofensor} chamados, {pct_ofensor}%)</p>")
         buffer.write("<h2>Gráficos</h2>")
-        # Exporta gráficos Plotly como HTML
         if fig_reclamacao:
             buffer.write(fig_reclamacao.to_html(full_html=False, include_plotlyjs='cdn'))
         if fig_diagnostico:
