@@ -76,17 +76,44 @@ if uploaded_file is not None:
     # Filtros
     # ===============================
     st.sidebar.header("Filtros")
+
+    # filtro Fechado por
     responsaveis = df['Fechado por'].dropna().unique()
     responsavel_selecionado = st.sidebar.multiselect("Responsável pelo fechamento", responsaveis)
 
+    # filtro Reclamação
     categorias = df['Reclamação'].dropna().unique()
     categoria_selecionada = st.sidebar.multiselect("Categoria de Reclamação", categorias)
 
+    # 🔥 NOVO: Filtro Abertos por (Criado por)
+    if 'Criado por' in df.columns:
+        criados = df['Criado por'].dropna().unique()
+        criado_selecionado = st.sidebar.multiselect("Abertos por", criados)
+    else:
+        criado_selecionado = []
+
+    # 🔥 NOVO: Filtro Diagnóstico
+    if 'Diagnóstico' in df.columns:
+        diagnosticos = df['Diagnóstico'].fillna("Não informado").unique()
+        diagnostico_selecionado = st.sidebar.multiselect("Diagnóstico", diagnosticos)
+    else:
+        diagnostico_selecionado = []
+
     df_filtrado = df.copy()
+
+    # Aplicar filtros existentes
     if responsavel_selecionado:
         df_filtrado = df_filtrado[df_filtrado['Fechado por'].isin(responsavel_selecionado)]
+
     if categoria_selecionada:
         df_filtrado = df_filtrado[df_filtrado['Reclamação'].isin(categoria_selecionada)]
+
+    # Aplicar novos filtros
+    if criado_selecionado:
+        df_filtrado = df_filtrado[df_filtrado['Criado por'].isin(criado_selecionado)]
+
+    if diagnostico_selecionado:
+        df_filtrado = df_filtrado[df_filtrado['Diagnóstico'].fillna("Não informado").isin(diagnostico_selecionado)]
 
     # ===============================
     # Métricas
@@ -121,7 +148,7 @@ if uploaded_file is not None:
     col2.metric("📌 Maior ofensor", f"{maior_ofensor}")
     col3.metric("📊 % de chamados do maior ofensor", f"{pct_ofensor}% ({qtd_ofensor} chamados)")
 
-    # 🔥 CAMPO NOVO: total + abertos + fechados
+    # 🔥 CAMPO NOVO
     st.write(
         f"### Total de chamados: **{total_chamados}** — "
         f"Abertos: **{total_abertos}** — "
@@ -235,21 +262,15 @@ if uploaded_file is not None:
 
         for titulo, fig, tabela in zip(titulos, figs, tabs):
             buffer.write(f"<h2>{titulo}</h2>")
-            # container com tabela + figura lado a lado
             buffer.write("<div class='table-and-fig'>")
-            # tabela (html)
             buffer.write("<div class='table-box'>")
-            # convertendo tabela para html (mantém % do Total)
             buffer.write(tabela.to_html(index=False, classes='data-table', border=0))
             buffer.write("</div>")
-            # figura (plotly)
             buffer.write("<div class='fig-box'>")
-            # fig.to_html vai gerar o div do plotly interativo
             buffer.write(fig.to_html(full_html=False, include_plotlyjs='cdn'))
             buffer.write("</div>")
-            buffer.write("</div>")  # fecha table-and-fig
+            buffer.write("</div>")
 
-        # Tabela completa no final
         buffer.write("<h2>Tabela completa de chamados</h2>")
         buffer.write(df_filtrado.to_html(index=False))
         buffer.write("</body></html>")
