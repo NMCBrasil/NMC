@@ -97,10 +97,12 @@ if uploaded_file is not None:
 
     # ---------------------- FILTRAGEM DE DADOS ----------------------
     df_filtrado = df.copy()
-    if relatorio_tipo == "consumer":
-        df_filtrado['Fechado'] = df_filtrado['Situação'] == "Resolvido ou completado"
-    else:
+
+    # Marcar chamados fechados
+    if relatorio_tipo == "enterprise":
         df_filtrado['Fechado'] = df_filtrado[mapa['Status']].astype(str).str.strip().str.lower() == 'fechado'
+    else:
+        df_filtrado['Fechado'] = df_filtrado['Situação'] == "Resolvido ou completado"
 
     # Aplicar filtros
     if responsavel_selecionado and mapa['Fechado por']:
@@ -113,7 +115,6 @@ if uploaded_file is not None:
         df_filtrado = df_filtrado[df_filtrado[mapa['Diagnóstico']].fillna("Não informado").isin(diagnostico_selecionado)]
 
     # ---------------------- CÁLCULOS DE MÉTRICAS ----------------------
-    # TEMPO MÉDIO (Enterprise)
     tempo_medio = 0.0
     if relatorio_tipo == "enterprise":
         df_encerrados = df_filtrado[df_filtrado['Fechado']].copy()
@@ -130,7 +131,7 @@ if uploaded_file is not None:
             tempo_medio = df_encerrados['TempoAtendimentoMin'].mean().round(2)
 
     total_chamados = len(df_filtrado)
-    total_abertos = len(df_filtrado) - df_filtrado['Fechado'].sum()
+    total_abertos = len(df_filtrado)  # sempre todos
     total_fechados = df_filtrado['Fechado'].sum()
     pct_abertos = (total_abertos / total_chamados * 100) if total_chamados else 0
     pct_fechados = (total_fechados / total_chamados * 100) if total_chamados else 0
@@ -151,7 +152,7 @@ if uploaded_file is not None:
     col3.metric("📊 % dos chamados do maior ofensor", f"{pct_ofensor}%  ({qtd_ofensor})")
 
     st.write(f"### 📑 Total de chamados: **{total_chamados}**")
-    st.write(f"🔵 **Chamados abertos:** {total_abertos} ({pct_abertos:.1f}%)")
+    st.write(f"🔵 **Chamados abertos:** {total_abertos} (todos)")
     st.write(f"🔴 **Chamados fechados:** {total_fechados} ({pct_fechados:.1f}%)")
 
     # ---------------------- FUNÇÃO DE GRÁFICOS ----------------------
@@ -181,9 +182,9 @@ if uploaded_file is not None:
             st.plotly_chart(fig, use_container_width=True)
         return fig, tabela
 
-    # ---------------------- GRÁFICOS PRINCIPAIS ----------------------
-    # Chamados abertos (sempre Criado por)
-    df_abertos = df_filtrado[~df_filtrado['Fechado']].copy()
+    # ---------------------- GRÁFICOS ----------------------
+    # Chamados abertos por usuário (todos)
+    df_abertos = df_filtrado.copy()
     fig_abertos_por, tab_abertos = grafico_com_tabela(df_abertos, "Criado por", "Chamados abertos por usuário")
 
     # Reclamação/Assunto
@@ -194,14 +195,16 @@ if uploaded_file is not None:
     campo_diag = mapa['Diagnóstico'] if relatorio_tipo == "enterprise" else "Causa raiz"
     fig_diagnostico, tab_diagnostico = grafico_com_tabela(df_filtrado, campo_diag, "Classificação por Diagnóstico/Causa raiz")
 
-    # Chamados fechados
+    # Chamados fechados por usuário
     if relatorio_tipo == "enterprise":
-        campo_fechado = mapa['Fechado por']
         df_fechados = df_filtrado[df_filtrado['Fechado']].copy()
-        fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, campo_fechado, "Chamados fechados por usuário")
+        campo_fechado = "Fechado por"
     else:
         df_fechados = df_filtrado[df_filtrado['Situação'] == "Resolvido ou completado"].copy()
-        fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, "Caso modificado pela última vez por", "Chamados fechados por usuário")
+        df_fechados = df_fechados[df_fechados["Caso modificado pela última vez por"].notna() & (df_fechados["Caso modificado pela última vez por"].str.strip() != "")]
+        campo_fechado = "Caso modificado pela última vez por"
+
+    fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, campo_fechado, "Chamados fechados por usuário")
 
     # ---------------------- EXPORTAÇÃO HTML ----------------------
     def to_html_bonito():
@@ -216,11 +219,10 @@ if uploaded_file is not None:
         buffer.write(f"<h1>{titulo_dashboard}</h1>")
         buffer.write(f"<div class='metric'>⏱ Tempo médio total (min): {tempo_medio}</div>")
         buffer.write(f"<div class='metric'>📑 Total de chamados: {total_chamados}</div>")
-        buffer.write(f"<div class='metric'>🔵 Abertos: {total_abertos} ({pct_abertos:.1f}%)</div>")
+        buffer.write(f"<div class='metric'>🔵 Abertos: {total_abertos} (todos)</div>")
         buffer.write(f"<div class='metric'>🔴 Fechados: {total_fechados} ({pct_fechados:.1f}%)</div>")
         buffer.write(f"<div class='metric'>📌 Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
 
-        # Tabelas lado a lado
         nomes = [
             "Chamados abertos por usuário",
             "Classificação por Reclamação/Assunto",
