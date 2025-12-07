@@ -1,4 +1,4 @@
-# Dashboard Dinâmico
+# Dashboard Dinâmico (Consumer + Enterprise)
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -126,8 +126,8 @@ if uploaded_file is not None:
     # DETERMINAR CHAMADOS FECHADOS
     # ------------------------------------------------------------
     if relatorio_tipo == "consumer":
+        # Fechado = Situação Resolvido ou Completado
         status_fechado = df_filtrado[
-            df_filtrado['Caso modificado pela última vez por'].notna() &
             df_filtrado['Situação'].astype(str).str.lower().isin(['resolvido', 'completado'])
         ].copy()
         total_chamados = len(df_filtrado)
@@ -146,7 +146,7 @@ if uploaded_file is not None:
             pct_fechados = (total_fechados / total_chamados * 100) if total_chamados > 0 else 0
 
     # ------------------------------------------------------------
-    # TEMPO MÉDIO
+    # TEMPO MÉDIO (apenas Enterprise)
     # ------------------------------------------------------------
     tempo_medio = 0.0
     if relatorio_tipo == "enterprise" and mapa.get('Data de abertura') in df_filtrado.columns:
