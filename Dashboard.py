@@ -102,6 +102,8 @@ if uploaded_file is not None:
         tempo_medio = 0.0
 
     total_chamados = len(df_filtrado)
+    total_abertos = df_filtrado[df_filtrado['Status'].str.lower() == 'aberto'].shape[0]
+    total_fechados = df_filtrado[df_filtrado['Status'].str.lower() == 'fechado'].shape[0]
 
     if not df_filtrado.empty:
         df_filtrado['Diagnóstico'] = df_filtrado['Diagnóstico'].fillna('Não informado')
@@ -119,7 +121,12 @@ if uploaded_file is not None:
     col2.metric("📌 Maior ofensor", f"{maior_ofensor}")
     col3.metric("📊 % de chamados do maior ofensor", f"{pct_ofensor}% ({qtd_ofensor} chamados)")
 
-    st.write(f"### Total de chamados: **{total_chamados}**")
+    # 🔥 CAMPO NOVO: total + abertos + fechados
+    st.write(
+        f"### Total de chamados: **{total_chamados}** — "
+        f"Abertos: **{total_abertos}** — "
+        f"Fechados: **{total_fechados}**"
+    )
 
     # ===============================
     # Função para gráficos + tabela
@@ -140,8 +147,6 @@ if uploaded_file is not None:
         tabela['% do Total'] = (tabela['Qtd de Chamados'] / total * 100).round(2).astype(str) + '%'
 
         with col_table:
-
-            # 🔥 AUMENTO SOMENTE PRA RECLAMAÇÃO E DIAGNÓSTICO
             if campo in ["Reclamação", "Diagnóstico"]:
                 st.dataframe(
                     tabela.style.set_properties(**{'color':'black','background-color':'#f7f7f7','font-size':'14px'}),
@@ -193,7 +198,7 @@ if uploaded_file is not None:
     fig_fechado_por, tab_fechado = grafico_com_tabela('Fechado por','Fechado por:')
 
     # ===============================
-    # Exportar HTML (inclui colunas %)
+    # Exportar HTML (inclui novos dados)
     # ===============================
     def to_html_bonito():
         buffer = io.StringIO()
@@ -216,7 +221,7 @@ if uploaded_file is not None:
         buffer.write("<h1>Chamados NMC Enterprise</h1>")
 
         buffer.write(f"<div class='metric'>⏱ Tempo médio total (min): {tempo_medio:.2f}</div>")
-        buffer.write(f"<div class='metric'>Total de chamados: {total_chamados}</div>")
+        buffer.write(f"<div class='metric'>Total de chamados: {total_chamados} — Abertos: {total_abertos} — Fechados: {total_fechados}</div>")
         buffer.write(f"<div class='metric'>📌 Maior ofensor: {maior_ofensor} ({qtd_ofensor} chamados, {pct_ofensor}%)</div>")
 
         for titulo, fig in zip(['Abertos por:', 'Reclamação:', 'Diagnóstico:', 'Fechado por:'], 
