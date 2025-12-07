@@ -61,13 +61,16 @@ div[data-baseweb="select"] > div, div[data-baseweb="select"] input, div[data-bas
     color: #000000 !important;
 }
 
-/* File uploader */
-div.stFileUploader input[type="file"] ~ div {
+/* File uploader: fundo claro e texto legível */
+input[type="file"]::file-selector-button {
     background-color: #f0f0f0 !important;
     color: #000000 !important;
     font-weight: bold !important;
+    border: 1px solid #000000;
+    border-radius: 5px;
+    padding: 5px 10px;
 }
-div.stFileUploader input[type="file"] ~ div span {
+input[type="file"] {
     color: #000000 !important;
 }
 </style>
@@ -213,7 +216,7 @@ if uploaded_file is not None:
         return buffer.getvalue().encode('utf-8')
 
     st.download_button(
-        label="Baixar Dashboard",
+        label="📥 Baixar Dashboard",
         data=to_html_bonito(),
         file_name="dashboard_completo.html",
         mime="text/html"
