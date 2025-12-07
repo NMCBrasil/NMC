@@ -107,8 +107,8 @@ if uploaded_file is not None:
         df_filtrado = df_filtrado[df_filtrado[mapa['Fechado por']].isin(responsavel_selecionado)]
     if categoria_selecionada and mapa['Reclamação']:
         df_filtrado = df_filtrado[df_filtrado[mapa['Reclamação']].isin(categoria_selecionada)]
-    if criado_selecionado and mapa['Criado por']:
-        df_filtrado = df_filtrado[df_filtrado[mapa['Criado por']].isin(criado_selecionado)]
+    if criado_selecionado:
+        df_filtrado = df_filtrado[df_filtrado['Criado por'].isin(criado_selecionado)]
     if diagnostico_selecionado and mapa['Diagnóstico']:
         df_filtrado = df_filtrado[df_filtrado[mapa['Diagnóstico']].fillna("Não informado").isin(diagnostico_selecionado)]
 
@@ -118,7 +118,6 @@ if uploaded_file is not None:
     if relatorio_tipo == "enterprise":
         df_encerrados = df_filtrado[df_filtrado['Fechado']].copy()
         if mapa['Data de abertura'] in df_encerrados.columns and mapa['Data de fechamento'] in df_encerrados.columns:
-            # Combinar data e hora se existir
             df_encerrados['DataHoraAbertura'] = pd.to_datetime(
                 df_encerrados[mapa['Data de abertura']] + ' ' +
                 df_encerrados[mapa['Hora de abertura']].fillna('00:00'), errors='coerce'
@@ -183,7 +182,7 @@ if uploaded_file is not None:
         return fig, tabela
 
     # ---------------------- GRÁFICOS PRINCIPAIS ----------------------
-    # Chamados abertos
+    # Chamados abertos (sempre Criado por)
     df_abertos = df_filtrado[~df_filtrado['Fechado']].copy()
     fig_abertos_por, tab_abertos = grafico_com_tabela(df_abertos, "Criado por", "Chamados abertos por usuário")
 
