@@ -32,6 +32,7 @@ if uploaded_file is None:
 else:
     df = pd.read_csv(uploaded_file, encoding='latin1', sep=None, engine='python')
     df.columns = df.columns.str.strip()
+    df = df.fillna("")
 
     # ---------------- DETECTAR TIPO DE RELATÓRIO ----------------
     colunas_consumer = [
@@ -47,8 +48,7 @@ else:
     st.title(titulo_dashboard)
 
     # ---------------- NORMALIZAÇÃO ----------------
-    for col in df.columns:
-        df[col] = df[col].fillna("").astype(str).str.strip()
+    df = df.applymap(lambda x: str(x).strip() if pd.notnull(x) else "")
 
     # ---------------- FLAG CHAMADOS FECHADOS ----------------
     if relatorio_tipo == "enterprise":
@@ -62,12 +62,12 @@ else:
         filtro_aberto = st.sidebar.multiselect("Chamados abertos por usuário", df['Criado por'].unique())
         filtro_fechado = st.sidebar.multiselect("Chamados fechados por usuário", df['Fechado por'].unique())
         filtro_categoria = st.sidebar.multiselect("Categoria / Reclamação", df['Reclamação'].unique())
-        filtro_diag = st.sidebar.multiselect("Diagnóstico", df['Diagnóstico'].fillna("Não informado").unique())
+        filtro_diag = st.sidebar.multiselect("Diagnóstico", df['Diagnóstico'].unique())
     else:
         filtro_aberto = st.sidebar.multiselect("Chamados abertos por usuário", df['Criado por'].unique())
         filtro_fechado = st.sidebar.multiselect("Chamados fechados por usuário", df['Caso modificado pela última vez por'].unique())
         filtro_categoria = st.sidebar.multiselect("Assunto", df['Assunto'].unique())
-        filtro_diag = st.sidebar.multiselect("Causa raiz", df['Causa raiz'].fillna("Não informado").unique())
+        filtro_diag = st.sidebar.multiselect("Causa raiz", df['Causa raiz'].unique())
 
     # ---------------- APLICAR FILTROS ----------------
     df_filtrado = df.copy()
@@ -81,7 +81,7 @@ else:
         df_filtrado = df_filtrado[df_filtrado[col_categoria].isin(filtro_categoria)]
     if filtro_diag:
         col_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa raiz'
-        df_filtrado = df_filtrado[df_filtrado[col_diag].fillna("Não informado").isin(filtro_diag)]
+        df_filtrado = df_filtrado[df_filtrado[col_diag].isin(filtro_diag)]
 
     # ---------------- MÉTRICAS ----------------
     total_chamados = len(df_filtrado)
