@@ -62,11 +62,10 @@ if uploaded_file is not None:
     else:
         relatorio_tipo = "enterprise"
         titulo_dashboard = "📊 Chamados NMC Enterprise"
-
     st.title(titulo_dashboard)
 
     # ------------------------------------------------------------
-    # MAPEAMENTO DE COLUNAS
+    # MAPEAMENTO DE COLUNAS (Enterprise)
     # ------------------------------------------------------------
     mapa = {
         'Status': None if relatorio_tipo == "consumer" else 'Status',
@@ -81,9 +80,9 @@ if uploaded_file is not None:
         'Hora de fechamento': None if relatorio_tipo == "consumer" else 'Hora de fechamento',
     }
 
-    # ------------------------------------------------------------
-    # Substituir NMC Auto (Enterprise)
-    # ------------------------------------------------------------
+    # -----------------------
+    # Enterprise: substituir NMC Auto
+    # -----------------------
     if relatorio_tipo == "enterprise" and mapa['Histórico'] and mapa['Fechado por']:
         df_fe = df[df[mapa['Status']].astype(str).str.strip().str.lower() == 'fechado'].copy()
         def substituir_fechado_por(row):
@@ -118,7 +117,6 @@ if uploaded_file is not None:
     # FILTRAGEM DE DADOS
     # ------------------------------------------------------------
     df_filtrado = df.copy()
-
     if relatorio_tipo == "consumer":
         df_filtrado['Fechado'] = df_filtrado['Situação'] == "Resolvido ou Completado"
     else:
@@ -177,21 +175,44 @@ if uploaded_file is not None:
     st.write(f"🔴 **Chamados fechados:** {total_fechados} ({pct_fechados:.1f}%)")
 
     # ------------------------------------------------------------
-    # FUNÇÃO DE GRÁFICOS + TABELAS
+    # Funções de gráficos
     # ------------------------------------------------------------
     def grafico_com_tabela(df_graf, campo, titulo):
         st.subheader(f"📁 {titulo}")
         col_table, col_graph = st.columns([1.4, 3])
 
-        # Remover linhas nulas ou vazias
         df_graf = df_graf[df_graf[campo].notna() & (df_graf[campo].astype(str).str.strip() != '')].copy()
         if df_graf.empty:
             st.info(f"Nenhum dado válido para '{titulo}'.")
             return None, None
 
         df_graf[campo] = df_graf[campo].astype(str).str.strip()
-
         tabela = df_graf.groupby(campo)['Situação'].count().rename("Qtd de Chamados").reset_index()
+        tabela['% do Total'] = (tabela['Qtd de Chamados'] / tabela['Qtd de Chamados'].sum() * 100).round(2)
+
+        with col_table:
+            st.dataframe(tabela, height=550, use_container_width=True)
+
+        fig = px.bar(tabela, x=campo, y="Qtd de Chamados", text="Qtd de Chamados",
+                     color="Qtd de Chamados", color_continuous_scale="Blues", template="plotly_white")
+        fig.update_traces(textposition="outside", marker_line_color="black", marker_line_width=1)
+
+        with col_graph:
+            st.plotly_chart(fig, use_container_width=True)
+
+        return fig, tabela
+
+    def grafico_com_tabela_consumer(df_graf, campo, titulo):
+        st.subheader(f"📁 {titulo}")
+        col_table, col_graph = st.columns([1.4, 3])
+
+        df_graf = df_graf[df_graf[campo].notna() & (df_graf[campo].astype(str).str.strip() != '')].copy()
+        if df_graf.empty:
+            st.info(f"Nenhum dado válido para '{titulo}'.")
+            return None, None
+
+        df_graf[campo] = df_graf[campo].astype(str).str.strip()
+        tabela = df_graf.groupby(campo).size().reset_index(name="Qtd de Chamados")
         tabela['% do Total'] = (tabela['Qtd de Chamados'] / tabela['Qtd de Chamados'].sum() * 100).round(2)
 
         with col_table:
@@ -209,30 +230,32 @@ if uploaded_file is not None:
     # ------------------------------------------------------------
     # GRÁFICOS PRINCIPAIS
     # ------------------------------------------------------------
-    df_abertos = df_filtrado[~df_filtrado['Fechado']].copy()
-    fig_abertos_por, tab_abertos = grafico_com_tabela(df_abertos, "Criado por", "Chamados abertos por usuário")
-    st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
+    if relatorio_tipo == "enterprise":
+        df_abertos = df_filtrado[~df_filtrado['Fechado']].copy()
+        fig_abertos_por, tab_abertos = grafico_com_tabela(df_abertos, "Criado por", "Chamados abertos por usuário")
+        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
-    fig_reclamacao, tab_reclamacao = grafico_com_tabela(df_filtrado, mapa['Reclamação'], "Classificação por Reclamação")
-    st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
+        fig_reclamacao, tab_reclamacao = grafico_com_tabela(df_filtrado, mapa['Reclamação'], "Classificação por Reclamação")
+        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
-    fig_diagnostico, tab_diagnostico = grafico_com_tabela(df_filtrado, mapa['Diagnóstico'], "Classificação por Diagnóstico")
-    st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
+        fig_diagnostico, tab_diagnostico = grafico_com_tabela(df_filtrado, mapa['Diagnóstico'], "Classificação por Diagnóstico")
+        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
-    # ------------------------------------------------------------
-    # Chamados fechados por usuário (Consumer)
-    # ------------------------------------------------------------
+        fig_fechado_por, tab_fechado = grafico_com_tabela(df_filtrado[df_filtrado['Fechado']], mapa['Fechado por'], "Chamados fechados por usuário")
+        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
+
     if relatorio_tipo == "consumer":
+        df_abertos = df_filtrado[~df_filtrado['Fechado']].copy()
+        fig_abertos_por, tab_abertos = grafico_com_tabela_consumer(df_abertos, "Criado por", "Chamados abertos por usuário")
+        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
+
+        fig_reclamacao, tab_reclamacao = grafico_com_tabela_consumer(df_filtrado, "Assunto", "Classificação por Assunto")
+        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
+
+        fig_diagnostico, tab_diagnostico = grafico_com_tabela_consumer(df_filtrado, "Causa raiz", "Classificação por Causa raiz")
+        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
+
+        # Chamados fechados Consumer
         df_fechados = df_filtrado[df_filtrado['Situação'] == "Resolvido ou Completado"].copy()
-        # Remover linhas sem info relevante
-        df_fechados = df_fechados[df_fechados['Caso modificado pela última vez por'].notna() & 
-                                  (df_fechados['Caso modificado pela última vez por'].astype(str).str.strip() != '')]
-        if not df_fechados.empty:
-            fig_fechados, tab_fechados = grafico_com_tabela(
-                df_fechados,
-                "Caso modificado pela última vez por",
-                "Chamados fechados por usuário"
-            )
-            st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
-        else:
-            st.info("Nenhum chamado fechado com informação válida para exibir.")
+        fig_fechados, tab_fechados = grafico_com_tabela_consumer(df_fechados, "Caso modificado pela última vez por", "Chamados fechados por usuário")
+        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
