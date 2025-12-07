@@ -36,7 +36,7 @@ st.markdown("""
 /* Títulos e textos gerais */
 h1, h2, h3, h4, p, span, div { color: #000000 !important; }
 
-/* Tabela interna do Streamlit: fundo claro e texto preto, largura mínima */
+/* Tabela interna do Streamlit: fundo claro, texto preto */
 div.stDataFrame div.row_widget.stDataFrame {
     background-color: #f7f7f7 !important;
     color: #000000 !important;
@@ -88,10 +88,7 @@ if uploaded_file is not None:
         df_encerrados['TempoAtendimentoMin'] = (
             (df_encerrados['DataHoraFechamento'] - df_encerrados['DataHoraAbertura']).dt.total_seconds() / 60
         ).clip(lower=0).dropna().round(2)
-        if not df_encerrados['TempoAtendimentoMin'].empty:
-            tempo_medio = df_encerrados['TempoAtendimentoMin'].mean().round(2)
-        else:
-            tempo_medio = 0.0
+        tempo_medio = df_encerrados['TempoAtendimentoMin'].mean().round(2) if not df_encerrados['TempoAtendimentoMin'].empty else 0.0
     else:
         tempo_medio = 0.0
 
@@ -116,16 +113,20 @@ if uploaded_file is not None:
     # --------------------
     def grafico_com_tabela(campo, titulo):
         st.subheader(titulo)
-        col_table, col_graph = st.columns([2,3])
+        col_table, col_graph = st.columns([1,3])  # tabela mais estreita
 
-        # Tabela com largura mínima ajustada
+        # Tabela compacta
         tabela = df_filtrado.groupby(campo)['Id'].count().rename('Qtd de Chamados').reset_index()
         with col_table:
-            st.dataframe(tabela.style.set_properties(**{
-                'color':'black',
-                'background-color':'#f7f7f7',
-                'max-width':'300px'
-            }), use_container_width=True)
+            st.dataframe(
+                tabela.style.set_properties(**{
+                    'color':'black',
+                    'background-color':'#f7f7f7',
+                    'font-size':'14px'
+                }),
+                use_container_width=False,
+                width=200  # largura fixa menor
+            )
 
         # Gráfico
         contagem = tabela.set_index(campo)['Qtd de Chamados']
@@ -145,8 +146,12 @@ if uploaded_file is not None:
             xaxis=dict(title=campo, title_font=dict(color='#000000'), tickfont=dict(color='#000000'), gridcolor='#e0e0e0'),
             yaxis=dict(title='Quantidade', title_font=dict(color='#000000'), tickfont=dict(color='#000000'), gridcolor='#e0e0e0')
         )
-        fig.update_traces(textposition='outside', textfont=dict(color='black', size=12),
-                          marker_line_color='black', marker_line_width=1)
+        fig.update_traces(
+            textposition='outside',
+            textfont=dict(color='black', size=12),
+            marker_line_color='black',
+            marker_line_width=1
+        )
         with col_graph:
             st.plotly_chart(fig, use_container_width=True)
         return fig
