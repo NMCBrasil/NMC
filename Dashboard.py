@@ -3,6 +3,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import io
+import plotly.io as pio
+from fpdf import FPDF
 
 # Configuração do app
 st.set_page_config(
@@ -11,15 +13,16 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Fundo azul claro
+# Fundo azul claro e letras pretas
 st.markdown(
     """
     <style>
     .stApp {
         background-color: #e6f2ff;
+        color: black;
     }
-    .css-1d391kg {
-        font-size: 1.5em;
+    .stMetricLabel, .stMetricValue {
+        color: black;
     }
     </style>
     """,
@@ -81,7 +84,7 @@ if uploaded_file is not None:
 
     st.metric("⏱ Tempo médio por chamado (min)", f"{tempo_medio:.2f}")
 
-    # Função para plotar gráficos no app
+    # Função para criar gráficos
     def plot_bar(campo, titulo):
         if campo in df_filtrado.columns and not df_filtrado[campo].dropna().empty:
             contagem = df_filtrado[campo].value_counts()
@@ -97,10 +100,12 @@ if uploaded_file is not None:
             fig.update_traces(textposition='outside')
             fig.update_layout(yaxis=dict(title="Quantidade"), xaxis=dict(title=campo))
             st.plotly_chart(fig, use_container_width=True)
+            return fig
+        return None
 
-    plot_bar('Reclamação', '📊 Chamados por Reclamação')
-    plot_bar('Diagnóstico', '📊 Chamados por Diagnóstico')
-    plot_bar('Fechado por', '📊 Chamados por Responsável pelo Fechamento')
+    fig_reclamacao = plot_bar('Reclamação', '📊 Chamados por Reclamação')
+    fig_diagnostico = plot_bar('Diagnóstico', '📊 Chamados por Diagnóstico')
+    fig_fechado_por = plot_bar('Fechado por', '📊 Chamados por Responsável pelo Fechamento')
 
     # Tabela detalhada
     st.subheader("Detalhes dos chamados")
@@ -109,73 +114,64 @@ if uploaded_file is not None:
                       'Reclamação', 'Diagnóstico']
     st.dataframe(df_filtrado[colunas_exibir].sort_values(by='Data de abertura', ascending=False), use_container_width=True)
 
-    # Função para gerar Excel completo com gráficos
-    def dashboard_to_excel(df, tempo_medio, maior_ofensor, qtd_ofensor, pct_ofensor):
-        import xlsxwriter
+    # Função para gerar PDF do dashboard
+    def generate_pdf(df, tempo_medio, maior_ofensor, qtd_ofensor, pct_ofensor,
+                     fig_reclamacao, fig_diagnostico, fig_fechado_por):
+        pdf = FPDF(orientation='P', unit='mm', format='A4')
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+        pdf.set_font("Arial", 'B', 16)
+        pdf.set_text_color(0, 0, 0)
+        pdf.cell(0, 10, "Chamados NMC Enterprise", ln=True, align='C')
 
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df.to_excel(writer, index=False, sheet_name='Chamados')
-            workbook = writer.book
-            worksheet = writer.sheets['Chamados']
+        # Métricas
+        pdf.set_font("Arial", '', 12)
+        pdf.ln(5)
+        pdf.cell(0, 8, f"Tempo médio por chamado (min): {tempo_medio:.2f}", ln=True)
+        pdf.cell(0, 8, f"Maior ofensor: {maior_ofensor} ({qtd_ofensor} chamados, {pct_ofensor}%)", ln=True)
+        pdf.ln(5)
 
-            # Ajusta largura das colunas
-            for i, col in enumerate(df.columns):
-                max_len = df[col].astype(str).map(len).max()
-                worksheet.set_column(i, i, max(15, max_len + 2))
+        # Função para adicionar gráfico Plotly como imagem
+        def add_plotly_fig(fig, title):
+            if fig:
+                img_bytes = pio.to_image(fig, format='png', width=700, height=400, scale=2)
+                pdf.set_font("Arial", 'B', 12)
+                pdf.cell(0, 8, title, ln=True)
+                pdf.image(io.BytesIO(img_bytes), w=180)
+                pdf.ln(5)
 
-            # Escreve métricas no topo
-            worksheet.write('M1', 'Tempo médio por chamado (min)')
-            worksheet.write('N1', round(tempo_medio, 2))
-            worksheet.write('M2', 'Maior ofensor')
-            worksheet.write('N2', f"{maior_ofensor} ({qtd_ofensor} chamados, {pct_ofensor}%)")
+        add_plotly_fig(fig_reclamacao, "Chamados por Reclamação")
+        add_plotly_fig(fig_diagnostico, "Chamados por Diagnóstico")
+        add_plotly_fig(fig_fechado_por, "Chamados por Responsável pelo Fechamento")
 
-            # Cria gráficos do Excel
-            chart1 = workbook.add_chart({'type': 'column'})
-            chart2 = workbook.add_chart({'type': 'column'})
-            chart3 = workbook.add_chart({'type': 'column'})
+        # Tabela
+        pdf.set_font("Arial", 'B', 12)
+        pdf.cell(0, 8, "Detalhes dos Chamados", ln=True)
+        pdf.set_font("Arial", '', 10)
 
-            # Dados para gráficos
-            def add_chart(chart, coluna):
-                contagem = df[coluna].value_counts()
-                data_start = 1  # porque linha 0 tem cabeçalho
-                # Adiciona categoria e valores em colunas auxiliares temporárias
-                temp_col1 = len(df.columns)
-                temp_col2 = temp_col1 + 1
-                for i, (k, v) in enumerate(contagem.items()):
-                    worksheet.write(i+1, temp_col1, k)
-                    worksheet.write(i+1, temp_col2, v)
-                chart.add_series({
-                    'name': coluna,
-                    'categories': [worksheet.name, data_start, temp_col1, data_start + len(contagem)-1, temp_col1],
-                    'values': [worksheet.name, data_start, temp_col2, data_start + len(contagem)-1, temp_col2],
-                    'data_labels': {'value': True}
-                })
-                chart.set_title({'name': f'Chamados por {coluna}'})
-                chart.set_x_axis({'name': coluna})
-                chart.set_y_axis({'name': 'Quantidade'})
-                chart.set_style(10)
-                return chart
+        # Cabeçalho da tabela
+        for col in colunas_exibir:
+            pdf.cell(30, 6, str(col), border=1)
+        pdf.ln()
+        # Dados da tabela (limitado a 50 linhas para caber no PDF)
+        for idx, row in df[colunas_exibir].head(50).iterrows():
+            for col in colunas_exibir:
+                text = str(row[col])[:15]  # Limita tamanho do texto
+                pdf.cell(30, 6, text, border=1)
+            pdf.ln()
+        pdf_output = io.BytesIO()
+        pdf.output(pdf_output)
+        pdf_output.seek(0)
+        return pdf_output
 
-            chart1 = add_chart(chart1, 'Reclamação')
-            chart2 = add_chart(chart2, 'Diagnóstico')
-            chart3 = add_chart(chart3, 'Fechado por')
-
-            # Posiciona gráficos no Excel
-            worksheet.insert_chart('M5', chart1)
-            worksheet.insert_chart('M25', chart2)
-            worksheet.insert_chart('M45', chart3)
-
-        processed_data = output.getvalue()
-        return processed_data
-
-    excel_data = dashboard_to_excel(df_filtrado, tempo_medio, maior_ofensor, qtd_ofensor, pct_ofensor)
+    pdf_data = generate_pdf(df_filtrado, tempo_medio, maior_ofensor, qtd_ofensor, pct_ofensor,
+                            fig_reclamacao, fig_diagnostico, fig_fechado_por)
 
     st.download_button(
-        label="📥 Baixar dashboard completo em Excel",
-        data=excel_data,
-        file_name="dashboard_completo.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        label="📥 Baixar dashboard completo em PDF",
+        data=pdf_data,
+        file_name="dashboard_completo.pdf",
+        mime="application/pdf"
     )
 
 else:
