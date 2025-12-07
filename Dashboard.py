@@ -198,7 +198,7 @@ if uploaded_file is not None:
     fig_fechado_por, tab_fechado = grafico_com_tabela('Fechado por','Fechado por:')
 
     # ===============================
-    # Exportar HTML (inclui novos dados)
+    # Exportar HTML (inclui novos dados, tabelas e gráficos)
     # ===============================
     def to_html_bonito():
         buffer = io.StringIO()
@@ -215,22 +215,41 @@ if uploaded_file is not None:
         tr:nth-child(even) {background-color: #f9f9f9;}
         .metric {font-size:14px; font-weight:bold; margin-bottom:8px;}
         .fig-container {margin-bottom: 25px;}
+        .table-and-fig {display:flex; gap:20px; align-items:flex-start; margin-bottom:30px;}
+        .table-box {flex:1; min-width:300px; max-width:600px; overflow:auto;}
+        .fig-box {flex:2; min-width:300px;}
         </style>
         """)
         buffer.write("</head><body>")
         buffer.write("<h1>Chamados NMC Enterprise</h1>")
 
+        # Cabeçalho com métricas
         buffer.write(f"<div class='metric'>⏱ Tempo médio total (min): {tempo_medio:.2f}</div>")
         buffer.write(f"<div class='metric'>Total de chamados: {total_chamados} — Abertos: {total_abertos} — Fechados: {total_fechados}</div>")
         buffer.write(f"<div class='metric'>📌 Maior ofensor: {maior_ofensor} ({qtd_ofensor} chamados, {pct_ofensor}%)</div>")
 
-        for titulo, fig in zip(['Abertos por:', 'Reclamação:', 'Diagnóstico:', 'Fechado por:'], 
-                               [fig_abertos_por, fig_reclamacao, fig_diagnostico, fig_fechado_por]):
+        # Listas de figuras e tabelas correspondentes
+        figs = [fig_abertos_por, fig_reclamacao, fig_diagnostico, fig_fechado_por]
+        tabs = [tab_abertos, tab_reclamacao, tab_diagnostico, tab_fechado]
+        titulos = ['Abertos por:', 'Reclamação:', 'Diagnóstico:', 'Fechado por:']
+
+        for titulo, fig, tabela in zip(titulos, figs, tabs):
             buffer.write(f"<h2>{titulo}</h2>")
-            buffer.write("<div class='fig-container'>")
+            # container com tabela + figura lado a lado
+            buffer.write("<div class='table-and-fig'>")
+            # tabela (html)
+            buffer.write("<div class='table-box'>")
+            # convertendo tabela para html (mantém % do Total)
+            buffer.write(tabela.to_html(index=False, classes='data-table', border=0))
+            buffer.write("</div>")
+            # figura (plotly)
+            buffer.write("<div class='fig-box'>")
+            # fig.to_html vai gerar o div do plotly interativo
             buffer.write(fig.to_html(full_html=False, include_plotlyjs='cdn'))
             buffer.write("</div>")
+            buffer.write("</div>")  # fecha table-and-fig
 
+        # Tabela completa no final
         buffer.write("<h2>Tabela completa de chamados</h2>")
         buffer.write(df_filtrado.to_html(index=False))
         buffer.write("</body></html>")
