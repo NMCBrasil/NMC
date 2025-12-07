@@ -63,7 +63,6 @@ if uploaded_file is not None:
         relatorio_tipo = "enterprise"
         titulo_dashboard = "📊 Chamados NMC Enterprise"
 
-    # Exibir título do dashboard após upload
     st.title(titulo_dashboard)
 
     # ------------------------------------------------------------
@@ -121,7 +120,7 @@ if uploaded_file is not None:
     df_filtrado = df.copy()
 
     if relatorio_tipo == "consumer":
-        df_filtrado['Fechado'] = df_filtrado['Situação'].isin(['Resolvido', 'Completado'])
+        df_filtrado['Fechado'] = df_filtrado['Situação'] == "Resolvido ou Completado"
     else:
         df_filtrado['Fechado'] = df_filtrado[mapa['Status']].astype(str).str.strip().str.lower() == 'fechado'
 
@@ -180,96 +179,52 @@ if uploaded_file is not None:
     # ------------------------------------------------------------
     # FUNÇÃO DE GRÁFICOS + TABELAS LADO A LADO
     # ------------------------------------------------------------
-    def grafico_com_tabela(campo, titulo):
+    def grafico_com_tabela(df_graf, campo, titulo):
         st.subheader(f"📁 {titulo}")
         col_table, col_graph = st.columns([1.4, 3])
-        df_filtrado[campo] = df_filtrado[campo].fillna("Não informado").astype(str)
-        tabela = df_filtrado.groupby(campo)['Fechado'].count().rename("Qtd de Chamados").reset_index()
+
+        df_graf[campo] = df_graf[campo].fillna("Não informado").astype(str)
+
+        tabela = df_graf.groupby(campo)['Situação'].count().rename("Qtd de Chamados").reset_index()
         tabela['% do Total'] = (tabela['Qtd de Chamados'] / tabela['Qtd de Chamados'].sum() * 100).round(2)
+
         with col_table:
-            st.dataframe(tabela, height=550 if campo in ["Reclamação", "Diagnóstico"] else 350, use_container_width=True)
+            st.dataframe(tabela, height=550, use_container_width=True)
+
         fig = px.bar(tabela, x=campo, y="Qtd de Chamados", text="Qtd de Chamados",
                      color="Qtd de Chamados", color_continuous_scale="Blues", template="plotly_white")
         fig.update_traces(textposition="outside", marker_line_color="black", marker_line_width=1)
+
         with col_graph:
             st.plotly_chart(fig, use_container_width=True)
+
         return fig, tabela
 
     # ------------------------------------------------------------
     # GRÁFICOS PRINCIPAIS
     # ------------------------------------------------------------
-    fig_abertos_por, tab_abertos = grafico_com_tabela("Criado por", "Chamados abertos por usuário")
+    # Chamados abertos
+    df_abertos = df_filtrado[~df_filtrado['Fechado']].copy()
+    fig_abertos_por, tab_abertos = grafico_com_tabela(df_abertos, "Criado por", "Chamados abertos por usuário")
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
-    fig_reclamacao, tab_reclamacao = grafico_com_tabela(mapa['Reclamação'], "Classificação por Reclamação")
+
+    # Classificação por Reclamação
+    fig_reclamacao, tab_reclamacao = grafico_com_tabela(df_filtrado, mapa['Reclamação'], "Classificação por Reclamação")
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
-    fig_diagnostico, tab_diagnostico = grafico_com_tabela(mapa['Diagnóstico'], "Classificação por Diagnóstico")
+
+    # Classificação por Diagnóstico
+    fig_diagnostico, tab_diagnostico = grafico_com_tabela(df_filtrado, mapa['Diagnóstico'], "Classificação por Diagnóstico")
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
     # ------------------------------------------------------------
-    # Chamados fechados (Consumer ou Enterprise)
+    # Chamados fechados por usuário (Consumer)
     # ------------------------------------------------------------
-    df_fechados = df_filtrado[df_filtrado['Fechado']].copy()
-    if not df_fechados.empty:
-        fig_fechados, tab_fechados = grafico_com_tabela("Criado por", "Chamados fechados")
-        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
-
-    # ------------------------------------------------------------
-    # EXPORTAÇÃO HTML
-    # ------------------------------------------------------------
-    def to_html_bonito():
-        buffer = io.StringIO()
-        buffer.write("""
-        <html>
-        <head>
-        <meta charset='utf-8'>
-        <style>
-            body { background:#f0f4f8; font-family:Arial; color:#000; margin:25px; }
-            h1 { text-align:center; }
-            h2 { margin-top:40px; }
-            table { border-collapse:collapse; width:100%; margin:15px 0; }
-            th,td { border:1px solid #ccc; padding:6px; background:#fafafa; }
-            th { background:#e2e2e2; }
-            .metric { margin:6px 0; font-weight:bold; }
-            .linha { display:flex; flex-direction:row; gap:40px; align-items:flex-start; }
-            .col-esq { width:45%; }
-            .col-dir { width:55%; }
-        </style>
-        </head>
-        <body>
-        """)
-        buffer.write(f"<h1>{titulo_dashboard}</h1>")
-        buffer.write(f"<div class='metric'>⏱ Tempo médio total (min): {tempo_medio}</div>")
-        buffer.write(f"<div class='metric'>📑 Total de chamados: {total_chamados}</div>")
-        buffer.write(f"<div class='metric'>🔵 Abertos: {total_abertos} ({pct_abertos:.1f}%)</div>")
-        buffer.write(f"<div class='metric'>🔴 Fechados: {total_fechados} ({pct_fechados:.1f}%)</div>")
-        buffer.write(f"<div class='metric'>📌 Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
-
-        nomes = ["Chamados abertos por usuário", "Classificação por Reclamação", "Classificação por Diagnóstico"]
-        figs = [fig_abertos_por, fig_reclamacao, fig_diagnostico]
-        tabs = [tab_abertos, tab_reclamacao, tab_diagnostico]
+    if relatorio_tipo == "consumer":
+        df_fechados = df_filtrado[df_filtrado['Situação'] == "Resolvido ou Completado"].copy()
         if not df_fechados.empty:
-            nomes.append("Chamados fechados")
-            figs.append(fig_fechados)
-            tabs.append(tab_fechados)
-
-        for titulo, fig, tabela in zip(nomes, figs, tabs):
-            buffer.write(f"<h2>{titulo}</h2>")
-            buffer.write("<div class='linha'>")
-            buffer.write("<div class='col-esq'>")
-            buffer.write(tabela.to_html(index=False))
-            buffer.write("</div>")
-            buffer.write("<div class='col-dir'>")
-            buffer.write(fig.to_html(full_html=False, include_plotlyjs='cdn'))
-            buffer.write("</div></div>")
-
-        buffer.write("<h2>Tabela completa filtrada</h2>")
-        buffer.write(df_filtrado.to_html(index=False))
-        buffer.write("</body></html>")
-        return buffer.getvalue().encode("utf-8")
-
-    st.download_button(
-        label="📥 Baixar Dashboard Completo",
-        data=to_html_bonito(),
-        file_name="dashboard_nmc.html",
-        mime="text/html"
-    )
+            fig_fechados, tab_fechados = grafico_com_tabela(
+                df_fechados,
+                "Caso modificado pela última vez por",
+                "Chamados fechados por usuário"
+            )
+            st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
