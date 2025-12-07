@@ -201,9 +201,9 @@ if uploaded_file is not None:
         return fig, tabela
 
     # ------------------------------------------------------------
-    # GRÁFICOS PRINCIPAIS (AGORA COM ESPAÇAMENTO ENTRE SEÇÕES)
+    # GRÁFICOS PRINCIPAIS (COM TITULOS ALTERADOS)
     # ------------------------------------------------------------
-    fig_abertos_por, tab_abertos = grafico_com_tabela("Criado por", "Chamados abertos")
+    fig_abertos_por, tab_abertos = grafico_com_tabela("Criado por", "Chamados abertos por usuário")
 
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
@@ -215,12 +215,12 @@ if uploaded_file is not None:
 
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
-    fig_fechado_por, tab_fechado = grafico_com_tabela("Fechado por", "Chamados fechados")
+    fig_fechado_por, tab_fechado = grafico_com_tabela("Fechado por", "Chamados fechados por usuário")
 
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
     # ------------------------------------------------------------
-    # EXPORTAÇÃO HTML (Tabelas + Gráficos LADO A LADO)
+    # EXPORTAÇÃO HTML - Com títulos atualizados
     # ------------------------------------------------------------
     def to_html_bonito():
 
@@ -253,7 +253,13 @@ if uploaded_file is not None:
         buffer.write(f"<div class='metric'>📌 Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
 
         # Estruturas lado a lado
-        nomes = ["Chamados abertos", "Classificação por Reclamação", "Classificação por Diagnóstico", "Chamados fechados"]
+        nomes = [
+            "Chamados abertos por usuário",
+            "Classificação por Reclamação",
+            "Classificação por Diagnóstico",
+            "Chamados fechados por usuário"
+        ]
+
         figs = [fig_abertos_por, fig_reclamacao, fig_diagnostico, fig_fechado_por]
         tabs = [tab_abertos, tab_reclamacao, tab_diagnostico, tab_fechado]
 
@@ -271,7 +277,7 @@ if uploaded_file is not None:
             buffer.write(fig.to_html(full_html=False, include_plotlyjs='cdn'))
             buffer.write("</div>")
 
-            buffer.write("</div>")  # fecha linha
+            buffer.write("</div>")
 
         buffer.write("<h2>Tabela completa filtrada</h2>")
         buffer.write(df_filtrado.to_html(index=False))
