@@ -18,6 +18,7 @@ div.stDataFrame div.row_widget.stDataFrame { background-color: #f7f7f7 !importan
 .plotly-graph-div { background-color: #f7f7f7 !important; }
 .stDownloadButton button { color: #000 !important; background-color: #d9e4f5 !important; border: 1px solid #000 !important; padding: 6px 12px !important; border-radius: 5px !important; font-weight: bold !important; }
 section[data-testid="stSidebar"] { background-color: #e8e8e8 !important; color: #000 !important; }
+section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] div, section[data-testid="stSidebar"] input, section[data-testid="stSidebar"] select { color: #000 !important; background-color: #f0f0f0 !important; }
 input[type="file"] { background-color: #d9e4f5 !important; color: #000 !important; font-weight: bold !important; border: 1px solid #000; border-radius: 5px; padding: 5px; }
 </style>
 """, unsafe_allow_html=True)
@@ -90,20 +91,33 @@ else:
     pct_abertos = (total_abertos/total_chamados*100) if total_chamados else 0
     pct_fechados = (total_fechados/total_chamados*100) if total_chamados else 0
 
-    campo_ofensor = 'Causa raiz' if relatorio_tipo=="consumer" else 'Diagnóstico'
-    if campo_ofensor in df_filtrado.columns:
-        cont_ofensor = df_filtrado[campo_ofensor].value_counts()
-        if not cont_ofensor.empty:
-            maior_ofensor = cont_ofensor.idxmax()
-            qtd_ofensor = cont_ofensor.max()
-            pct_ofensor = round(qtd_ofensor / len(df_filtrado) * 100, 2)
+    # ---------------- TEMPO MÉDIO (Enterprise) ----------------
+    if relatorio_tipo == "enterprise" and 'Data de abertura' in df_filtrado.columns and 'Hora de abertura' in df_filtrado.columns:
+        df_enc = df_filtrado[df_filtrado['Fechado']].copy()
+        if not df_enc.empty:
+            df_enc['DataHoraAbertura'] = pd.to_datetime(df_enc['Data de abertura'] + ' ' + df_enc['Hora de abertura'], errors='coerce')
+            df_enc['DataHoraFechamento'] = pd.to_datetime(df_enc['Data de fechamento'] + ' ' + df_enc['Hora de fechamento'], errors='coerce')
+            df_enc['TempoAtendimentoMin'] = ((df_enc['DataHoraFechamento'] - df_enc['DataHoraAbertura']).dt.total_seconds()/60).clip(lower=0)
+            tempo_medio = round(df_enc['TempoAtendimentoMin'].mean(),2)
         else:
-            maior_ofensor, qtd_ofensor, pct_ofensor = "-",0,0.0
+            tempo_medio = 0.0
+    else:
+        tempo_medio = 0.0
+
+    # ---------------- MAIOR OFENSOR ----------------
+    campo_ofensor = 'Causa raiz' if relatorio_tipo=="consumer" else 'Diagnóstico'
+    df_valid_ofensor = df_filtrado[df_filtrado[campo_ofensor].notna() & (df_filtrado[campo_ofensor]!="")]
+    if not df_valid_ofensor.empty:
+        cont_ofensor = df_valid_ofensor[campo_ofensor].value_counts()
+        maior_ofensor = cont_ofensor.idxmax()
+        qtd_ofensor = cont_ofensor.max()
+        pct_ofensor = round(qtd_ofensor / len(df_filtrado) * 100, 2)
     else:
         maior_ofensor, qtd_ofensor, pct_ofensor = "-",0,0.0
 
+    # ---------------- MÉTRICAS NA TELA ----------------
     col1, col2, col3 = st.columns(3)
-    col1.metric("⏱ Tempo médio total (min)", "-")
+    col1.metric("⏱ Tempo médio total (min)", f"{tempo_medio:.2f}")
     col2.metric("📌 Maior ofensor", f"{maior_ofensor}")
     col3.metric("📊 % dos chamados do maior ofensor", f"{pct_ofensor}%  ({qtd_ofensor})")
 
@@ -131,18 +145,18 @@ else:
         return fig, tabela
 
     # ---------------- GRÁFICOS ----------------
-    # Chamados abertos por usuário
+    # Chamados abertos
     fig_abertos, tab_abertos = grafico_com_tabela(df_filtrado[~df_filtrado['Fechado']], "Criado por", "Chamados abertos por usuário")
-    # Chamados fechados por usuário
+    # Chamados fechados
     col_fechado = 'Fechado por' if relatorio_tipo=="enterprise" else 'Caso modificado pela última vez por'
     df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado]!="")]
     fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário")
     # Categoria / Assunto
     col_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
-    fig_categoria, tab_categoria = grafico_com_tabela(df_filtrado, col_categoria, "Classificação por Categoria")
+    fig_categoria, tab_categoria = grafico_com_tabela(df_filtrado[df_filtrado[col_categoria]!=""], col_categoria, "Classificação por Categoria")
     # Diagnóstico / Causa raiz
     col_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa raiz'
-    fig_diag, tab_diag = grafico_com_tabela(df_filtrado, col_diag, "Classificação por Diagnóstico / Causa raiz")
+    fig_diag, tab_diag = grafico_com_tabela(df_filtrado[df_filtrado[col_diag]!=""], col_diag, "Classificação por Diagnóstico / Causa raiz")
 
     # ---------------- DOWNLOAD ----------------
     def to_html_bonito():
