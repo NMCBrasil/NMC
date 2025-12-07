@@ -1,4 +1,4 @@
-# Dashboard Dinâmico (Consumer + Enterprise) – Versão Corrigida com str.contains
+# Dashboard Dinâmico (Consumer + Enterprise) – Versão Completa com Chamados Fechados
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -123,7 +123,7 @@ if uploaded_file is not None:
         df_filtrado = df_filtrado[df_filtrado[mapa['Diagnóstico']].fillna("Não informado").isin(diagnostico_selecionado)]
 
     # ------------------------------------------------------------
-    # DETERMINAR CHAMADOS FECHADOS – CONSUMER CORRIGIDO
+    # DETERMINAR CHAMADOS FECHADOS
     # ------------------------------------------------------------
     if relatorio_tipo == "consumer":
         status_fechado = df_filtrado[
@@ -135,7 +135,6 @@ if uploaded_file is not None:
         pct_abertos = (total_abertos / total_chamados * 100) if total_chamados > 0 else 0
         pct_fechados = (total_fechados / total_chamados * 100) if total_chamados > 0 else 0
     else:
-        # regra Enterprise antiga
         status_col = mapa.get('Status')
         if status_col and status_col in df_filtrado.columns:
             total_chamados = len(df_filtrado)
@@ -145,7 +144,7 @@ if uploaded_file is not None:
             pct_fechados = (total_fechados / total_chamados * 100) if total_chamados > 0 else 0
 
     # ------------------------------------------------------------
-    # TEMPO MÉDIO (apenas Enterprise)
+    # TEMPO MÉDIO (Enterprise)
     # ------------------------------------------------------------
     tempo_medio = 0.0
     if relatorio_tipo == "enterprise" and mapa.get('Data de abertura') in df_filtrado.columns:
@@ -183,7 +182,7 @@ if uploaded_file is not None:
     st.write(f"🔴 **Chamados fechados:** {total_fechados} ({pct_fechados:.1f}%)")
 
     # ------------------------------------------------------------
-    # GRÁFICOS E TABELAS
+    # GRÁFICOS E TABELAS (Consumer e Enterprise)
     # ------------------------------------------------------------
     def grafico_com_tabela(campo, titulo):
         if not campo or campo not in df_filtrado.columns:
@@ -215,6 +214,36 @@ if uploaded_file is not None:
         figs.append(fig)
         tabs.append(tab)
         st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
+
+    # ------------------------------------------------------------
+    # FILTRO + TABELA + GRÁFICO DE CHAMADOS FECHADOS (Consumer)
+    # ------------------------------------------------------------
+    if relatorio_tipo == "consumer":
+        st.sidebar.header("🔒 Chamados Fechados - Filtros")
+        responsavel_fechado = df_filtrado['Caso modificado pela última vez por'].dropna().unique()
+        responsavel_fechado_selecionado = st.sidebar.multiselect("Fechado por (Consumer)", responsavel_fechado)
+        df_fechados = status_fechado.copy()
+        if responsavel_fechado_selecionado:
+            df_fechados = df_fechados[df_fechados['Caso modificado pela última vez por'].isin(responsavel_fechado_selecionado)]
+
+        st.subheader("📋 Chamados Fechados (Consumer)")
+        st.dataframe(df_fechados, use_container_width=True, height=400)
+
+        st.subheader("📊 Chamados Fechados por Usuário (Consumer)")
+        if not df_fechados.empty:
+            tabela_fechados = df_fechados.groupby('Caso modificado pela última vez por')['Situação'].count().rename("Qtd de Chamados").reset_index()
+            tabela_fechados['% do Total'] = (tabela_fechados['Qtd de Chamados'] / tabela_fechados['Qtd de Chamados'].sum() * 100).round(2)
+            fig_fechados = px.bar(
+                tabela_fechados,
+                x='Caso modificado pela última vez por',
+                y='Qtd de Chamados',
+                text='Qtd de Chamados',
+                color='Qtd de Chamados',
+                color_continuous_scale="Blues",
+                template="plotly_white"
+            )
+            fig_fechados.update_traces(textposition="outside", marker_line_color="black", marker_line_width=1)
+            st.plotly_chart(fig_fechados, use_container_width=True)
 
     # ------------------------------------------------------------
     # EXPORTAÇÃO HTML
@@ -260,15 +289,21 @@ if uploaded_file is not None:
             buffer.write("</div>")
             buffer.write("</div>")
 
-        buffer.write("<h2>Tabela completa filtrada</h2>")
-        buffer.write(df_filtrado.to_html(index=False))
+        # Chamados fechados Consumer
+        if relatorio_tipo == "consumer" and not df_fechados.empty:
+            buffer.write("<h2>📋 Chamados Fechados (Consumer)</h2>")
+            buffer.write(df_fechados.to_html(index=False))
+            tabela_fechados_html = tabela_fechados.to_html(index=False)
+            buffer.write("<h2>📊 Chamados Fechados por Usuário (Consumer)</h2>")
+            buffer.write(tabela_fechados_html)
+
         buffer.write("</body></html>")
         return buffer.getvalue().encode("utf-8")
 
     st.download_button(
         label="📥 Baixar Dashboard Completo",
         data=to_html_bonito(),
-        file_name=f"dashboard_{relatorio_tipo}.html",
+        file_name="dashboard_nmc.html",
         mime="text/html"
     )
 
