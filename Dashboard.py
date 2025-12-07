@@ -11,14 +11,14 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS customizado para fundo claro e textos pretos
+# CSS customizado para cores claras e textos pretos
 st.markdown("""
 <style>
 /* Fundo do dashboard */
 .stApp { background-color: #f0f4f8; color: #000000; }
 
 /* Sidebar leve */
-.css-18e3th9 { background-color: #eaeaea !important; }
+.css-18e3th9 { background-color: #e0e0e0 !important; color: #000000 !important; }
 
 /* Letras de métricas */
 .stMetricLabel, .stMetricValue, .css-1v3fvcr, .css-1aumxhk { color: #000000 !important; }
@@ -36,8 +36,12 @@ st.markdown("""
 /* Títulos e textos gerais */
 h1, h2, h3, h4, p, span, div { color: #000000 !important; }
 
-/* Tabela interna do Streamlit */
-div.stDataFrame div.row_widget.stDataFrame { background-color: #f7f7f7 !important; color: #000000 !important; }
+/* Tabela interna do Streamlit: fundo claro e texto preto, largura mínima */
+div.stDataFrame div.row_widget.stDataFrame {
+    background-color: #f7f7f7 !important;
+    color: #000000 !important;
+    font-size: 14px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -114,10 +118,14 @@ if uploaded_file is not None:
         st.subheader(titulo)
         col_table, col_graph = st.columns([2,3])
 
-        # Tabela
+        # Tabela com largura mínima ajustada
         tabela = df_filtrado.groupby(campo)['Id'].count().rename('Qtd de Chamados').reset_index()
         with col_table:
-            st.dataframe(tabela.style.set_properties(**{'color':'black','background-color':'#f7f7f7'}), use_container_width=True)
+            st.dataframe(tabela.style.set_properties(**{
+                'color':'black',
+                'background-color':'#f7f7f7',
+                'max-width':'300px'
+            }), use_container_width=True)
 
         # Gráfico
         contagem = tabela.set_index(campo)['Qtd de Chamados']
@@ -161,7 +169,7 @@ if uploaded_file is not None:
         <style>
         body {background-color: #f0f4f8; color: #000000; font-family: Arial, sans-serif;}
         h1, h2, h3, h4, p {color: #000000;}
-        table {border-collapse: collapse; width: 100%; font-size:14px;}
+        table {border-collapse: collapse; width: auto; font-size:14px;}
         th, td {border: 1px solid #ccc; padding: 6px; text-align: left; color: black; background-color:#f7f7f7;}
         th {background-color: #e0e0e0;}
         tr:nth-child(even) {background-color: #f7f7f7;}
