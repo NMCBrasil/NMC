@@ -177,13 +177,19 @@ if uploaded_file is not None:
     st.write(f"🔴 **Chamados fechados:** {total_fechados} ({pct_fechados:.1f}%)")
 
     # ------------------------------------------------------------
-    # FUNÇÃO DE GRÁFICOS + TABELAS LADO A LADO
+    # FUNÇÃO DE GRÁFICOS + TABELAS
     # ------------------------------------------------------------
     def grafico_com_tabela(df_graf, campo, titulo):
         st.subheader(f"📁 {titulo}")
         col_table, col_graph = st.columns([1.4, 3])
 
-        df_graf[campo] = df_graf[campo].fillna("Não informado").astype(str)
+        # Remover linhas nulas ou vazias
+        df_graf = df_graf[df_graf[campo].notna() & (df_graf[campo].astype(str).str.strip() != '')].copy()
+        if df_graf.empty:
+            st.info(f"Nenhum dado válido para '{titulo}'.")
+            return None, None
+
+        df_graf[campo] = df_graf[campo].astype(str).str.strip()
 
         tabela = df_graf.groupby(campo)['Situação'].count().rename("Qtd de Chamados").reset_index()
         tabela['% do Total'] = (tabela['Qtd de Chamados'] / tabela['Qtd de Chamados'].sum() * 100).round(2)
@@ -203,16 +209,13 @@ if uploaded_file is not None:
     # ------------------------------------------------------------
     # GRÁFICOS PRINCIPAIS
     # ------------------------------------------------------------
-    # Chamados abertos
     df_abertos = df_filtrado[~df_filtrado['Fechado']].copy()
     fig_abertos_por, tab_abertos = grafico_com_tabela(df_abertos, "Criado por", "Chamados abertos por usuário")
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
-    # Classificação por Reclamação
     fig_reclamacao, tab_reclamacao = grafico_com_tabela(df_filtrado, mapa['Reclamação'], "Classificação por Reclamação")
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
-    # Classificação por Diagnóstico
     fig_diagnostico, tab_diagnostico = grafico_com_tabela(df_filtrado, mapa['Diagnóstico'], "Classificação por Diagnóstico")
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
@@ -221,6 +224,9 @@ if uploaded_file is not None:
     # ------------------------------------------------------------
     if relatorio_tipo == "consumer":
         df_fechados = df_filtrado[df_filtrado['Situação'] == "Resolvido ou Completado"].copy()
+        # Remover linhas sem info relevante
+        df_fechados = df_fechados[df_fechados['Caso modificado pela última vez por'].notna() & 
+                                  (df_fechados['Caso modificado pela última vez por'].astype(str).str.strip() != '')]
         if not df_fechados.empty:
             fig_fechados, tab_fechados = grafico_com_tabela(
                 df_fechados,
@@ -228,3 +234,5 @@ if uploaded_file is not None:
                 "Chamados fechados por usuário"
             )
             st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
+        else:
+            st.info("Nenhum chamado fechado com informação válida para exibir.")
