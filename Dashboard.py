@@ -11,16 +11,20 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS adicional para tabelas, métricas e gráficos
+# CSS adicional para tabelas, métricas, gráficos e botão
 st.markdown("""
 <style>
+/* Letras métricas */
 .stMetricLabel, .stMetricValue { color: #000000 !important; }
+/* Tabela Streamlit */
 div.stDataFrame div.row_widget.stDataFrame {
     background-color: #f7f7f7 !important;
     color: #000000 !important;
     font-size: 14px;
 }
+/* Gráficos Plotly */
 .plotly-graph-div { background-color: #f7f7f7 !important; }
+/* Botão download */
 .stDownloadButton button {
     color: #000000 !important;
     background-color: #d9e4f5 !important;
@@ -29,6 +33,13 @@ div.stDataFrame div.row_widget.stDataFrame {
     border-radius: 5px !important;
     font-weight: bold !important;
 }
+/* Sidebar */
+section[data-testid="stSidebar"] {background-color: #e8e8e8 !important; color: #000000 !important;}
+section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] div, section[data-testid="stSidebar"] input, section[data-testid="stSidebar"] select {color: #000000 !important; background-color: #f0f0f0 !important;}
+/* Inputs e multiselect */
+div[data-baseweb="select"] > div, div[data-baseweb="select"] input, div[data-baseweb="select"] span {background-color: #f0f0f0 !important; color: #000000 !important;}
+/* File uploader */
+div.stFileUploader div, div.stFileUploader input {background-color: #f0f0f0 !important; color: #000000 !important;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -94,7 +105,9 @@ if uploaded_file is not None:
         st.subheader(titulo)
         col_table, col_graph = st.columns([1.5,3])
 
-        df_filtrado[campo] = df_filtrado[campo].fillna('Não informado')
+        # Substitui valores vazios
+        df_filtrado[campo] = df_filtrado[campo].fillna('Não informado').astype(str)
+        
         tabela = df_filtrado.groupby(campo)['Id'].count().rename('Qtd de Chamados').reset_index()
         tabela[campo] = tabela[campo].astype(str)
         tabela['Qtd de Chamados'] = tabela['Qtd de Chamados'].astype(int)
@@ -113,7 +126,7 @@ if uploaded_file is not None:
             x=contagem_x,
             y=contagem_y,
             text=contagem_y,
-            labels={'x':campo,'y':'Quantidade'},
+            labels={'x':'', 'y':''},  # remove nomes dos eixos
             color=contagem_y,
             color_continuous_scale='Blues',
             template='plotly_white'
@@ -122,10 +135,12 @@ if uploaded_file is not None:
             plot_bgcolor='#f7f7f7',
             paper_bgcolor='#f7f7f7',
             title_font=dict(color='#000000', size=16),
-            xaxis=dict(title=campo, title_font=dict(color='#000000'), tickfont=dict(color='#000000'), gridcolor='#e0e0e0'),
-            yaxis=dict(title='Quantidade', title_font=dict(color='#000000'), tickfont=dict(color='#000000'), gridcolor='#e0e0e0')
+            xaxis=dict(tickfont=dict(color='#000000'), gridcolor='#e0e0e0', showticklabels=True),
+            yaxis=dict(tickfont=dict(color='#000000'), gridcolor='#e0e0e0'),
+            showlegend=False
         )
-        fig.update_traces(textposition='outside', textfont=dict(color='black', size=12), marker_line_color='black', marker_line_width=1)
+        fig.update_traces(textposition='outside', textfont=dict(color='black', size=12),
+                          marker_line_color='black', marker_line_width=1)
         with col_graph:
             st.plotly_chart(fig, use_container_width=True)
         return fig
@@ -169,9 +184,9 @@ if uploaded_file is not None:
         return buffer.getvalue().encode('utf-8')
 
     st.download_button(
-        label="📥 Baixar dashboard completo em HTML (compacto e bonito)",
+        label="Baixar Dashboard",
         data=to_html_bonito(),
-        file_name="dashboard_completo_bonito.html",
+        file_name="dashboard_completo.html",
         mime="text/html"
     )
 
