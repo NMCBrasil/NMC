@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS tema claro e letras pretas
+# CSS para tema claro e letras pretas
 st.markdown("""
 <style>
 .stMetricLabel, .stMetricValue { color: #000000 !important; }
@@ -43,24 +43,25 @@ if uploaded_file is not None:
     df = carregar_dados(uploaded_file)
 
     # ===============================
-    # Substituir NMC Auto pelo usuário do histórico (somente fechados)
+    # Corrigir NMC Auto com nome do histórico (apenas fechados)
     # ===============================
-    if 'Histórico' in df.columns:
-        def substituir_nmc_auto_fechar(row):
-            if str(row.get('Status','')).strip().lower() != 'fechado':
-                return row
-            historico = str(row.get('Histórico',''))
-            if 'Usuário efetuando abertura:' in historico and row.get('Fechado por','') == 'NMC Auto':
-                try:
-                    # Pega tudo que vem depois da string
-                    nome = historico.split('Usuário efetuando abertura:')[1].strip()
-                    row['Fechado por'] = nome
-                except:
-                    pass
-            return row
-        df = df.apply(substituir_nmc_auto_fechar, axis=1)
+    if 'Histórico' in df.columns and 'Fechado por' in df.columns:
+        df_fe = df[df['Status'].str.strip().str.lower() == 'fechado'].copy()
 
+        def substituir_fechado_por(row):
+            historico = str(row.get('Histórico',''))
+            fechado_por = str(row.get('Fechado por',''))
+            if 'Usuário efetuando abertura:' in historico and fechado_por.strip().lower() == 'nmc auto':
+                nome = historico.split('Usuário efetuando abertura:')[1].strip()
+                row['Fechado por'] = nome
+            return row
+
+        df_fe = df_fe.apply(substituir_fechado_por, axis=1)
+        df.update(df_fe)
+
+    # ===============================
     # Filtros
+    # ===============================
     st.sidebar.header("Filtros")
     responsaveis = df['Fechado por'].dropna().unique()
     responsavel_selecionado = st.sidebar.multiselect("Responsável pelo fechamento", responsaveis)
@@ -73,7 +74,9 @@ if uploaded_file is not None:
     if categoria_selecionada:
         df_filtrado = df_filtrado[df_filtrado['Reclamação'].isin(categoria_selecionada)]
 
+    # ===============================
     # Métricas
+    # ===============================
     df_encerrados = df_filtrado[df_filtrado['Status'].str.lower() == 'fechado'].copy()
     if not df_encerrados.empty:
         df_encerrados['DataHoraAbertura'] = pd.to_datetime(df_encerrados['Data de abertura'] + ' ' + df_encerrados['Hora de abertura'], errors='coerce')
@@ -95,13 +98,15 @@ if uploaded_file is not None:
         qtd_ofensor = 0
         pct_ofensor = 0.0
 
-    # Métricas exibidas
+    # Exibição de métricas
     col1, col2, col3 = st.columns(3)
     col1.metric("⏱ Tempo médio (min)", f"{tempo_medio:.2f}")
     col2.metric("📌 Maior ofensor", f"{maior_ofensor}")
     col3.metric("📊 % de chamados do maior ofensor", f"{pct_ofensor}% ({qtd_ofensor} chamados)")
 
-    # Função para gráficos + tabela
+    # ===============================
+    # Função para gráficos + tabela lado a lado
+    # ===============================
     def grafico_com_tabela(campo, titulo):
         st.subheader(titulo)
         col_table, col_graph = st.columns([1.5,3])
@@ -139,13 +144,17 @@ if uploaded_file is not None:
             st.plotly_chart(fig, use_container_width=True)
         return fig
 
+    # ===============================
     # Gráficos principais
+    # ===============================
     fig_abertos_por = grafico_com_tabela('Criado por','Abertos por:')
     fig_reclamacao = grafico_com_tabela('Reclamação','Reclamação:')
     fig_diagnostico = grafico_com_tabela('Diagnóstico','Diagnóstico:')
     fig_fechado_por = grafico_com_tabela('Fechado por','Fechado por:')
 
-    # Exportar dashboard em HTML bonito e claro
+    # ===============================
+    # Exportar dashboard em HTML
+    # ===============================
     def to_html_bonito():
         buffer = io.StringIO()
         buffer.write("<html><head><meta charset='utf-8'><title>Dashboard NMC</title>")
