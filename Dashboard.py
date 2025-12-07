@@ -2,9 +2,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from PIL import Image
-import requests
-from io import BytesIO
 
 # ------------------------
 # Configurações iniciais
@@ -16,13 +13,6 @@ st.set_page_config(
 )
 
 st.title("Chamados NMC Enterprise")
-
-# ------------------------
-# Logo Hughes
-# ------------------------
-logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Hughes_Network_Systems_logo.svg/320px-Hughes_Network_Systems_logo.svg.png"
-image = Image.open(BytesIO(requests.get(logo_url).content))
-st.image(image, width=200)
 
 # ------------------------
 # Upload de arquivo
