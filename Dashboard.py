@@ -80,7 +80,7 @@ if uploaded_file is not None:
     }
 
     # ------------------------------------------------------------
-    # SUBSTITUIÇÃO AUTOMÁTICA DO “NMC Auto”
+    # SUBSTITUIÇÃO AUTOMÁTICA DO “NMC Auto” (Enterprise)
     # ------------------------------------------------------------
     if mapa['Histórico'] and mapa['Fechado por']:
         df_fe = df[df[mapa['Status']].astype(str).str.strip().str.lower() == 'fechado'].copy()
@@ -123,20 +123,33 @@ if uploaded_file is not None:
         df_filtrado = df_filtrado[df_filtrado[mapa['Diagnóstico']].fillna("Não informado").isin(diagnostico_selecionado)]
 
     # ------------------------------------------------------------
-    # MÉTRICAS
+    # DETERMINAR CHAMADOS FECHADOS
     # ------------------------------------------------------------
-    status_col = mapa.get('Status')
-    if status_col and status_col in df_filtrado.columns:
+    if relatorio_tipo == "consumer":
+        status_fechado = df_filtrado[
+            df_filtrado['Caso modificado pela última vez por'].notna() &
+            df_filtrado['Situação'].astype(str).str.lower().isin(['resolvido', 'completado'])
+        ].copy()
         total_chamados = len(df_filtrado)
-        total_abertos = df_filtrado[df_filtrado[status_col].astype(str).str.lower() == 'aberto'].shape[0]
-        total_fechados = df_filtrado[df_filtrado[status_col].astype(str).str.lower() == 'fechado'].shape[0]
+        total_fechados = len(status_fechado)
+        total_abertos = total_chamados - total_fechados
         pct_abertos = (total_abertos / total_chamados * 100) if total_chamados > 0 else 0
         pct_fechados = (total_fechados / total_chamados * 100) if total_chamados > 0 else 0
     else:
-        total_chamados = total_abertos = total_fechados = pct_abertos = pct_fechados = 0
+        # regra Enterprise antiga
+        status_col = mapa.get('Status')
+        if status_col and status_col in df_filtrado.columns:
+            total_chamados = len(df_filtrado)
+            total_abertos = df_filtrado[df_filtrado[status_col].astype(str).str.lower() == 'aberto'].shape[0]
+            total_fechados = df_filtrado[df_filtrado[status_col].astype(str).str.lower() == 'fechado'].shape[0]
+            pct_abertos = (total_abertos / total_chamados * 100) if total_chamados > 0 else 0
+            pct_fechados = (total_fechados / total_chamados * 100) if total_chamados > 0 else 0
 
+    # ------------------------------------------------------------
+    # TEMPO MÉDIO
+    # ------------------------------------------------------------
     tempo_medio = 0.0
-    if mapa.get('Data de abertura') in df_filtrado.columns:
+    if relatorio_tipo == "enterprise" and mapa.get('Data de abertura') in df_filtrado.columns:
         df_encerrados = df_filtrado.copy()
         if mapa.get('Data de abertura') and mapa.get('Data de fechamento') and \
            mapa['Data de abertura'] in df_encerrados.columns and mapa['Data de fechamento'] in df_encerrados.columns:
@@ -146,6 +159,9 @@ if uploaded_file is not None:
             if not df_encerrados['TempoAtendimentoMin'].empty:
                 tempo_medio = df_encerrados['TempoAtendimentoMin'].mean().round(2)
 
+    # ------------------------------------------------------------
+    # MAIOR OFENSOR
+    # ------------------------------------------------------------
     maior_ofensor, qtd_ofensor, pct_ofensor = "-", 0, 0.0
     if mapa.get('Diagnóstico') in df_filtrado.columns:
         df_filtrado[mapa['Diagnóstico']] = df_filtrado[mapa['Diagnóstico']].fillna('Não informado')
