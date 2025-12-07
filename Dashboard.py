@@ -21,8 +21,8 @@ st.markdown(
         background-color: #e6f2ff;
         color: black;
     }
-    .stMetricLabel, .stMetricValue {
-        color: black;
+    .stMetricLabel, .stMetricValue, .css-1v3fvcr, .css-1aumxhk {
+        color: black !important;
     }
     </style>
     """,
@@ -146,19 +146,20 @@ if uploaded_file is not None:
 
         # Tabela
         pdf.set_font("Arial", 'B', 12)
-        pdf.cell(0, 8, "Detalhes dos Chamados", ln=True)
+        pdf.cell(0, 8, "Detalhes dos Chamados (50 primeiras linhas)", ln=True)
         pdf.set_font("Arial", '', 10)
 
         # Cabeçalho da tabela
         for col in colunas_exibir:
             pdf.cell(30, 6, str(col), border=1)
         pdf.ln()
-        # Dados da tabela (limitado a 50 linhas para caber no PDF)
+        # Dados da tabela (limite 50 linhas para caber)
         for idx, row in df[colunas_exibir].head(50).iterrows():
             for col in colunas_exibir:
-                text = str(row[col])[:15]  # Limita tamanho do texto
+                text = str(row[col])[:15]
                 pdf.cell(30, 6, text, border=1)
             pdf.ln()
+
         pdf_output = io.BytesIO()
         pdf.output(pdf_output)
         pdf_output.seek(0)
