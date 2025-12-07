@@ -65,7 +65,7 @@ if uploaded_file is not None:
     st.title(titulo_dashboard)
 
     # ------------------------------------------------------------
-    # MAPEAMENTO DE COLUNAS (Enterprise)
+    # MAPEAMENTO DE COLUNAS
     # ------------------------------------------------------------
     mapa = {
         'Status': None if relatorio_tipo == "consumer" else 'Status',
@@ -175,87 +175,54 @@ if uploaded_file is not None:
     st.write(f"🔴 **Chamados fechados:** {total_fechados} ({pct_fechados:.1f}%)")
 
     # ------------------------------------------------------------
-    # Funções de gráficos
+    # FUNÇÃO DE GRÁFICOS
     # ------------------------------------------------------------
     def grafico_com_tabela(df_graf, campo, titulo):
         st.subheader(f"📁 {titulo}")
         col_table, col_graph = st.columns([1.4, 3])
-
         df_graf = df_graf[df_graf[campo].notna() & (df_graf[campo].astype(str).str.strip() != '')].copy()
         if df_graf.empty:
             st.info(f"Nenhum dado válido para '{titulo}'.")
             return None, None
-
-        df_graf[campo] = df_graf[campo].astype(str).str.strip()
-        tabela = df_graf.groupby(campo)['Situação'].count().rename("Qtd de Chamados").reset_index()
-        tabela['% do Total'] = (tabela['Qtd de Chamados'] / tabela['Qtd de Chamados'].sum() * 100).round(2)
-
-        with col_table:
-            st.dataframe(tabela, height=550, use_container_width=True)
-
-        fig = px.bar(tabela, x=campo, y="Qtd de Chamados", text="Qtd de Chamados",
-                     color="Qtd de Chamados", color_continuous_scale="Blues", template="plotly_white")
-        fig.update_traces(textposition="outside", marker_line_color="black", marker_line_width=1)
-
-        with col_graph:
-            st.plotly_chart(fig, use_container_width=True)
-
-        return fig, tabela
-
-    def grafico_com_tabela_consumer(df_graf, campo, titulo):
-        st.subheader(f"📁 {titulo}")
-        col_table, col_graph = st.columns([1.4, 3])
-
-        df_graf = df_graf[df_graf[campo].notna() & (df_graf[campo].astype(str).str.strip() != '')].copy()
-        if df_graf.empty:
-            st.info(f"Nenhum dado válido para '{titulo}'.")
-            return None, None
-
         df_graf[campo] = df_graf[campo].astype(str).str.strip()
         tabela = df_graf.groupby(campo).size().reset_index(name="Qtd de Chamados")
         tabela['% do Total'] = (tabela['Qtd de Chamados'] / tabela['Qtd de Chamados'].sum() * 100).round(2)
-
         with col_table:
             st.dataframe(tabela, height=550, use_container_width=True)
-
-        fig = px.bar(tabela, x=campo, y="Qtd de Chamados", text="Qtd de Chamados",
-                     color="Qtd de Chamados", color_continuous_scale="Blues", template="plotly_white")
+        fig = px.bar(
+            tabela,
+            x=campo,
+            y="Qtd de Chamados",
+            text="Qtd de Chamados",
+            color="Qtd de Chamados",
+            color_continuous_scale="Blues",
+            template="plotly_white"
+        )
         fig.update_traces(textposition="outside", marker_line_color="black", marker_line_width=1)
-
         with col_graph:
             st.plotly_chart(fig, use_container_width=True)
-
         return fig, tabela
 
     # ------------------------------------------------------------
     # GRÁFICOS PRINCIPAIS
     # ------------------------------------------------------------
+    # Chamados abertos e métricas
+    df_abertos = df_filtrado[~df_filtrado['Fechado']].copy()
+    fig_abertos_por, tab_abertos = grafico_com_tabela(df_abertos, "Criado por", "Chamados abertos por usuário")
+
+    # Reclamação/Assunto
+    campo_reclamacao = mapa['Reclamação'] if relatorio_tipo == "enterprise" else "Assunto"
+    fig_reclamacao, tab_reclamacao = grafico_com_tabela(df_filtrado, campo_reclamacao, "Classificação por Reclamação/Assunto")
+
+    # Diagnóstico/Causa raiz
+    campo_diag = mapa['Diagnóstico'] if relatorio_tipo == "enterprise" else "Causa raiz"
+    fig_diagnostico, tab_diagnostico = grafico_com_tabela(df_filtrado, campo_diag, "Classificação por Diagnóstico/Causa raiz")
+
+    # Chamados fechados
     if relatorio_tipo == "enterprise":
-        df_abertos = df_filtrado[~df_filtrado['Fechado']].copy()
-        fig_abertos_por, tab_abertos = grafico_com_tabela(df_abertos, "Criado por", "Chamados abertos por usuário")
-        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
-
-        fig_reclamacao, tab_reclamacao = grafico_com_tabela(df_filtrado, mapa['Reclamação'], "Classificação por Reclamação")
-        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
-
-        fig_diagnostico, tab_diagnostico = grafico_com_tabela(df_filtrado, mapa['Diagnóstico'], "Classificação por Diagnóstico")
-        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
-
-        fig_fechado_por, tab_fechado = grafico_com_tabela(df_filtrado[df_filtrado['Fechado']], mapa['Fechado por'], "Chamados fechados por usuário")
-        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
-
-    if relatorio_tipo == "consumer":
-        df_abertos = df_filtrado[~df_filtrado['Fechado']].copy()
-        fig_abertos_por, tab_abertos = grafico_com_tabela_consumer(df_abertos, "Criado por", "Chamados abertos por usuário")
-        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
-
-        fig_reclamacao, tab_reclamacao = grafico_com_tabela_consumer(df_filtrado, "Assunto", "Classificação por Assunto")
-        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
-
-        fig_diagnostico, tab_diagnostico = grafico_com_tabela_consumer(df_filtrado, "Causa raiz", "Classificação por Causa raiz")
-        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
-
-        # Chamados fechados Consumer
+        campo_fechado = mapa['Fechado por']
+        df_fechados = df_filtrado[df_filtrado['Fechado']].copy()
+        fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, campo_fechado, "Chamados fechados por usuário")
+    else:  # consumer
         df_fechados = df_filtrado[df_filtrado['Situação'] == "Resolvido ou Completado"].copy()
-        fig_fechados, tab_fechados = grafico_com_tabela_consumer(df_fechados, "Caso modificado pela última vez por", "Chamados fechados por usuário")
-        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
+        fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, "Caso modificado pela última vez por", "Chamados fechados por usuário")
