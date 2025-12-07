@@ -61,7 +61,7 @@ else:
     if relatorio_tipo == "enterprise":
         filtro_aberto = st.sidebar.multiselect("Chamados abertos por usuário", df['Criado por'].unique())
         filtro_fechado = st.sidebar.multiselect("Chamados fechados por usuário", df['Fechado por'].unique())
-        filtro_categoria = st.sidebar.multiselect("Categoria / Reclamação", df['Reclamação'].unique())
+        filtro_categoria = st.sidebar.multiselect("Reclamação", df['Reclamação'].unique())
         filtro_diag = st.sidebar.multiselect("Diagnóstico", df['Diagnóstico'].unique())
     else:
         filtro_aberto = st.sidebar.multiselect("Chamados abertos por usuário", df['Criado por'].unique())
