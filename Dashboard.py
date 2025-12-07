@@ -1,4 +1,4 @@
-# Dashboard Dinâmico (Consumer + Enterprise) – Versão Corrigida
+# Dashboard Dinâmico (Consumer + Enterprise) – Versão Corrigida com str.contains
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -127,7 +127,7 @@ if uploaded_file is not None:
     # ------------------------------------------------------------
     if relatorio_tipo == "consumer":
         status_fechado = df_filtrado[
-            df_filtrado['Situação'].astype(str).str.strip().str.lower().isin(['resolvido', 'completado'])
+            df_filtrado['Situação'].astype(str).str.lower().str.contains('resolvido|completado')
         ].copy()
         total_chamados = len(df_filtrado)
         total_fechados = len(status_fechado)
