@@ -3,18 +3,14 @@ import pandas as pd
 import plotly.express as px
 import io
 
-# ------------------------------------------------------------
-# CONFIGURAÇÃO
-# ------------------------------------------------------------
+# ---------------------- CONFIGURAÇÃO ----------------------
 st.set_page_config(
     page_title="Dashboard Chamados",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ------------------------------------------------------------
-# ESTILO
-# ------------------------------------------------------------
+# ---------------------- ESTILO ----------------------
 st.markdown("""
 <style>
 .stMetricLabel, .stMetricValue { color: #000000 !important; }
@@ -28,30 +24,22 @@ input[type="file"] { background-color: #d9e4f5 !important; color: #000000 !impor
 </style>
 """, unsafe_allow_html=True)
 
-# ------------------------------------------------------------
-# SIDEBAR – Upload
-# ------------------------------------------------------------
+# ---------------------- SIDEBAR UPLOAD ----------------------
 st.sidebar.header("📂 Importar arquivo CSV")
 uploaded_file = st.sidebar.file_uploader("Selecione o arquivo", type=["csv"])
 
-# ------------------------------------------------------------
-# Antes do upload
-# ------------------------------------------------------------
+# ---------------------- ANTES DO UPLOAD ----------------------
 if uploaded_file is None:
     st.title("📊 Dashboard Chamados")
     st.info("Envie um arquivo CSV para visualizar o dashboard.")
 
-# ------------------------------------------------------------
-# Depois do upload
-# ------------------------------------------------------------
+# ---------------------- DEPOIS DO UPLOAD ----------------------
 if uploaded_file is not None:
-    # Carregar dados
+    # CARREGAR DADOS
     df = pd.read_csv(uploaded_file, encoding='latin1', sep=None, engine='python')
     df.columns = df.columns.str.strip()
 
-    # ------------------------------------------------------------
-    # DETECÇÃO DO TIPO DE RELATÓRIO
-    # ------------------------------------------------------------
+    # DETECTAR TIPO DE RELATÓRIO
     colunas_consumer = [
         "Situação", "Assunto", "Data/Hora de abertura", "Criado por",
         "Causa raiz", "Tipo de registro do caso", "Caso modificado pela última vez por"
@@ -64,9 +52,7 @@ if uploaded_file is not None:
         titulo_dashboard = "📊 Chamados NMC Enterprise"
     st.title(titulo_dashboard)
 
-    # ------------------------------------------------------------
-    # MAPEAMENTO DE COLUNAS
-    # ------------------------------------------------------------
+    # ---------------------- MAPEAMENTO DE COLUNAS ----------------------
     mapa = {
         'Status': None if relatorio_tipo == "consumer" else 'Status',
         'Fechado por': None if relatorio_tipo == "consumer" else 'Fechado por',
@@ -80,9 +66,7 @@ if uploaded_file is not None:
         'Hora de fechamento': None if relatorio_tipo == "consumer" else 'Hora de fechamento',
     }
 
-    # -----------------------
-    # Enterprise: substituir NMC Auto
-    # -----------------------
+    # ---------------------- ENTERPRISE: substituir NMC Auto ----------------------
     if relatorio_tipo == "enterprise" and mapa['Histórico'] and mapa['Fechado por']:
         df_fe = df[df[mapa['Status']].astype(str).str.strip().str.lower() == 'fechado'].copy()
         def substituir_fechado_por(row):
@@ -97,9 +81,7 @@ if uploaded_file is not None:
         df_fe = df_fe.apply(substituir_fechado_por, axis=1)
         df.update(df_fe)
 
-    # ------------------------------------------------------------
-    # FILTROS
-    # ------------------------------------------------------------
+    # ---------------------- FILTROS ----------------------
     st.sidebar.header("🔎 Filtros")
     def filtro_multiselect(campo_nome, label):
         if mapa.get(campo_nome) and mapa[campo_nome] in df.columns:
@@ -113,15 +95,14 @@ if uploaded_file is not None:
     criado_selecionado = filtro_multiselect('Criado por', "Criado por")
     diagnostico_selecionado = filtro_multiselect('Diagnóstico', "Diagnóstico")
 
-    # ------------------------------------------------------------
-    # FILTRAGEM DE DADOS
-    # ------------------------------------------------------------
+    # ---------------------- FILTRAGEM DE DADOS ----------------------
     df_filtrado = df.copy()
     if relatorio_tipo == "consumer":
-        df_filtrado['Fechado'] = df_filtrado['Situação'] == "Resolvido ou Completado"
+        df_filtrado['Fechado'] = df_filtrado['Situação'] == "Resolvido ou completado"
     else:
         df_filtrado['Fechado'] = df_filtrado[mapa['Status']].astype(str).str.strip().str.lower() == 'fechado'
 
+    # Aplicar filtros
     if responsavel_selecionado and mapa['Fechado por']:
         df_filtrado = df_filtrado[df_filtrado[mapa['Fechado por']].isin(responsavel_selecionado)]
     if categoria_selecionada and mapa['Reclamação']:
@@ -131,21 +112,23 @@ if uploaded_file is not None:
     if diagnostico_selecionado and mapa['Diagnóstico']:
         df_filtrado = df_filtrado[df_filtrado[mapa['Diagnóstico']].fillna("Não informado").isin(diagnostico_selecionado)]
 
-    # ------------------------------------------------------------
-    # CÁLCULOS DE MÉTRICAS
-    # ------------------------------------------------------------
-    if relatorio_tipo == "enterprise" and mapa['Data de abertura'] and mapa['Hora de abertura'] and mapa['Data de fechamento'] and mapa['Hora de fechamento']:
+    # ---------------------- CÁLCULOS DE MÉTRICAS ----------------------
+    # TEMPO MÉDIO (Enterprise)
+    tempo_medio = 0.0
+    if relatorio_tipo == "enterprise":
         df_encerrados = df_filtrado[df_filtrado['Fechado']].copy()
-        df_encerrados['DataHoraAbertura'] = pd.to_datetime(
-            df_encerrados[mapa['Data de abertura']] + ' ' + df_encerrados[mapa['Hora de abertura']], errors='coerce'
-        )
-        df_encerrados['DataHoraFechamento'] = pd.to_datetime(
-            df_encerrados[mapa['Data de fechamento']] + ' ' + df_encerrados[mapa['Hora de fechamento']], errors='coerce'
-        )
-        df_encerrados['TempoAtendimentoMin'] = ((df_encerrados['DataHoraFechamento'] - df_encerrados['DataHoraAbertura']).dt.total_seconds() / 60).clip(lower=0).dropna()
-        tempo_medio = df_encerrados['TempoAtendimentoMin'].mean().round(2)
-    else:
-        tempo_medio = 0.0
+        if mapa['Data de abertura'] in df_encerrados.columns and mapa['Data de fechamento'] in df_encerrados.columns:
+            # Combinar data e hora se existir
+            df_encerrados['DataHoraAbertura'] = pd.to_datetime(
+                df_encerrados[mapa['Data de abertura']] + ' ' +
+                df_encerrados[mapa['Hora de abertura']].fillna('00:00'), errors='coerce'
+            ) if mapa['Hora de abertura'] else pd.to_datetime(df_encerrados[mapa['Data de abertura']], errors='coerce')
+            df_encerrados['DataHoraFechamento'] = pd.to_datetime(
+                df_encerrados[mapa['Data de fechamento']] + ' ' +
+                df_encerrados[mapa['Hora de fechamento']].fillna('00:00'), errors='coerce'
+            ) if mapa['Hora de fechamento'] else pd.to_datetime(df_encerrados[mapa['Data de fechamento']], errors='coerce')
+            df_encerrados['TempoAtendimentoMin'] = ((df_encerrados['DataHoraFechamento'] - df_encerrados['DataHoraAbertura']).dt.total_seconds() / 60).clip(lower=0)
+            tempo_medio = df_encerrados['TempoAtendimentoMin'].mean().round(2)
 
     total_chamados = len(df_filtrado)
     total_abertos = len(df_filtrado) - df_filtrado['Fechado'].sum()
@@ -162,9 +145,7 @@ if uploaded_file is not None:
     else:
         maior_ofensor, qtd_ofensor, pct_ofensor = "-", 0, 0.0
 
-    # ------------------------------------------------------------
-    # MÉTRICAS NA TELA
-    # ------------------------------------------------------------
+    # ---------------------- MÉTRICAS NA TELA ----------------------
     col1, col2, col3 = st.columns(3)
     col1.metric("⏱ Tempo médio total (min)", f"{tempo_medio:.2f}")
     col2.metric("📌 Maior ofensor", f"{maior_ofensor}")
@@ -174,9 +155,7 @@ if uploaded_file is not None:
     st.write(f"🔵 **Chamados abertos:** {total_abertos} ({pct_abertos:.1f}%)")
     st.write(f"🔴 **Chamados fechados:** {total_fechados} ({pct_fechados:.1f}%)")
 
-    # ------------------------------------------------------------
-    # FUNÇÃO DE GRÁFICOS
-    # ------------------------------------------------------------
+    # ---------------------- FUNÇÃO DE GRÁFICOS ----------------------
     def grafico_com_tabela(df_graf, campo, titulo):
         st.subheader(f"📁 {titulo}")
         col_table, col_graph = st.columns([1.4, 3])
@@ -203,10 +182,8 @@ if uploaded_file is not None:
             st.plotly_chart(fig, use_container_width=True)
         return fig, tabela
 
-    # ------------------------------------------------------------
-    # GRÁFICOS PRINCIPAIS
-    # ------------------------------------------------------------
-    # Chamados abertos e métricas
+    # ---------------------- GRÁFICOS PRINCIPAIS ----------------------
+    # Chamados abertos
     df_abertos = df_filtrado[~df_filtrado['Fechado']].copy()
     fig_abertos_por, tab_abertos = grafico_com_tabela(df_abertos, "Criado por", "Chamados abertos por usuário")
 
@@ -223,6 +200,57 @@ if uploaded_file is not None:
         campo_fechado = mapa['Fechado por']
         df_fechados = df_filtrado[df_filtrado['Fechado']].copy()
         fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, campo_fechado, "Chamados fechados por usuário")
-    else:  # consumer
-        df_fechados = df_filtrado[df_filtrado['Situação'] == "Resolvido ou Completado"].copy()
+    else:
+        df_fechados = df_filtrado[df_filtrado['Situação'] == "Resolvido ou completado"].copy()
         fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, "Caso modificado pela última vez por", "Chamados fechados por usuário")
+
+    # ---------------------- EXPORTAÇÃO HTML ----------------------
+    def to_html_bonito():
+        buffer = io.StringIO()
+        buffer.write("<html><head><meta charset='utf-8'><style>")
+        buffer.write("body { background:#f0f4f8; font-family:Arial; color:#000; margin:25px; }")
+        buffer.write("h1 { text-align:center; } h2 { margin-top:40px; } table { border-collapse:collapse; width:100%; margin:15px 0; }")
+        buffer.write("th,td { border:1px solid #ccc; padding:6px; background:#fafafa; } th { background:#e2e2e2; }")
+        buffer.write(".metric { margin:6px 0; font-weight:bold; } .linha { display:flex; flex-direction:row; gap:40px; align-items:flex-start; }")
+        buffer.write(".col-esq { width:45%; } .col-dir { width:55%; }")
+        buffer.write("</style></head><body>")
+        buffer.write(f"<h1>{titulo_dashboard}</h1>")
+        buffer.write(f"<div class='metric'>⏱ Tempo médio total (min): {tempo_medio}</div>")
+        buffer.write(f"<div class='metric'>📑 Total de chamados: {total_chamados}</div>")
+        buffer.write(f"<div class='metric'>🔵 Abertos: {total_abertos} ({pct_abertos:.1f}%)</div>")
+        buffer.write(f"<div class='metric'>🔴 Fechados: {total_fechados} ({pct_fechados:.1f}%)</div>")
+        buffer.write(f"<div class='metric'>📌 Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
+
+        # Tabelas lado a lado
+        nomes = [
+            "Chamados abertos por usuário",
+            "Classificação por Reclamação/Assunto",
+            "Classificação por Diagnóstico/Causa raiz",
+            "Chamados fechados por usuário"
+        ]
+        figs = [fig_abertos_por, fig_reclamacao, fig_diagnostico, fig_fechados]
+        tabs = [tab_abertos, tab_reclamacao, tab_diagnostico, tab_fechados]
+
+        for titulo, fig, tabela in zip(nomes, figs, tabs):
+            if tabela is None:
+                continue
+            buffer.write(f"<h2>{titulo}</h2>")
+            buffer.write("<div class='linha'>")
+            buffer.write("<div class='col-esq'>")
+            buffer.write(tabela.to_html(index=False))
+            buffer.write("</div>")
+            buffer.write("<div class='col-dir'>")
+            buffer.write(fig.to_html(full_html=False, include_plotlyjs='cdn'))
+            buffer.write("</div></div>")
+
+        buffer.write("<h2>Tabela completa filtrada</h2>")
+        buffer.write(df_filtrado.to_html(index=False))
+        buffer.write("</body></html>")
+        return buffer.getvalue().encode("utf-8")
+
+    st.download_button(
+        label="📥 Baixar Dashboard Completo",
+        data=to_html_bonito(),
+        file_name="dashboard_nmc.html",
+        mime="text/html"
+    )
