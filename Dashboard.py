@@ -63,11 +63,6 @@ if uploaded_file is not None:
         relatorio_tipo = "enterprise"
     st.title(titulo_dashboard)
 
-    # Mostrar colunas detectadas
-    st.sidebar.header("📋 Colunas detectadas")
-    for col in df.columns:
-        st.sidebar.write(col)
-
     # ------------------------------------------------------------
     # MAPEAR COLUNAS DINÂMICAMENTE
     # ------------------------------------------------------------
@@ -83,8 +78,6 @@ if uploaded_file is not None:
         'Data de fechamento': None if relatorio_tipo == "consumer" else 'Data de fechamento',
         'Hora de fechamento': None if relatorio_tipo == "consumer" else 'Hora de fechamento',
     }
-    st.sidebar.header("📌 Colunas mapeadas")
-    st.sidebar.json(mapa)
 
     # ------------------------------------------------------------
     # SUBSTITUIÇÃO AUTOMÁTICA DO “NMC Auto”
