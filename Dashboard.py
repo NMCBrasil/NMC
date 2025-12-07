@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS adicional para tema claro e textos legíveis
+# CSS tema claro e letras pretas
 st.markdown("""
 <style>
 /* Letras métricas */
@@ -43,7 +43,7 @@ section[data-testid="stSidebar"] {
     color: #000000 !important;
 }
 
-/* Títulos e textos na sidebar */
+/* Textos sidebar */
 section[data-testid="stSidebar"] h2,
 section[data-testid="stSidebar"] h3,
 section[data-testid="stSidebar"] label,
@@ -61,9 +61,9 @@ div[data-baseweb="select"] > div, div[data-baseweb="select"] input, div[data-bas
     color: #000000 !important;
 }
 
-/* File uploader: fundo igual ao botão de download e texto legível */
+/* File uploader */
 input[type="file"]::file-selector-button {
-    background-color: #d9e4f5 !important;  /* mesma cor do botão Baixar Dashboard */
+    background-color: #d9e4f5 !important;
     color: #000000 !important;
     font-weight: bold !important;
     border: 1px solid #000000;
@@ -71,7 +71,7 @@ input[type="file"]::file-selector-button {
     padding: 5px 10px;
 }
 input[type="file"] {
-    background-color: #d9e4f5 !important;  /* fundo da caixa */
+    background-color: #d9e4f5 !important;
     color: #000000 !important;
     font-weight: bold !important;
     border: 1px solid #000000;
@@ -143,9 +143,7 @@ if uploaded_file is not None:
         st.subheader(titulo)
         col_table, col_graph = st.columns([1.5,3])
 
-        # Substitui valores vazios
         df_filtrado[campo] = df_filtrado[campo].fillna('Não informado').astype(str)
-        
         tabela = df_filtrado.groupby(campo)['Id'].count().rename('Qtd de Chamados').reset_index()
         tabela[campo] = tabela[campo].astype(str)
         tabela['Qtd de Chamados'] = tabela['Qtd de Chamados'].astype(int)
@@ -164,7 +162,7 @@ if uploaded_file is not None:
             x=contagem_x,
             y=contagem_y,
             text=contagem_y,
-            labels={'x':'', 'y':''},  # remove títulos automáticos
+            labels={'x':'', 'y':''},
             color=contagem_y,
             color_continuous_scale='Blues',
             template='plotly_white'
@@ -188,7 +186,7 @@ if uploaded_file is not None:
     fig_diagnostico = grafico_com_tabela('Diagnóstico','Diagnóstico:')
     fig_fechado_por = grafico_com_tabela('Fechado por','Fechado por:')
 
-    # Exportar dashboard em HTML bonito e compacto
+    # Exportar dashboard em HTML bonito e claro
     def to_html_bonito():
         buffer = io.StringIO()
         buffer.write("<html><head><meta charset='utf-8'><title>Dashboard NMC</title>")
