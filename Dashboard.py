@@ -1,4 +1,4 @@
-# Dashboard Dinâmico (Consumer + Enterprise)
+# Dashboard Dinâmico (Consumer + Enterprise) – Versão Corrigida
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -123,12 +123,11 @@ if uploaded_file is not None:
         df_filtrado = df_filtrado[df_filtrado[mapa['Diagnóstico']].fillna("Não informado").isin(diagnostico_selecionado)]
 
     # ------------------------------------------------------------
-    # DETERMINAR CHAMADOS FECHADOS
+    # DETERMINAR CHAMADOS FECHADOS – CONSUMER CORRIGIDO
     # ------------------------------------------------------------
     if relatorio_tipo == "consumer":
-        # Fechado = Situação Resolvido ou Completado
         status_fechado = df_filtrado[
-            df_filtrado['Situação'].astype(str).str.lower().isin(['resolvido', 'completado'])
+            df_filtrado['Situação'].astype(str).str.strip().str.lower().isin(['resolvido', 'completado'])
         ].copy()
         total_chamados = len(df_filtrado)
         total_fechados = len(status_fechado)
@@ -140,8 +139,8 @@ if uploaded_file is not None:
         status_col = mapa.get('Status')
         if status_col and status_col in df_filtrado.columns:
             total_chamados = len(df_filtrado)
-            total_abertos = df_filtrado[df_filtrado[status_col].astype(str).str.lower() == 'aberto'].shape[0]
-            total_fechados = df_filtrado[df_filtrado[status_col].astype(str).str.lower() == 'fechado'].shape[0]
+            total_abertos = df_filtrado[df_filtrado[status_col].astype(str).str.strip().str.lower() == 'aberto'].shape[0]
+            total_fechados = df_filtrado[df_filtrado[status_col].astype(str).str.strip().str.lower() == 'fechado'].shape[0]
             pct_abertos = (total_abertos / total_chamados * 100) if total_chamados > 0 else 0
             pct_fechados = (total_fechados / total_chamados * 100) if total_chamados > 0 else 0
 
@@ -184,7 +183,7 @@ if uploaded_file is not None:
     st.write(f"🔴 **Chamados fechados:** {total_fechados} ({pct_fechados:.1f}%)")
 
     # ------------------------------------------------------------
-    # FUNÇÃO GRÁFICO + TABELA
+    # GRÁFICOS E TABELAS
     # ------------------------------------------------------------
     def grafico_com_tabela(campo, titulo):
         if not campo or campo not in df_filtrado.columns:
@@ -203,9 +202,6 @@ if uploaded_file is not None:
             st.plotly_chart(fig, use_container_width=True)
         return fig, tabela
 
-    # ------------------------------------------------------------
-    # GRÁFICOS PRINCIPAIS
-    # ------------------------------------------------------------
     figs_tabs = [
         (mapa.get('Criado por'), "Chamados abertos por usuário"),
         (mapa.get('Reclamação'), "Classificação por Reclamação"),
