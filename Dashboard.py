@@ -153,8 +153,7 @@ if uploaded_file is not None:
     col3.metric("📊 % dos chamados do maior ofensor", f"{pct_ofensor}%  ({qtd_ofensor})")
 
     st.write(
-        f"### 📑 Total de chamados: **{total_chamados}** &nbsp;&nbsp; "
-        f"🔵 Abertos: **{total_abertos}** &nbsp;&nbsp; 🔴 Fechados: **{total_fechados}**"
+        f"### 📑 Total de chamados: **{total_chamados}**   🔵 Abertos: **{total_abertos}**   🔴 Fechados: **{total_fechados}**"
     )
 
     # ------------------------------------------------------------
@@ -177,7 +176,6 @@ if uploaded_file is not None:
 
         tabela['% do Total'] = (tabela['Qtd de Chamados'] / tabela['Qtd de Chamados'].sum() * 100).round(2)
 
-        # Tabelas maiores para Reclamação e Diagnóstico
         with col_table:
             st.dataframe(
                 tabela,
@@ -203,12 +201,23 @@ if uploaded_file is not None:
         return fig, tabela
 
     # ------------------------------------------------------------
-    # GRÁFICOS PRINCIPAIS
+    # GRÁFICOS PRINCIPAIS (AGORA COM ESPAÇAMENTO ENTRE SEÇÕES)
     # ------------------------------------------------------------
     fig_abertos_por, tab_abertos = grafico_com_tabela("Criado por", "Chamados abertos por")
+
+    st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
+
     fig_reclamacao, tab_reclamacao = grafico_com_tabela("Reclamação", "Classificação por Reclamação")
+
+    st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
+
     fig_diagnostico, tab_diagnostico = grafico_com_tabela("Diagnóstico", "Classificação por Diagnóstico")
+
+    st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
+
     fig_fechado_por, tab_fechado = grafico_com_tabela("Fechado por", "Chamados fechados por")
+
+    st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
     # ------------------------------------------------------------
     # EXPORTAÇÃO HTML (Tabelas + Gráficos)
