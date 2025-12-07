@@ -70,7 +70,7 @@ if uploaded_file is not None:
         df_fe = df[df[mapa['Status']].astype(str).str.strip().str.lower() == 'fechado'].copy()
         def substituir_fechado_por(row):
             historico = str(row.get(mapa['Histórico'], ''))
-            if 'Usuário efetuando abertura:' in historico and row.get(mapa['Fechado por'], '') == 'NMC Auto':
+            if 'usuário efetuando abertura:' in historico.lower() and row.get(mapa['Fechado por'], '') == 'NMC Auto':
                 try:
                     nome = historico.split("Usuário efetuando abertura:")[1].strip()
                     row[mapa['Fechado por']] = nome
@@ -79,6 +79,11 @@ if uploaded_file is not None:
             return row
         df_fe = df_fe.apply(substituir_fechado_por, axis=1)
         df.update(df_fe)
+
+    # ---------------------- NORMALIZAR CAMPOS DE TEXTO ----------------------
+    for col in ['Criado por', 'Reclamação', 'Diagnóstico', 'Fechado por']:
+        if col in df.columns:
+            df[col] = df[col].fillna("").astype(str).str.strip()
 
     # ---------------------- FILTROS ----------------------
     st.sidebar.header("🔎 Filtros")
@@ -97,9 +102,9 @@ if uploaded_file is not None:
     # ---------------------- FILTRAGEM DE DADOS ----------------------
     df_filtrado = df.copy()
     if relatorio_tipo == "enterprise":
-        df_filtrado['Fechado'] = df_filtrado[mapa['Status']].astype(str).str.strip().str.lower() == 'fechado'
+        df_filtrado['Fechado'] = df_filtrado[mapa['Status']].fillna("").str.strip().str.lower() == "fechado"
     else:
-        df_filtrado['Fechado'] = df_filtrado['Situação'] == "Resolvido ou completado"
+        df_filtrado['Fechado'] = df_filtrado['Situação'].fillna("").str.strip().str.lower() == "resolvido ou completado"
 
     if responsavel_selecionado and mapa['Fechado por']:
         df_filtrado = df_filtrado[df_filtrado[mapa['Fechado por']].isin(responsavel_selecionado)]
@@ -192,7 +197,7 @@ if uploaded_file is not None:
         df_fechados = df_filtrado[df_filtrado['Fechado']].copy()
         campo_fechado = "Fechado por"
     else:
-        df_fechados = df_filtrado[df_filtrado['Situação'] == "Resolvido ou completado"].copy()
+        df_fechados = df_filtrado[df_filtrado['Fechado']].copy()
         df_fechados = df_fechados[df_fechados["Caso modificado pela última vez por"].notna() & (df_fechados["Caso modificado pela última vez por"].str.strip() != "")]
         campo_fechado = "Caso modificado pela última vez por"
 
