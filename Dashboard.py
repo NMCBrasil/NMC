@@ -14,70 +14,15 @@ st.set_page_config(
 # CSS tema claro e letras pretas
 st.markdown("""
 <style>
-/* Letras métricas */
 .stMetricLabel, .stMetricValue { color: #000000 !important; }
-
-/* Tabela Streamlit */
-div.stDataFrame div.row_widget.stDataFrame {
-    background-color: #f7f7f7 !important;
-    color: #000000 !important;
-    font-size: 14px;
-}
-
-/* Gráficos Plotly */
+div.stDataFrame div.row_widget.stDataFrame { background-color: #f7f7f7 !important; color: #000000 !important; font-size: 14px; }
 .plotly-graph-div { background-color: #f7f7f7 !important; }
-
-/* Botão download */
-.stDownloadButton button {
-    color: #000000 !important;
-    background-color: #d9e4f5 !important;
-    border: 1px solid #000000 !important;
-    padding: 6px 12px !important;
-    border-radius: 5px !important;
-    font-weight: bold !important;
-}
-
-/* Sidebar */
-section[data-testid="stSidebar"] {
-    background-color: #e8e8e8 !important;
-    color: #000000 !important;
-}
-
-/* Textos sidebar */
-section[data-testid="stSidebar"] h2,
-section[data-testid="stSidebar"] h3,
-section[data-testid="stSidebar"] label,
-section[data-testid="stSidebar"] span,
-section[data-testid="stSidebar"] div,
-section[data-testid="stSidebar"] input,
-section[data-testid="stSidebar"] select {
-    color: #000000 !important;
-    background-color: #f0f0f0 !important;
-}
-
-/* Inputs e multiselect */
-div[data-baseweb="select"] > div, div[data-baseweb="select"] input, div[data-baseweb="select"] span {
-    background-color: #f0f0f0 !important;
-    color: #000000 !important;
-}
-
-/* File uploader */
-input[type="file"]::file-selector-button {
-    background-color: #d9e4f5 !important;
-    color: #000000 !important;
-    font-weight: bold !important;
-    border: 1px solid #000000;
-    border-radius: 5px;
-    padding: 5px 10px;
-}
-input[type="file"] {
-    background-color: #d9e4f5 !important;
-    color: #000000 !important;
-    font-weight: bold !important;
-    border: 1px solid #000000;
-    border-radius: 5px;
-    padding: 5px;
-}
+.stDownloadButton button { color: #000000 !important; background-color: #d9e4f5 !important; border: 1px solid #000000 !important; padding: 6px 12px !important; border-radius: 5px !important; font-weight: bold !important; }
+section[data-testid="stSidebar"] { background-color: #e8e8e8 !important; color: #000000 !important; }
+section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] div, section[data-testid="stSidebar"] input, section[data-testid="stSidebar"] select { color: #000000 !important; background-color: #f0f0f0 !important; }
+div[data-baseweb="select"] > div, div[data-baseweb="select"] input, div[data-baseweb="select"] span { background-color: #f0f0f0 !important; color: #000000 !important; }
+input[type="file"]::file-selector-button { background-color: #d9e4f5 !important; color: #000000 !important; font-weight: bold !important; border: 1px solid #000000; border-radius: 5px; padding: 5px 10px; }
+input[type="file"] { background-color: #d9e4f5 !important; color: #000000 !important; font-weight: bold !important; border: 1px solid #000000; border-radius: 5px; padding: 5px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -96,6 +41,24 @@ uploaded_file = st.sidebar.file_uploader("Escolha o arquivo CSV", type=["csv"])
 
 if uploaded_file is not None:
     df = carregar_dados(uploaded_file)
+
+    # ===============================
+    # Substituir NMC Auto pelo usuário do histórico (somente fechados)
+    # ===============================
+    if 'Histórico' in df.columns:
+        def substituir_nmc_auto_fechar(row):
+            if str(row.get('Status','')).strip().lower() != 'fechado':
+                return row
+            historico = str(row.get('Histórico',''))
+            if 'Usuário efetuando abertura:' in historico and row.get('Fechado por','') == 'NMC Auto':
+                try:
+                    # Pega tudo que vem depois da string
+                    nome = historico.split('Usuário efetuando abertura:')[1].strip()
+                    row['Fechado por'] = nome
+                except:
+                    pass
+            return row
+        df = df.apply(substituir_nmc_auto_fechar, axis=1)
 
     # Filtros
     st.sidebar.header("Filtros")
@@ -142,22 +105,18 @@ if uploaded_file is not None:
     def grafico_com_tabela(campo, titulo):
         st.subheader(titulo)
         col_table, col_graph = st.columns([1.5,3])
-
         df_filtrado[campo] = df_filtrado[campo].fillna('Não informado').astype(str)
         tabela = df_filtrado.groupby(campo)['Id'].count().rename('Qtd de Chamados').reset_index()
         tabela[campo] = tabela[campo].astype(str)
         tabela['Qtd de Chamados'] = tabela['Qtd de Chamados'].astype(int)
-
         with col_table:
             st.dataframe(
                 tabela.style.set_properties(**{'color':'black','background-color':'#f7f7f7','font-size':'14px'}),
                 use_container_width=False,
                 width=300
             )
-
         contagem_x = tabela[campo].tolist()
         contagem_y = tabela['Qtd de Chamados'].tolist()
-
         fig = px.bar(
             x=contagem_x,
             y=contagem_y,
