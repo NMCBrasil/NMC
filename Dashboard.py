@@ -15,20 +15,13 @@ st.set_page_config(
 st.markdown("""
 <style>
 /* Fundo do dashboard */
-.stApp {
-    background-color: #f5f7fa;
-    color: #0a0a0a;
-}
+.stApp { background-color: #f5f7fa; color: #0a0a0a; }
 
 /* Sidebar leve */
-.css-18e3th9 {
-    background-color: #eaeaea !important;
-}
+.css-18e3th9 { background-color: #eaeaea !important; }
 
 /* Letras de métricas */
-.stMetricLabel, .stMetricValue, .css-1v3fvcr, .css-1aumxhk {
-    color: #0a0a0a !important;
-}
+.stMetricLabel, .stMetricValue, .css-1v3fvcr, .css-1aumxhk { color: #0a0a0a !important; }
 
 /* Botão de download */
 .stDownloadButton button {
@@ -105,69 +98,48 @@ if uploaded_file is not None:
     col3.metric("📊 % de chamados do maior ofensor", f"{pct_ofensor}% ({qtd_ofensor} chamados)")
 
     # --------------------
-    # Tabela + gráfico lado a lado
+    # Função para gráficos + tabela lado a lado
     # --------------------
-    st.subheader("📋 Chamados por pessoa")
-    col_table, col_graph = st.columns([2, 3])
+    def grafico_com_tabela(campo, titulo):
+        st.subheader(titulo)
+        col_table, col_graph = st.columns([2,3])
 
-    with col_table:
-        st.dataframe(
-            df_filtrado[['Criado por', 'Id', 'Status', 'Cliente']].groupby('Criado por').count().rename(columns={'Id':'Qtd de Chamados'}),
-            use_container_width=True
-        )
+        # Tabela
+        tabela = df_filtrado[[campo,'Id','Status','Cliente']].groupby(campo).count().rename(columns={'Id':'Qtd de Chamados'})
+        with col_table:
+            st.dataframe(tabela, use_container_width=True)
 
-    with col_graph:
-        contagem = df_filtrado['Criado por'].value_counts()
-        fig_pessoa = px.bar(
+        # Gráfico
+        contagem = df_filtrado[campo].value_counts()
+        fig = px.bar(
             x=contagem.index,
             y=contagem.values,
             text=contagem.values,
-            labels={'x':'Usuário','y':'Quantidade'},
+            labels={'x':campo,'y':'Quantidade'},
             color=contagem.values,
             color_continuous_scale='Blues',
             template='plotly_white'
         )
-        fig_pessoa.update_layout(
+        fig.update_layout(
             plot_bgcolor='#f7f7f7',
             paper_bgcolor='#f7f7f7',
-            xaxis=dict(title='Usuário', tickangle=-45, title_font=dict(color='#0a0a0a'), tickfont=dict(color='#0a0a0a')),
-            yaxis=dict(title='Quantidade', title_font=dict(color='#0a0a0a'), tickfont=dict(color='#0a0a0a'))
+            title_font=dict(color='#0a0a0a', size=16),
+            xaxis=dict(title=campo, title_font=dict(color='#0a0a0a'), tickfont=dict(color='#0a0a0a'), gridcolor='white'),
+            yaxis=dict(title='Quantidade', title_font=dict(color='#0a0a0a'), tickfont=dict(color='#0a0a0a'), gridcolor='white')
         )
-        fig_pessoa.update_traces(textposition='outside', textfont=dict(color='black', size=12), marker_line_color='black', marker_line_width=1)
-        st.plotly_chart(fig_pessoa, use_container_width=True)
-
-    # --------------------
-    # Outros gráficos
-    # --------------------
-    def plot_bar(campo, titulo):
-        if campo in df_filtrado.columns and not df_filtrado[campo].dropna().empty:
-            contagem = df_filtrado[campo].value_counts()
-            fig = px.bar(
-                x=contagem.index,
-                y=contagem.values,
-                text=contagem.values,
-                labels={"x": campo, "y": "Quantidade"},
-                title=titulo,
-                color=contagem.values,
-                color_continuous_scale='Blues',
-                template='plotly_white'
-            )
-            fig.update_layout(
-                plot_bgcolor='#f7f7f7',
-                paper_bgcolor='#f7f7f7',
-                title_font=dict(color='#0a0a0a', size=16),
-                xaxis=dict(title=campo, title_font=dict(color='#0a0a0a'), tickfont=dict(color='#0a0a0a'), gridcolor='white'),
-                yaxis=dict(title='Quantidade', title_font=dict(color='#0a0a0a'), tickfont=dict(color='#0a0a0a'), gridcolor='white')
-            )
-            fig.update_traces(textposition='outside', textfont=dict(color='black', size=12), marker_line_color='black', marker_line_width=1)
+        fig.update_traces(textposition='outside', textfont=dict(color='black', size=12),
+                          marker_line_color='black', marker_line_width=1)
+        with col_graph:
             st.plotly_chart(fig, use_container_width=True)
-            return fig
-        return None
+        return fig
 
-    st.subheader("📊 Outros gráficos")
-    fig_reclamacao = plot_bar('Reclamação', 'Chamados por Reclamação')
-    fig_diagnostico = plot_bar('Diagnóstico', 'Chamados por Diagnóstico')
-    fig_fechado_por = plot_bar('Fechado por', 'Chamados por Responsável pelo Fechamento')
+    # --------------------
+    # Gráficos principais com tabela
+    # --------------------
+    fig_pessoa = grafico_com_tabela('Criado por','📋 Chamados por pessoa')
+    fig_reclamacao = grafico_com_tabela('Reclamação','📊 Chamados por Reclamação')
+    fig_diagnostico = grafico_com_tabela('Diagnóstico','📊 Chamados por Diagnóstico')
+    fig_fechado_por = grafico_com_tabela('Fechado por','📊 Chamados por Responsável pelo Fechamento')
 
     # --------------------
     # Exportar dashboard completo em HTML
@@ -189,13 +161,9 @@ if uploaded_file is not None:
         buffer.write("<h1>Chamados NMC Enterprise</h1>")
         buffer.write(f"<p>Tempo médio: {tempo_medio:.2f} min</p>")
         buffer.write(f"<p>Maior ofensor: {maior_ofensor} ({qtd_ofensor} chamados, {pct_ofensor}%)</p>")
-        buffer.write("<h2>Gráfico por pessoa</h2>")
-        buffer.write(fig_pessoa.to_html(full_html=False, include_plotlyjs='cdn'))
-        buffer.write("<h2>Outros gráficos</h2>")
-        if fig_reclamacao: buffer.write(fig_reclamacao.to_html(full_html=False, include_plotlyjs='cdn'))
-        if fig_diagnostico: buffer.write(fig_diagnostico.to_html(full_html=False, include_plotlyjs='cdn'))
-        if fig_fechado_por: buffer.write(fig_fechado_por.to_html(full_html=False, include_plotlyjs='cdn'))
-        buffer.write("<h2>Tabela de Chamados</h2>")
+        for fig in [fig_pessoa, fig_reclamacao, fig_diagnostico, fig_fechado_por]:
+            buffer.write(fig.to_html(full_html=False, include_plotlyjs='cdn'))
+        buffer.write("<h2>Tabela completa de chamados</h2>")
         buffer.write(df_filtrado.to_html(index=False))
         buffer.write("</body></html>")
         return buffer.getvalue().encode('utf-8')
