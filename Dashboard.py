@@ -1,197 +1,202 @@
-# Dashboard.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import io
+from io import BytesIO
+import xlsxwriter
+import re
 
-# Configuração do app
+# ============================
+#     CONFIGURAÇÃO GLOBAL
+# ============================
+
 st.set_page_config(
-    page_title="Chamados NMC Enterprise",
+    page_title="Dashboard NMC",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# CSS para tema claro e letras pretas
+# Tema claro total
 st.markdown("""
 <style>
-.stMetricLabel, .stMetricValue { color: #000000 !important; }
-div.stDataFrame div.row_widget.stDataFrame { background-color: #f7f7f7 !important; color: #000000 !important; font-size: 14px; }
-.plotly-graph-div { background-color: #f7f7f7 !important; }
-.stDownloadButton button { color: #000000 !important; background-color: #d9e4f5 !important; border: 1px solid #000000 !important; padding: 6px 12px !important; border-radius: 5px !important; font-weight: bold !important; }
-section[data-testid="stSidebar"] { background-color: #e8e8e8 !important; color: #000000 !important; }
-section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] div, section[data-testid="stSidebar"] input, section[data-testid="stSidebar"] select { color: #000000 !important; background-color: #f0f0f0 !important; }
-div[data-baseweb="select"] > div, div[data-baseweb="select"] input, div[data-baseweb="select"] span { background-color: #f0f0f0 !important; color: #000000 !important; }
-input[type="file"]::file-selector-button { background-color: #d9e4f5 !important; color: #000000 !important; font-weight: bold !important; border: 1px solid #000000; border-radius: 5px; padding: 5px 10px; }
-input[type="file"] { background-color: #d9e4f5 !important; color: #000000 !important; font-weight: bold !important; border: 1px solid #000000; border-radius: 5px; padding: 5px; }
+/* Remove fundos escuros */
+body, .stApp, .css-1v0mbdj, .stFileUploader, .stSelectbox, .stTextInput, .stButton {
+    background-color: #f7f7f7 !important;
+    color: #000 !important;
+}
+
+/* Caixa do File Upload clara */
+.css-1u6vki7 {
+    background-color: #e8e8e8 !important;
+    color: #000 !important;
+    border-radius: 8px !important;
+    padding: 12px !important;
+}
+
+/* Texto "Browse files" */
+.stFileUploader label div {
+    color: #000 !important;
+    font-weight: 600 !important;
+}
+
+/* Botão de download estilizado */
+.stDownloadButton > button {
+    background-color: #4a90e2 !important;
+    color: white !important;
+    border-radius: 6px !important;
+    padding: 10px 18px !important;
+    font-size: 16px !important;
+    font-weight: bold !important;
+}
+
+/* Ícone no botão */
+.stDownloadButton > button:before {
+    content: "⬇️ ";
+}
+
+/* Tabelas compactas */
+table.dataframe {
+    font-size: 14px !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
-st.title("Chamados NMC Enterprise")
 
-# Função para carregar dados
-@st.cache_data
-def carregar_dados(file):
-    df = pd.read_csv(file, encoding='latin1', sep=None, engine='python')
-    df.columns = df.columns.str.strip()
-    return df
+# ============================
+# FUNÇÕES
+# ============================
 
-# Sidebar
-st.sidebar.header("Upload de CSV")
-uploaded_file = st.sidebar.file_uploader("Escolha o arquivo CSV", type=["csv"])
+def extrair_usuario_do_historico(historico):
+    """
+    Extrai o nome após "Usuário efetuando abertura:" no histórico.
+    """
+    if pd.isna(historico):
+        return None
+    
+    padrao = r"Usuário efetuando abertura:\s*([A-Za-zÀ-ÿ ]+)"
+    match = re.search(padrao, historico)
+    if match:
+        return match.group(1).strip()
+    return None
 
-if uploaded_file is not None:
-    df = carregar_dados(uploaded_file)
 
-    # ===============================
-    # Corrigir NMC Auto com nome do histórico (apenas fechados)
-    # ===============================
-    if 'Histórico' in df.columns and 'Fechado por' in df.columns:
-        df_fe = df[df['Status'].str.strip().str.lower() == 'fechado'].copy()
+def corrigir_fechado_por(df):
+    """
+    Substitui "NMC.auto" pelo nome encontrado no histórico.
+    Só altera nos chamados fechados por NMC.auto.
+    """
+    df["usuario_historico"] = df["Historico"].apply(extrair_usuario_do_historico)
 
-        def substituir_fechado_por(row):
-            historico = str(row.get('Histórico',''))
-            fechado_por = str(row.get('Fechado por',''))
-            if 'Usuário efetuando abertura:' in historico and fechado_por.strip().lower() == 'nmc auto':
-                nome = historico.split('Usuário efetuando abertura:')[1].strip()
-                row['Fechado por'] = nome
-            return row
-
-        df_fe = df_fe.apply(substituir_fechado_por, axis=1)
-        df.update(df_fe)
-
-    # ===============================
-    # Filtros
-    # ===============================
-    st.sidebar.header("Filtros")
-    responsaveis = df['Fechado por'].dropna().unique()
-    responsavel_selecionado = st.sidebar.multiselect("Responsável pelo fechamento", responsaveis)
-    categorias = df['Reclamação'].dropna().unique()
-    categoria_selecionada = st.sidebar.multiselect("Categoria de Reclamação", categorias)
-
-    df_filtrado = df.copy()
-    if responsavel_selecionado:
-        df_filtrado = df_filtrado[df_filtrado['Fechado por'].isin(responsavel_selecionado)]
-    if categoria_selecionada:
-        df_filtrado = df_filtrado[df_filtrado['Reclamação'].isin(categoria_selecionada)]
-
-    # ===============================
-    # Métricas
-    # ===============================
-    df_encerrados = df_filtrado[df_filtrado['Status'].str.lower() == 'fechado'].copy()
-    if not df_encerrados.empty:
-        df_encerrados['DataHoraAbertura'] = pd.to_datetime(df_encerrados['Data de abertura'] + ' ' + df_encerrados['Hora de abertura'], errors='coerce')
-        df_encerrados['DataHoraFechamento'] = pd.to_datetime(df_encerrados['Data de fechamento'] + ' ' + df_encerrados['Hora de fechamento'], errors='coerce')
-        df_encerrados['TempoAtendimentoMin'] = ((df_encerrados['DataHoraFechamento'] - df_encerrados['DataHoraAbertura']).dt.total_seconds() / 60).clip(lower=0).dropna().round(2)
-        tempo_medio = df_encerrados['TempoAtendimentoMin'].mean().round(2) if not df_encerrados['TempoAtendimentoMin'].empty else 0.0
-    else:
-        tempo_medio = 0.0
-
-    # Maior ofensor baseado em Diagnóstico
-    if not df_filtrado.empty:
-        df_filtrado['Diagnóstico'] = df_filtrado['Diagnóstico'].fillna('Não informado')
-        criadores = df_filtrado['Diagnóstico'].value_counts()
-        maior_ofensor = criadores.idxmax()
-        qtd_ofensor = criadores.max()
-        pct_ofensor = round((qtd_ofensor / len(df_filtrado) * 100), 2)
-    else:
-        maior_ofensor = '-'
-        qtd_ofensor = 0
-        pct_ofensor = 0.0
-
-    # Exibição de métricas
-    col1, col2, col3 = st.columns(3)
-    col1.metric("⏱ Tempo médio (min)", f"{tempo_medio:.2f}")
-    col2.metric("📌 Maior ofensor", f"{maior_ofensor}")
-    col3.metric("📊 % de chamados do maior ofensor", f"{pct_ofensor}% ({qtd_ofensor} chamados)")
-
-    # ===============================
-    # Função para gráficos + tabela lado a lado
-    # ===============================
-    def grafico_com_tabela(campo, titulo):
-        st.subheader(titulo)
-        col_table, col_graph = st.columns([1.5,3])
-        df_filtrado[campo] = df_filtrado[campo].fillna('Não informado').astype(str)
-        tabela = df_filtrado.groupby(campo)['Id'].count().rename('Qtd de Chamados').reset_index()
-        tabela[campo] = tabela[campo].astype(str)
-        tabela['Qtd de Chamados'] = tabela['Qtd de Chamados'].astype(int)
-        with col_table:
-            st.dataframe(
-                tabela.style.set_properties(**{'color':'black','background-color':'#f7f7f7','font-size':'14px'}),
-                use_container_width=False,
-                width=300
-            )
-        contagem_x = tabela[campo].tolist()
-        contagem_y = tabela['Qtd de Chamados'].tolist()
-        fig = px.bar(
-            x=contagem_x,
-            y=contagem_y,
-            text=contagem_y,
-            labels={'x':'', 'y':''},
-            color=contagem_y,
-            color_continuous_scale='Blues',
-            template='plotly_white'
-        )
-        fig.update_layout(
-            showlegend=False,
-            xaxis=dict(tickfont=dict(color='#000000'), gridcolor='#e0e0e0', showticklabels=True),
-            yaxis=dict(tickfont=dict(color='#000000'), gridcolor='#e0e0e0'),
-            plot_bgcolor='#f7f7f7',
-            paper_bgcolor='#f7f7f7'
-        )
-        fig.update_traces(textposition='outside', textfont=dict(color='black', size=12),
-                          marker_line_color='black', marker_line_width=1)
-        with col_graph:
-            st.plotly_chart(fig, use_container_width=True)
-        return fig
-
-    # ===============================
-    # Gráficos principais
-    # ===============================
-    fig_abertos_por = grafico_com_tabela('Criado por','Abertos por:')
-    fig_reclamacao = grafico_com_tabela('Reclamação','Reclamação:')
-    fig_diagnostico = grafico_com_tabela('Diagnóstico','Diagnóstico:')
-    fig_fechado_por = grafico_com_tabela('Fechado por','Fechado por:')
-
-    # ===============================
-    # Exportar dashboard em HTML
-    # ===============================
-    def to_html_bonito():
-        buffer = io.StringIO()
-        buffer.write("<html><head><meta charset='utf-8'><title>Dashboard NMC</title>")
-        buffer.write("""
-        <style>
-        body {background-color: #f0f4f8; color: #000000; font-family: Arial, sans-serif; margin: 20px;}
-        h1 {text-align:center; color:#000000;}
-        h2, h3 {color: #000000; margin-bottom:5px;}
-        p {color: #000000; margin:2px 0;}
-        table {border-collapse: collapse; width: 100%; font-size:13px; margin-bottom:15px;}
-        th, td {border: 1px solid #ccc; padding: 4px 6px; text-align: left; color: #000000; background-color:#f7f7f7;}
-        th {background-color: #e0e0e0;}
-        tr:nth-child(even) {background-color: #f9f9f9;}
-        .metric {font-size:14px; font-weight:bold; margin-bottom:8px;}
-        .fig-container {margin-bottom: 25px;}
-        </style>
-        """)
-        buffer.write("</head><body>")
-        buffer.write("<h1>Chamados NMC Enterprise</h1>")
-        buffer.write(f"<div class='metric'>⏱ Tempo médio (min): {tempo_medio:.2f}</div>")
-        buffer.write(f"<div class='metric'>📌 Maior ofensor: {maior_ofensor} ({qtd_ofensor} chamados, {pct_ofensor}%)</div>")
-        for titulo, fig in zip(['Abertos por:', 'Reclamação:', 'Diagnóstico:', 'Fechado por:'], [fig_abertos_por, fig_reclamacao, fig_diagnostico, fig_fechado_por]):
-            buffer.write(f"<h2>{titulo}</h2>")
-            buffer.write("<div class='fig-container'>")
-            buffer.write(fig.to_html(full_html=False, include_plotlyjs='cdn'))
-            buffer.write("</div>")
-        buffer.write("<h2>Tabela completa de chamados</h2>")
-        buffer.write(df_filtrado.to_html(index=False))
-        buffer.write("</body></html>")
-        return buffer.getvalue().encode('utf-8')
-
-    st.download_button(
-        label="📥 Baixar Dashboard",
-        data=to_html_bonito(),
-        file_name="dashboard_completo.html",
-        mime="text/html"
+    df["Fechado por"] = df.apply(
+        lambda x: x["usuario_historico"] if x["Fechado por"] == "NMC.auto" and pd.notna(x["usuario_historico"]) else x["Fechado por"],
+        axis=1
     )
 
-else:
-    st.info("Aguardando upload do arquivo CSV para exibir o dashboard.")
+    return df.drop(columns=["usuario_historico"])
+
+
+def adicionar_percentual(df, coluna="Quantidade"):
+    total = df[coluna].sum()
+    if total == 0:
+        df["%"] = "0%"
+    else:
+        df["%"] = (df[coluna] / total * 100).round(2).astype(str) + "%"
+    return df
+
+
+def gerar_excel(df, tabelas):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df.to_excel(writer, sheet_name="Base", index=False)
+
+        for nome, tabela in tabelas.items():
+            tabela.to_excel(writer, sheet_name=nome[:31], index=False)
+
+    return output.getvalue()
+
+
+# ============================
+#       INTERFACE
+# ============================
+
+st.title("📊 Dashboard NMC — Tema Claro")
+
+uploaded = st.file_uploader("Carregar CSV", type=["csv"])
+
+if uploaded:
+    df = pd.read_csv(uploaded)
+
+    # Corrigir fechado por NMC.auto
+    df = corrigir_fechado_por(df)
+
+    # Corrigir campos undefined
+    df.fillna("(não informado)", inplace=True)
+
+    # -------------------------
+    # Cálculos das tabelas
+    # -------------------------
+
+    tabelas = {}
+
+    # Abertos por
+    t_abertos = df.groupby("Abertos por").size().reset_index(name="Quantidade")
+    t_abertos = adicionar_percentual(t_abertos)
+    tabelas["Abertos_por"] = t_abertos
+
+    # Reclamação
+    t_reclamacao = df.groupby("Reclamação").size().reset_index(name="Quantidade")
+    t_reclamacao = adicionar_percentual(t_reclamacao)
+    tabelas["Reclamacao"] = t_reclamacao
+
+    # Diagnóstico (maior ofensor)
+    t_diag = df.groupby("Diagnóstico").size().reset_index(name="Quantidade")
+    t_diag = adicionar_percentual(t_diag)
+    tabelas["Diagnostico"] = t_diag
+
+    maior_ofensor = t_diag.sort_values("Quantidade", ascending=False).iloc[0]["Diagnóstico"]
+
+    # Fechado por
+    t_fechado = df.groupby("Fechado por").size().reset_index(name="Quantidade")
+    t_fechado = adicionar_percentual(t_fechado)
+    tabelas["Fechado_por"] = t_fechado
+
+    # -------------------------
+    # VISUALIZAÇÃO
+    # -------------------------
+    st.subheader("📌 Maior Ofensor (Diagnóstico)")
+    st.info(f"🔎 **{maior_ofensor}**")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("Abertos por")
+        st.dataframe(t_abertos)
+
+        fig = px.bar(t_abertos, x="Abertos por", y="Quantidade", text="Quantidade")
+        fig.update_layout(showlegend=False)
+        st.plotly_chart(fig, use_container_width=True)
+
+    with col2:
+        st.subheader("Diagnóstico")
+        st.dataframe(t_diag)
+
+        fig2 = px.pie(t_diag, values="Quantidade", names="Diagnóstico")
+        st.plotly_chart(fig2, use_container_width=True)
+
+    st.subheader("Reclamação")
+    st.dataframe(t_reclamacao)
+
+    st.subheader("Fechado por")
+    st.dataframe(t_fechado)
+
+    # -------------------------
+    # DOWNLOAD DO DASHBOARD
+    # -------------------------
+
+    excel_bytes = gerar_excel(df, tabelas)
+
+    st.download_button(
+        label="Baixar Dashboard",
+        data=excel_bytes,
+        file_name="Dashboard_NMC.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
