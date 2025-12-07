@@ -11,40 +11,16 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS customizado para cores claras e textos pretos
+# CSS adicional para tabelas, métricas e gráficos
 st.markdown("""
 <style>
-/* Fundo geral */
-.stApp { background-color: #f0f4f8; color: #000000; }
-
-/* Sidebar clara e legível */
-section[data-testid="stSidebar"] {
-    background-color: #e8e8e8 !important;
+.stMetricLabel, .stMetricValue { color: #000000 !important; }
+div.stDataFrame div.row_widget.stDataFrame {
+    background-color: #f7f7f7 !important;
     color: #000000 !important;
+    font-size: 14px;
 }
-section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3,
-section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span,
-section[data-testid="stSidebar"] div, section[data-testid="stSidebar"] input,
-section[data-testid="stSidebar"] select {
-    color: #000000 !important;
-    background-color: #f0f0f0 !important;
-}
-
-/* Inputs, selects e multiselects */
-div[data-baseweb="select"] > div,
-div[data-baseweb="select"] input,
-div[data-baseweb="select"] span {
-    background-color: #f0f0f0 !important;
-    color: #000000 !important;
-}
-
-/* File uploader */
-div.stFileUploader div, div.stFileUploader input {
-    background-color: #f0f0f0 !important;
-    color: #000000 !important;
-}
-
-/* Botão de download */
+.plotly-graph-div { background-color: #f7f7f7 !important; }
 .stDownloadButton button {
     color: #000000 !important;
     background-color: #d9e4f5 !important;
@@ -53,22 +29,6 @@ div.stFileUploader div, div.stFileUploader input {
     border-radius: 5px !important;
     font-weight: bold !important;
 }
-
-/* Letras de métricas */
-.stMetricLabel, .stMetricValue { color: #000000 !important; }
-
-/* Títulos e textos gerais */
-h1, h2, h3, h4, p, span, div { color: #000000 !important; }
-
-/* Tabela interna do Streamlit */
-div.stDataFrame div.row_widget.stDataFrame {
-    background-color: #f7f7f7 !important;
-    color: #000000 !important;
-    font-size: 14px;
-}
-
-/* Gráficos Plotly: fundo claro */
-.plotly-graph-div { background-color: #f7f7f7 !important; }
 </style>
 """, unsafe_allow_html=True)
 
