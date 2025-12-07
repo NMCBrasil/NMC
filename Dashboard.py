@@ -17,8 +17,8 @@ st.markdown("""
 /* Fundo do dashboard */
 .stApp { background-color: #f0f4f8; color: #000000; }
 
-/* Sidebar leve */
-.css-18e3th9 { background-color: #e0e0e0 !important; color: #000000 !important; }
+/* Sidebar leve e clara */
+.css-18e3th9, .css-1d391kg { background-color: #e8e8e8 !important; color: #000000 !important; }
 
 /* Letras de métricas */
 .stMetricLabel, .stMetricValue, .css-1v3fvcr, .css-1aumxhk { color: #000000 !important; }
@@ -113,7 +113,7 @@ if uploaded_file is not None:
     # --------------------
     def grafico_com_tabela(campo, titulo):
         st.subheader(titulo)
-        col_table, col_graph = st.columns([1,3])  # tabela mais estreita
+        col_table, col_graph = st.columns([1.2,3])  # tabela estreita mas legível
 
         # Tabela compacta
         tabela = df_filtrado.groupby(campo)['Id'].count().rename('Qtd de Chamados').reset_index()
@@ -125,7 +125,7 @@ if uploaded_file is not None:
                     'font-size':'14px'
                 }),
                 use_container_width=False,
-                width=200  # largura fixa menor
+                width=250  # largura suficiente para leitura
             )
 
         # Gráfico
