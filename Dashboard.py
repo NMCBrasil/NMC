@@ -133,7 +133,10 @@ if uploaded_file is not None:
     total_abertos = df_filtrado[df_filtrado['Status'].str.lower() == 'aberto'].shape[0]
     total_fechados = df_filtrado[df_filtrado['Status'].str.lower() == 'fechado'].shape[0]
 
-    # Maior ofensor
+    # NOVO — porcentagem de abertos e fechados
+    pct_abertos = (total_abertos / total_chamados * 100) if total_chamados > 0 else 0
+    pct_fechados = (total_fechados / total_chamados * 100) if total_chamados > 0 else 0
+
     df_filtrado['Diagnóstico'] = df_filtrado['Diagnóstico'].fillna('Não informado')
     if not df_filtrado.empty:
         cont_diag = df_filtrado['Diagnóstico'].value_counts()
@@ -153,7 +156,13 @@ if uploaded_file is not None:
     col3.metric("📊 % dos chamados do maior ofensor", f"{pct_ofensor}%  ({qtd_ofensor})")
 
     st.write(
-        f"### 📑 Total de chamados: **{total_chamados}**   🔵 Abertos: **{total_abertos}**   🔴 Fechados: **{total_fechados}**"
+        f"### 📑 Total de chamados: **{total_chamados}**"
+    )
+    st.write(
+        f"🔵 **Chamados abertos:** {total_abertos} ({pct_abertos:.1f}%)"
+    )
+    st.write(
+        f"🔴 **Chamados fechados:** {total_fechados} ({pct_fechados:.1f}%)"
     )
 
     # ------------------------------------------------------------
@@ -201,7 +210,7 @@ if uploaded_file is not None:
         return fig, tabela
 
     # ------------------------------------------------------------
-    # GRÁFICOS PRINCIPAIS (COM TITULOS ALTERADOS)
+    # GRÁFICOS PRINCIPAIS
     # ------------------------------------------------------------
     fig_abertos_por, tab_abertos = grafico_com_tabela("Criado por", "Chamados abertos por usuário")
 
@@ -220,7 +229,7 @@ if uploaded_file is not None:
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
     # ------------------------------------------------------------
-    # EXPORTAÇÃO HTML - Com títulos atualizados
+    # EXPORTAÇÃO HTML
     # ------------------------------------------------------------
     def to_html_bonito():
 
@@ -249,7 +258,9 @@ if uploaded_file is not None:
         # Cabeçalho
         buffer.write("<h1>Chamados NMC Enterprise</h1>")
         buffer.write(f"<div class='metric'>⏱ Tempo médio total (min): {tempo_medio}</div>")
-        buffer.write(f"<div class='metric'>📑 Total de chamados: {total_chamados} — Abertos: {total_abertos} — Fechados: {total_fechados}</div>")
+        buffer.write(f"<div class='metric'>📑 Total de chamados: {total_chamados}</div>")
+        buffer.write(f"<div class='metric'>🔵 Abertos: {total_abertos} ({pct_abertos:.1f}%)</div>")
+        buffer.write(f"<div class='metric'>🔴 Fechados: {total_fechados} ({pct_fechados:.1f}%)</div>")
         buffer.write(f"<div class='metric'>📌 Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
 
         # Estruturas lado a lado
