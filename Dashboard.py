@@ -1,71 +1,122 @@
+# Dashboard.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from PIL import Image
+import requests
+from io import BytesIO
 
-st.set_page_config(page_title="Chamados NMC Enterprise", layout="wide")
+# ------------------------
+# Configurações iniciais
+# ------------------------
+st.set_page_config(
+    page_title="Chamados NMC Enterprise",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# --- Função para carregar dados ---
+st.title("Chamados NMC Enterprise")
+
+# ------------------------
+# Logo Hughes
+# ------------------------
+logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Hughes_Network_Systems_logo.svg/320px-Hughes_Network_Systems_logo.svg.png"
+image = Image.open(BytesIO(requests.get(logo_url).content))
+st.image(image, width=200)
+
+# ------------------------
+# Upload de arquivo
+# ------------------------
+st.sidebar.header("Upload de arquivo")
+uploaded_file = st.sidebar.file_uploader(
+    "Escolha o arquivo CSV ou Excel (com separador ';')",
+    type=["csv", "xls", "xlsx"]
+)
+
 @st.cache_data
-def carregar_dados(caminho_csv):
-    try:
-        df = pd.read_csv(caminho_csv, sep=';', encoding='latin1')
-        return df
-    except Exception as e:
-        st.error(f"Erro ao carregar o arquivo: {e}")
-        return pd.DataFrame()
-
-# --- Upload de arquivo ---
-st.sidebar.title("Upload do Excel")
-uploaded_file = st.sidebar.file_uploader("Escolha o arquivo CSV/Excel", type=["csv", "xlsx"])
+def carregar_dados(arquivo):
+    if arquivo.name.endswith(".csv"):
+        df = pd.read_csv(arquivo, sep=";", encoding='latin1')
+    else:
+        df = pd.read_excel(arquivo)
+    return df
 
 if uploaded_file:
-    if uploaded_file.name.endswith('.csv'):
-        df = carregar_dados(uploaded_file)
+    df = carregar_dados(uploaded_file)
+
+    # ------------------------
+    # Limpeza de colunas
+    # ------------------------
+    df.columns = df.columns.str.strip()  # remove espaços extras
+
+    # ------------------------
+    # Sidebar - Filtros
+    # ------------------------
+    st.sidebar.header("Filtros")
+    with st.sidebar.expander("Filtros por responsável"):
+        responsavel = st.multiselect(
+            "Responsável pelo fechamento:",
+            options=df['Fechado por'].dropna().unique(),
+            default=df['Fechado por'].dropna().unique()
+        )
+    with st.sidebar.expander("Filtros por categoria"):
+        categoria = st.multiselect(
+            "Reclamação/Diagnóstico:",
+            options=df['Reclamação'].dropna().unique(),
+            default=df['Reclamação'].dropna().unique()
+        )
+
+    # ------------------------
+    # Aplicar filtros
+    # ------------------------
+    df_filtrado = df[df['Fechado por'].isin(responsavel) & df['Reclamação'].isin(categoria)]
+
+    # ------------------------
+    # Tempo médio de atendimento (em minutos) - apenas fechados
+    # ------------------------
+    df_encerrados = df_filtrado[df_filtrado['Status'].str.lower() == 'fechado'].copy()
+    if 'Data de abertura' in df_encerrados.columns and 'Hora de abertura' in df_encerrados.columns and \
+       'Data de fechamento' in df_encerrados.columns and 'Hora de fechamento' in df_encerrados.columns:
+
+        df_encerrados['DataHoraAbertura'] = pd.to_datetime(df_encerrados['Data de abertura'] + ' ' + df_encerrados['Hora de abertura'], errors='coerce')
+        df_encerrados['DataHoraFechamento'] = pd.to_datetime(df_encerrados['Data de fechamento'] + ' ' + df_encerrados['Hora de fechamento'], errors='coerce')
+        df_encerrados['TempoAtendimento'] = (df_encerrados['DataHoraFechamento'] - df_encerrados['DataHoraAbertura']).dt.total_seconds() / 60
+        tempo_medio = round(df_encerrados['TempoAtendimento'].mean(), 2)
+        st.metric("Tempo médio em min por chamado", f"{tempo_medio}")
     else:
-        df = pd.read_excel(uploaded_file, engine='openpyxl')
+        st.info("Colunas de data/hora não encontradas para cálculo do tempo médio.")
 
-    # --- Logo e título ---
-    st.image("https://upload.wikimedia.org/wikipedia/commons/1/14/Hughes_Network_Systems_logo.png", width=200)
-    st.title("Chamados NMC Enterprise")
+    # ------------------------
+    # Gráficos
+    # ------------------------
+    st.subheader("Gráficos de Chamados")
 
-    # --- Limpeza do dataframe ---
-    df.columns = df.columns.str.strip()
-    
-    # --- Conversão de datas e cálculo de tempo médio ---
-    df['Data de abertura'] = pd.to_datetime(df['Data de abertura'], errors='coerce')
-    df['Data de fechamento'] = pd.to_datetime(df['Data de fechamento'], errors='coerce')
-    df['Tempo Atendimento (min)'] = (df['Data de fechamento'] - df['Data de abertura']).dt.total_seconds() / 60
+    def plot_bar(col, titulo):
+        contagem = df_filtrado[col].value_counts().head(10)
+        fig = px.bar(
+            x=contagem.index,
+            y=contagem.values,
+            text=contagem.values,
+            labels={'x': col, 'y': 'Quantidade'},
+            title=titulo
+        )
+        fig.update_traces(textposition='outside', marker_color='steelblue')
+        fig.update_layout(xaxis_title=col, yaxis_title='Quantidade', uniformtext_minsize=8, uniformtext_mode='hide')
+        st.plotly_chart(fig, use_container_width=True)
 
-    # --- Filtros ---
-    st.sidebar.subheader("Filtros")
-    categoria = st.sidebar.selectbox("Selecionar categoria para gráficos", ["Todos"] + list(df['Reclamação'].dropna().unique()))
-    
-    if categoria != "Todos":
-        df_filtrado = df[df['Reclamação'] == categoria]
-    else:
-        df_filtrado = df.copy()
+    plot_bar('Reclamação', 'Top 10 Reclamações')
+    plot_bar('Diagnóstico', 'Top 10 Diagnósticos')
+    plot_bar('Fechado por', 'Chamados fechados por responsável')
 
-    # --- Tempo médio de atendimento ---
-    tempo_medio = df_filtrado[df_filtrado['Status'].str.lower()=='fechado']['Tempo Atendimento (min)'].mean()
-    st.metric("Tempo médio em min por chamado (fechados)", f"{tempo_medio:.1f}")
+    # ------------------------
+    # Tabela de chamados
+    # ------------------------
+    st.subheader("Detalhes dos Chamados")
+    colunas_tabela = [
+        'Id', 'Ticket', 'Status', 'Criado por', 'Data de abertura', 'Hora de abertura',
+        'Fechado por', 'Data de fechamento', 'Hora de fechamento', 'Cliente',
+        'Reclamação', 'Diagnóstico'
+    ]
+    colunas_tabela = [c for c in colunas_tabela if c in df_filtrado.columns]
 
-    # --- Colunas de interesse ---
-    colunas_graficos = ['Reclamação', 'Diagnóstico', 'Fechado por']
-
-    # --- Criar gráficos ---
-    for col in colunas_graficos:
-        st.subheader(f"{col} - Top 10")
-        if col in df_filtrado.columns:
-            top = df_filtrado[col].value_counts().nlargest(10).reset_index()
-            top.columns = [col, 'Quantidade']
-            fig = px.bar(top, x=col, y='Quantidade', text='Quantidade')
-            fig.update_traces(textposition='outside')
-            fig.update_layout(xaxis_title=col, yaxis_title='Quantidade', template='plotly_white')
-            st.plotly_chart(fig, use_container_width=True)
-
-    # --- Mostrar tabela completa ---
-    st.subheader("Detalhes dos chamados")
-    st.dataframe(df_filtrado.sort_values(by='Data de abertura', ascending=False))
-
-else:
-    st.info("Faça upload de um arquivo CSV ou Excel para visualizar o dashboard.")
+    st.dataframe(df_filtrado[colunas_tabela].sort_values(by='Data de abertura', ascending=False))
