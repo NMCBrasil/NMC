@@ -14,52 +14,17 @@ st.set_page_config(
 # CSS customizado para cores claras e textos pretos
 st.markdown("""
 <style>
-/* Fundo do dashboard */
 .stApp { background-color: #f0f4f8; color: #000000; }
-
-/* Sidebar totalmente clara e legível */
-section[data-testid="stSidebar"] {
-    background-color: #e8e8e8 !important;
-    color: #000000 !important;
-}
-section[data-testid="stSidebar"] h2, 
-section[data-testid="stSidebar"] h3, 
-section[data-testid="stSidebar"] label, 
-section[data-testid="stSidebar"] span, 
-section[data-testid="stSidebar"] div, 
-section[data-testid="stSidebar"] input, 
-section[data-testid="stSidebar"] select {
-    color: #000000 !important;
-    background-color: #f0f0f0 !important;
-}
-
-/* Botão de download */
-.stDownloadButton button {
-    color: #000000 !important;
-    background-color: #d9e4f5 !important;
-    border: 1px solid #000000 !important;
-    padding: 6px 12px !important;
-    border-radius: 5px !important;
-    font-weight: bold !important;
-}
-
-/* Letras de métricas */
+section[data-testid="stSidebar"] { background-color: #e8e8e8 !important; color: #000000 !important; }
+section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3,
+section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span,
+section[data-testid="stSidebar"] div, section[data-testid="stSidebar"] input,
+section[data-testid="stSidebar"] select { color: #000000 !important; background-color: #f0f0f0 !important; }
+.stDownloadButton button { color: #000000 !important; background-color: #d9e4f5 !important; border: 1px solid #000000 !important; padding: 6px 12px !important; border-radius: 5px !important; font-weight: bold !important; }
 .stMetricLabel, .stMetricValue { color: #000000 !important; }
-
-/* Títulos e textos gerais */
 h1, h2, h3, h4, p, span, div { color: #000000 !important; }
-
-/* Tabela interna do Streamlit: fundo claro, texto preto, fonte legível */
-div.stDataFrame div.row_widget.stDataFrame {
-    background-color: #f7f7f7 !important;
-    color: #000000 !important;
-    font-size: 14px;
-}
-
-/* Gráficos Plotly: fundo claro */
-.plotly-graph-div {
-    background-color: #f7f7f7 !important;
-}
+div.stDataFrame div.row_widget.stDataFrame { background-color: #f7f7f7 !important; color: #000000 !important; font-size: 14px; }
+.plotly-graph-div { background-color: #f7f7f7 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -95,15 +60,9 @@ if uploaded_file is not None:
     # Métricas
     df_encerrados = df_filtrado[df_filtrado['Status'].str.lower() == 'fechado'].copy()
     if not df_encerrados.empty:
-        df_encerrados['DataHoraAbertura'] = pd.to_datetime(
-            df_encerrados['Data de abertura'] + ' ' + df_encerrados['Hora de abertura'], errors='coerce'
-        )
-        df_encerrados['DataHoraFechamento'] = pd.to_datetime(
-            df_encerrados['Data de fechamento'] + ' ' + df_encerrados['Hora de fechamento'], errors='coerce'
-        )
-        df_encerrados['TempoAtendimentoMin'] = (
-            (df_encerrados['DataHoraFechamento'] - df_encerrados['DataHoraAbertura']).dt.total_seconds() / 60
-        ).clip(lower=0).dropna().round(2)
+        df_encerrados['DataHoraAbertura'] = pd.to_datetime(df_encerrados['Data de abertura'] + ' ' + df_encerrados['Hora de abertura'], errors='coerce')
+        df_encerrados['DataHoraFechamento'] = pd.to_datetime(df_encerrados['Data de fechamento'] + ' ' + df_encerrados['Hora de fechamento'], errors='coerce')
+        df_encerrados['TempoAtendimentoMin'] = ((df_encerrados['DataHoraFechamento'] - df_encerrados['DataHoraAbertura']).dt.total_seconds() / 60).clip(lower=0).dropna().round(2)
         tempo_medio = df_encerrados['TempoAtendimentoMin'].mean().round(2) if not df_encerrados['TempoAtendimentoMin'].empty else 0.0
     else:
         tempo_medio = 0.0
@@ -129,22 +88,16 @@ if uploaded_file is not None:
     # Função para gráficos + tabela
     def grafico_com_tabela(campo, titulo):
         st.subheader(titulo)
-        col_table, col_graph = st.columns([1.5,3])  # tabela estreita, legível
+        col_table, col_graph = st.columns([1.5,3])
 
-        # Substitui nulos por "Não informado"
         df_filtrado[campo] = df_filtrado[campo].fillna('Não informado')
-
         tabela = df_filtrado.groupby(campo)['Id'].count().rename('Qtd de Chamados').reset_index()
         tabela[campo] = tabela[campo].astype(str)
         tabela['Qtd de Chamados'] = tabela['Qtd de Chamados'].astype(int)
 
         with col_table:
             st.dataframe(
-                tabela.style.set_properties(**{
-                    'color':'black',
-                    'background-color':'#f7f7f7',
-                    'font-size':'14px'
-                }),
+                tabela.style.set_properties(**{'color':'black','background-color':'#f7f7f7','font-size':'14px'}),
                 use_container_width=False,
                 width=300
             )
@@ -168,51 +121,53 @@ if uploaded_file is not None:
             xaxis=dict(title=campo, title_font=dict(color='#000000'), tickfont=dict(color='#000000'), gridcolor='#e0e0e0'),
             yaxis=dict(title='Quantidade', title_font=dict(color='#000000'), tickfont=dict(color='#000000'), gridcolor='#e0e0e0')
         )
-        fig.update_traces(
-            textposition='outside',
-            textfont=dict(color='black', size=12),
-            marker_line_color='black',
-            marker_line_width=1
-        )
+        fig.update_traces(textposition='outside', textfont=dict(color='black', size=12), marker_line_color='black', marker_line_width=1)
         with col_graph:
             st.plotly_chart(fig, use_container_width=True)
         return fig
 
-    # Gráficos principais com tabela e novos títulos
+    # Gráficos principais
     fig_abertos_por = grafico_com_tabela('Criado por','Abertos por:')
     fig_reclamacao = grafico_com_tabela('Reclamação','Reclamação:')
     fig_diagnostico = grafico_com_tabela('Diagnóstico','Diagnóstico:')
     fig_fechado_por = grafico_com_tabela('Fechado por','Fechado por:')
 
-    # Exportar dashboard em HTML
-    def to_html():
+    # Exportar dashboard em HTML bonito
+    def to_html_bonito():
         buffer = io.StringIO()
         buffer.write("<html><head><meta charset='utf-8'><title>Dashboard NMC</title>")
         buffer.write("""
         <style>
-        body {background-color: #f0f4f8; color: #000000; font-family: Arial, sans-serif;}
-        h1, h2, h3, h4, p {color: #000000;}
-        table {border-collapse: collapse; width: auto; font-size:14px;}
-        th, td {border: 1px solid #ccc; padding: 6px; text-align: left; color: black; background-color:#f7f7f7;}
+        body {background-color: #f0f4f8; color: #000000; font-family: Arial, sans-serif; margin: 20px;}
+        h1 {text-align:center; color:#000000;}
+        h2, h3 {color: #000000; margin-bottom:5px;}
+        p {color: #000000; margin:2px 0;}
+        table {border-collapse: collapse; width: 100%; font-size:13px; margin-bottom:15px;}
+        th, td {border: 1px solid #ccc; padding: 4px 6px; text-align: left; color: #000000; background-color:#f7f7f7;}
         th {background-color: #e0e0e0;}
-        tr:nth-child(even) {background-color: #f7f7f7;}
+        tr:nth-child(even) {background-color: #f9f9f9;}
+        .metric {font-size:14px; font-weight:bold; margin-bottom:8px;}
+        .fig-container {margin-bottom: 25px;}
         </style>
         """)
         buffer.write("</head><body>")
         buffer.write("<h1>Chamados NMC Enterprise</h1>")
-        buffer.write(f"<p>Tempo médio: {tempo_medio:.2f} min</p>")
-        buffer.write(f"<p>Maior ofensor: {maior_ofensor} ({qtd_ofensor} chamados, {pct_ofensor}%)</p>")
-        for fig in [fig_abertos_por, fig_reclamacao, fig_diagnostico, fig_fechado_por]:
+        buffer.write(f"<div class='metric'>⏱ Tempo médio (min): {tempo_medio:.2f}</div>")
+        buffer.write(f"<div class='metric'>📌 Maior ofensor: {maior_ofensor} ({qtd_ofensor} chamados, {pct_ofensor}%)</div>")
+        for titulo, fig in zip(['Abertos por:', 'Reclamação:', 'Diagnóstico:', 'Fechado por:'], [fig_abertos_por, fig_reclamacao, fig_diagnostico, fig_fechado_por]):
+            buffer.write(f"<h2>{titulo}</h2>")
+            buffer.write("<div class='fig-container'>")
             buffer.write(fig.to_html(full_html=False, include_plotlyjs='cdn'))
+            buffer.write("</div>")
         buffer.write("<h2>Tabela completa de chamados</h2>")
         buffer.write(df_filtrado.to_html(index=False))
         buffer.write("</body></html>")
         return buffer.getvalue().encode('utf-8')
 
     st.download_button(
-        label="📥 Baixar dashboard completo em HTML (exportável para PDF)",
-        data=to_html(),
-        file_name="dashboard_completo.html",
+        label="📥 Baixar dashboard completo em HTML (compacto e bonito)",
+        data=to_html_bonito(),
+        file_name="dashboard_completo_bonito.html",
         mime="text/html"
     )
 
