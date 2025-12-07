@@ -11,21 +11,31 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Fundo azul claro e letras pretas
-st.markdown(
-    """
-    <style>
-    .stApp {
-        background-color: #e6f2ff;
-        color: black;
-    }
-    .stMetricLabel, .stMetricValue, .css-1v3fvcr, .css-1aumxhk {
-        color: black !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# CSS customizado: fundo azul claro, letras pretas, botão download legível
+st.markdown("""
+<style>
+/* Fundo azul claro e letras pretas */
+.stApp {
+    background-color: #e6f2ff;
+    color: black;
+}
+
+/* Força textos de métricas para preto */
+.stMetricLabel, .stMetricValue, .css-1v3fvcr, .css-1aumxhk {
+    color: black !important;
+}
+
+/* Estiliza todos os botões de download */
+.stDownloadButton button {
+    color: black !important;                   /* texto preto */
+    background-color: #cce0ff !important;      /* azul claro mais visível */
+    border: 1px solid black !important;
+    padding: 6px 12px !important;
+    border-radius: 5px !important;
+    font-weight: bold !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 st.title("Chamados NMC Enterprise")
 
@@ -117,15 +127,24 @@ if uploaded_file is not None:
                       'Reclamação', 'Diagnóstico']
     st.dataframe(df_filtrado[colunas_exibir].sort_values(by='Data de abertura', ascending=False), use_container_width=True)
 
-    # Exportar dashboard como HTML
+    # Exportar dashboard como HTML (idêntico ao app)
     def to_html():
         buffer = io.StringIO()
-        buffer.write("<html><head><meta charset='utf-8'><title>Dashboard NMC</title></head><body>")
+        buffer.write("<html><head><meta charset='utf-8'><title>Dashboard NMC</title>")
+        buffer.write("""
+        <style>
+        body {background-color: #e6f2ff; color: black; font-family: Arial, sans-serif;}
+        h1, h2, h4, p {color: black;}
+        table {border-collapse: collapse; width: 100%;}
+        th, td {border: 1px solid black; padding: 4px; text-align: left;}
+        </style>
+        """)
+        buffer.write("</head><body>")
         buffer.write("<h1>Chamados NMC Enterprise</h1>")
         buffer.write(f"<p>Tempo médio: {tempo_medio:.2f} min</p>")
         buffer.write(f"<p>Maior ofensor: {maior_ofensor} ({qtd_ofensor} chamados, {pct_ofensor}%)</p>")
         buffer.write("<h2>Gráficos</h2>")
-        # Exporta gráficos como HTML individuais
+        # Exporta gráficos Plotly como HTML
         if fig_reclamacao:
             buffer.write(fig_reclamacao.to_html(full_html=False, include_plotlyjs='cdn'))
         if fig_diagnostico:
