@@ -11,25 +11,30 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS customizado: fundo azul claro, letras pretas, botão download legível, gráficos com fundo cinza
+# CSS para cores leves, letras legíveis, sidebar clara e botão estilizado
 st.markdown("""
 <style>
-/* Fundo azul claro e letras pretas */
+/* Fundo do dashboard */
 .stApp {
-    background-color: #e6f2ff;
-    color: black;
+    background-color: #f5f7fa;
+    color: #0a0a0a;
 }
 
-/* Força textos de métricas para preto */
+/* Sidebar leve */
+.css-18e3th9 {
+    background-color: #eaeaea !important;
+}
+
+/* Letras de métricas */
 .stMetricLabel, .stMetricValue, .css-1v3fvcr, .css-1aumxhk {
-    color: black !important;
+    color: #0a0a0a !important;
 }
 
-/* Estiliza todos os botões de download */
+/* Botão de download */
 .stDownloadButton button {
-    color: black !important;                   /* texto preto */
-    background-color: #cce0ff !important;      /* azul claro mais visível */
-    border: 1px solid black !important;
+    color: #0a0a0a !important;
+    background-color: #d9e4f5 !important;
+    border: 1px solid #0a0a0a !important;
     padding: 6px 12px !important;
     border-radius: 5px !important;
     font-weight: bold !important;
@@ -72,7 +77,7 @@ if uploaded_file is not None:
         qtd_ofensor = df_filtrado['Criado por'].value_counts().max()
         pct_ofensor = (qtd_ofensor / len(df_filtrado) * 100).round(2)
         st.subheader("📌 Maior ofensor")
-        st.markdown(f"<p style='color:black; font-size:18px;'>**{maior_ofensor}** abriu **{qtd_ofensor} chamados** ({pct_ofensor}%)</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='color:#0a0a0a; font-size:18px;'>**{maior_ofensor}** abriu **{qtd_ofensor} chamados** ({pct_ofensor}%)</p>", unsafe_allow_html=True)
 
     # Tempo médio
     df_encerrados = df_filtrado[df_filtrado['Status'].str.lower() == 'fechado'].copy()
@@ -91,13 +96,13 @@ if uploaded_file is not None:
         tempo_medio = 0.0
 
     st.markdown(f"""
-    <div style='background-color:#e6f2ff; padding:10px; border-radius:5px; display:inline-block'>
-        <h4 style='margin:0; color:black'>⏱ Tempo médio por chamado (min)</h4>
-        <p style='font-size:24px; margin:0; color:black'>{tempo_medio:.2f}</p>
+    <div style='background-color:#f0f4fa; padding:10px; border-radius:5px; display:inline-block'>
+        <h4 style='margin:0; color:#0a0a0a'>⏱ Tempo médio por chamado (min)</h4>
+        <p style='font-size:24px; margin:0; color:#0a0a0a'>{tempo_medio:.2f}</p>
     </div>
     """, unsafe_allow_html=True)
 
-    # Função para criar gráficos com fundo cinza claro
+    # Função para criar gráficos leves e bonitos
     def plot_bar(campo, titulo):
         if campo in df_filtrado.columns and not df_filtrado[campo].dropna().empty:
             contagem = df_filtrado[campo].value_counts()
@@ -112,12 +117,12 @@ if uploaded_file is not None:
                 template='plotly_white'
             )
             fig.update_layout(
-                plot_bgcolor='#f2f2f2',  # fundo do gráfico cinza claro
-                paper_bgcolor='#f2f2f2',
-                xaxis=dict(title=campo, gridcolor='white'),
+                plot_bgcolor='#f5f5f5',  # fundo do gráfico leve
+                paper_bgcolor='#f5f5f5',
+                xaxis=dict(title=campo, gridcolor='white', tickangle=-45),
                 yaxis=dict(title='Quantidade', gridcolor='white')
             )
-            fig.update_traces(textposition='outside')
+            fig.update_traces(textposition='outside', marker_line_color='black', marker_line_width=1)
             st.plotly_chart(fig, use_container_width=True)
             return fig
         return None
@@ -133,18 +138,18 @@ if uploaded_file is not None:
                       'Reclamação', 'Diagnóstico']
     st.dataframe(df_filtrado[colunas_exibir].sort_values(by='Data de abertura', ascending=False), use_container_width=True)
 
-    # Exportar dashboard como HTML
+    # Exportar dashboard como HTML leve e legível
     def to_html():
         buffer = io.StringIO()
         buffer.write("<html><head><meta charset='utf-8'><title>Dashboard NMC</title>")
         buffer.write("""
         <style>
-        body {background-color: #e6f2ff; color: black; font-family: Arial, sans-serif;}
-        h1, h2, h4, p {color: black;}
+        body {background-color: #f5f7fa; color: #0a0a0a; font-family: Arial, sans-serif;}
+        h1, h2, h4, p {color: #0a0a0a;}
         table {border-collapse: collapse; width: 100%; font-size:14px;}
-        th, td {border: 1px solid black; padding: 4px; text-align: left;}
-        th {background-color: #d9d9d9;}
-        tr:nth-child(even) {background-color: #f2f2f2;}
+        th, td {border: 1px solid #ccc; padding: 6px; text-align: left;}
+        th {background-color: #e0e0e0;}
+        tr:nth-child(even) {background-color: #f9f9f9;}
         </style>
         """)
         buffer.write("</head><body>")
