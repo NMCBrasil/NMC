@@ -203,7 +203,8 @@ if uploaded_file is not None:
     # ------------------------------------------------------------
     # GRÁFICOS PRINCIPAIS (AGORA COM ESPAÇAMENTO ENTRE SEÇÕES)
     # ------------------------------------------------------------
-    fig_abertos_por, tab_abertos = grafico_com_tabela("Criado por", "Chamados abertos por")
+    # Título alterado para "Chamados abertos"
+    fig_abertos_por, tab_abertos = grafico_com_tabela("Criado por", "Chamados abertos")
 
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
@@ -215,7 +216,8 @@ if uploaded_file is not None:
 
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
-    fig_fechado_por, tab_fechado = grafico_com_tabela("Fechado por", "Chamados fechados por")
+    # Título alterado para "Chamados fechados"
+    fig_fechado_por, tab_fechado = grafico_com_tabela("Fechado por", "Chamados fechados")
 
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
@@ -249,7 +251,7 @@ if uploaded_file is not None:
 
         figs = [fig_abertos_por, fig_reclamacao, fig_diagnostico, fig_fechado_por]
         tabs = [tab_abertos, tab_reclamacao, tab_diagnostico, tab_fechado]
-        nomes = ["Abertos por", "Reclamação", "Diagnóstico", "Fechado por"]
+        nomes = ["Chamados abertos", "Reclamação", "Diagnóstico", "Chamados fechados"]
 
         for titulo, fig, tabela in zip(nomes, figs, tabs):
             buffer.write(f"<h2>{titulo}</h2>")
