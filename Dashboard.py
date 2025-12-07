@@ -110,6 +110,7 @@ if uploaded_file is not None:
 
     # Maior ofensor baseado em Diagnóstico
     if not df_filtrado.empty:
+        df_filtrado['Diagnóstico'] = df_filtrado['Diagnóstico'].fillna('Não informado')
         criadores = df_filtrado['Diagnóstico'].value_counts()
         maior_ofensor = criadores.idxmax()
         qtd_ofensor = criadores.max()
@@ -130,6 +131,9 @@ if uploaded_file is not None:
         st.subheader(titulo)
         col_table, col_graph = st.columns([1.5,3])  # tabela estreita, legível
 
+        # Substitui nulos por "Não informado"
+        df_filtrado[campo] = df_filtrado[campo].fillna('Não informado')
+
         tabela = df_filtrado.groupby(campo)['Id'].count().rename('Qtd de Chamados').reset_index()
         tabela[campo] = tabela[campo].astype(str)
         tabela['Qtd de Chamados'] = tabela['Qtd de Chamados'].astype(int)
@@ -145,13 +149,15 @@ if uploaded_file is not None:
                 width=300
             )
 
-        contagem = tabela.set_index(campo)['Qtd de Chamados']
+        contagem_x = tabela[campo].tolist()
+        contagem_y = tabela['Qtd de Chamados'].tolist()
+
         fig = px.bar(
-            x=contagem.index,
-            y=contagem.values,
-            text=contagem.values,
+            x=contagem_x,
+            y=contagem_y,
+            text=contagem_y,
             labels={'x':campo,'y':'Quantidade'},
-            color=contagem.values,
+            color=contagem_y,
             color_continuous_scale='Blues',
             template='plotly_white'
         )
