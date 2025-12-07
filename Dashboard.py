@@ -203,7 +203,6 @@ if uploaded_file is not None:
     # ------------------------------------------------------------
     # GRÁFICOS PRINCIPAIS (AGORA COM ESPAÇAMENTO ENTRE SEÇÕES)
     # ------------------------------------------------------------
-    # Título alterado para "Chamados abertos"
     fig_abertos_por, tab_abertos = grafico_com_tabela("Criado por", "Chamados abertos")
 
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
@@ -216,15 +215,15 @@ if uploaded_file is not None:
 
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
-    # Título alterado para "Chamados fechados"
     fig_fechado_por, tab_fechado = grafico_com_tabela("Fechado por", "Chamados fechados")
 
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
     # ------------------------------------------------------------
-    # EXPORTAÇÃO HTML (Tabelas + Gráficos)
+    # EXPORTAÇÃO HTML (Tabelas + Gráficos LADO A LADO)
     # ------------------------------------------------------------
     def to_html_bonito():
+
         buffer = io.StringIO()
 
         buffer.write("""
@@ -232,31 +231,47 @@ if uploaded_file is not None:
         <head>
         <meta charset='utf-8'>
         <style>
-        body { background:#f0f4f8; font-family:Arial; color:#000; margin:25px; }
-        h1 { text-align:center; }
-        h2 { margin-top:30px; }
-        table { border-collapse:collapse; width:100%; margin:15px 0; }
-        th,td { border:1px solid #ccc; padding:6px; background:#fafafa; }
-        th { background:#e2e2e2; }
-        .metric { margin:6px 0; font-weight:bold; }
+            body { background:#f0f4f8; font-family:Arial; color:#000; margin:25px; }
+            h1 { text-align:center; }
+            h2 { margin-top:40px; }
+            table { border-collapse:collapse; width:100%; margin:15px 0; }
+            th,td { border:1px solid #ccc; padding:6px; background:#fafafa; }
+            th { background:#e2e2e2; }
+            .metric { margin:6px 0; font-weight:bold; }
+            .linha { display:flex; flex-direction:row; gap:40px; align-items:flex-start; }
+            .col-esq { width:45%; }
+            .col-dir { width:55%; }
         </style>
         </head>
         <body>
         """)
 
+        # Cabeçalho
         buffer.write("<h1>Chamados NMC Enterprise</h1>")
         buffer.write(f"<div class='metric'>⏱ Tempo médio total (min): {tempo_medio}</div>")
         buffer.write(f"<div class='metric'>📑 Total de chamados: {total_chamados} — Abertos: {total_abertos} — Fechados: {total_fechados}</div>")
         buffer.write(f"<div class='metric'>📌 Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
 
+        # Estruturas lado a lado
+        nomes = ["Chamados abertos", "Classificação por Reclamação", "Classificação por Diagnóstico", "Chamados fechados"]
         figs = [fig_abertos_por, fig_reclamacao, fig_diagnostico, fig_fechado_por]
         tabs = [tab_abertos, tab_reclamacao, tab_diagnostico, tab_fechado]
-        nomes = ["Chamados abertos", "Reclamação", "Diagnóstico", "Chamados fechados"]
 
         for titulo, fig, tabela in zip(nomes, figs, tabs):
+
             buffer.write(f"<h2>{titulo}</h2>")
+
+            buffer.write("<div class='linha'>")
+
+            buffer.write("<div class='col-esq'>")
             buffer.write(tabela.to_html(index=False))
+            buffer.write("</div>")
+
+            buffer.write("<div class='col-dir'>")
             buffer.write(fig.to_html(full_html=False, include_plotlyjs='cdn'))
+            buffer.write("</div>")
+
+            buffer.write("</div>")  # fecha linha
 
         buffer.write("<h2>Tabela completa filtrada</h2>")
         buffer.write(df_filtrado.to_html(index=False))
