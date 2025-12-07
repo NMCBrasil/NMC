@@ -61,9 +61,9 @@ div[data-baseweb="select"] > div, div[data-baseweb="select"] input, div[data-bas
     color: #000000 !important;
 }
 
-/* File uploader: fundo claro e texto legível */
+/* File uploader: fundo igual ao botão de download e texto legível */
 input[type="file"]::file-selector-button {
-    background-color: #f0f0f0 !important;
+    background-color: #d9e4f5 !important;  /* mesma cor do botão Baixar Dashboard */
     color: #000000 !important;
     font-weight: bold !important;
     border: 1px solid #000000;
@@ -71,7 +71,12 @@ input[type="file"]::file-selector-button {
     padding: 5px 10px;
 }
 input[type="file"] {
+    background-color: #d9e4f5 !important;  /* fundo da caixa */
     color: #000000 !important;
+    font-weight: bold !important;
+    border: 1px solid #000000;
+    border-radius: 5px;
+    padding: 5px;
 }
 </style>
 """, unsafe_allow_html=True)
