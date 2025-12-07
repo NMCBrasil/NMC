@@ -12,7 +12,6 @@ st.set_page_config(
 )
 
 # CSS tema claro e letras pretas
-# CSS para tema claro e letras pretas
 st.markdown("""
 <style>
 .stMetricLabel, .stMetricValue { color: #000000 !important; }
@@ -45,12 +44,12 @@ if uploaded_file is not None:
 
     # ===============================
     # Substituir NMC Auto pelo usuário do histórico (somente fechados)
-    # Corrigir NMC Auto com nome do histórico (apenas fechados)
     # ===============================
     if 'Histórico' in df.columns:
         def substituir_nmc_auto_fechar(row):
             if str(row.get('Status','')).strip().lower() != 'fechado':
                 return row
+
     if 'Histórico' in df.columns and 'Fechado por' in df.columns:
         df_fe = df[df['Status'].str.strip().str.lower() == 'fechado'].copy()
 
@@ -58,18 +57,18 @@ if uploaded_file is not None:
             historico = str(row.get('Histórico',''))
             if 'Usuário efetuando abertura:' in historico and row.get('Fechado por','') == 'NMC Auto':
                 try:
-                    # Pega tudo que vem depois da string
                     nome = historico.split('Usuário efetuando abertura:')[1].strip()
                     row['Fechado por'] = nome
                 except:
                     pass
+
             fechado_por = str(row.get('Fechado por',''))
             if 'Usuário efetuando abertura:' in historico and fechado_por.strip().lower() == 'nmc auto':
                 nome = historico.split('Usuário efetuando abertura:')[1].strip()
                 row['Fechado por'] = nome
             return row
-        df = df.apply(substituir_nmc_auto_fechar, axis=1)
 
+        df = df.apply(substituir_nmc_auto_fechar, axis=1)
         df_fe = df_fe.apply(substituir_fechado_por, axis=1)
         df.update(df_fe)
 
@@ -79,6 +78,7 @@ if uploaded_file is not None:
     st.sidebar.header("Filtros")
     responsaveis = df['Fechado por'].dropna().unique()
     responsavel_selecionado = st.sidebar.multiselect("Responsável pelo fechamento", responsaveis)
+
     categorias = df['Reclamação'].dropna().unique()
     categoria_selecionada = st.sidebar.multiselect("Categoria de Reclamação", categorias)
 
@@ -92,15 +92,15 @@ if uploaded_file is not None:
     # Métricas
     # ===============================
     df_encerrados = df_filtrado[df_filtrado['Status'].str.lower() == 'fechado'].copy()
+
     if not df_encerrados.empty:
         df_encerrados['DataHoraAbertura'] = pd.to_datetime(df_encerrados['Data de abertura'] + ' ' + df_encerrados['Hora de abertura'], errors='coerce')
         df_encerrados['DataHoraFechamento'] = pd.to_datetime(df_encerrados['Data de fechamento'] + ' ' + df_encerrados['Hora de fechamento'], errors='coerce')
         df_encerrados['TempoAtendimentoMin'] = ((df_encerrados['DataHoraFechamento'] - df_encerrados['DataHoraAbertura']).dt.total_seconds() / 60).clip(lower=0).dropna().round(2)
-        tempo_medio = df_encerrados['TempoAtendimentoMin'].mean().round(2) if not df_encerrados['TempoAtendimentoMin'].empty else 0.0
+        tempo_medio = df_encerrados['TempoAtendimentoMin'].mean().round(2)
     else:
         tempo_medio = 0.0
 
-    # Maior ofensor baseado em Diagnóstico
     if not df_filtrado.empty:
         df_filtrado['Diagnóstico'] = df_filtrado['Diagnóstico'].fillna('Não informado')
         criadores = df_filtrado['Diagnóstico'].value_counts()
@@ -112,32 +112,39 @@ if uploaded_file is not None:
         qtd_ofensor = 0
         pct_ofensor = 0.0
 
-    # Métricas exibidas
-    # Exibição de métricas
     col1, col2, col3 = st.columns(3)
     col1.metric("⏱ Tempo médio (min)", f"{tempo_medio:.2f}")
     col2.metric("📌 Maior ofensor", f"{maior_ofensor}")
     col3.metric("📊 % de chamados do maior ofensor", f"{pct_ofensor}% ({qtd_ofensor} chamados)")
 
-    # Função para gráficos + tabela
     # ===============================
-    # Função para gráficos + tabela lado a lado
+    # Função para gráficos + tabela
     # ===============================
     def grafico_com_tabela(campo, titulo):
         st.subheader(titulo)
+
         col_table, col_graph = st.columns([1.5,3])
+
         df_filtrado[campo] = df_filtrado[campo].fillna('Não informado').astype(str)
+
         tabela = df_filtrado.groupby(campo)['Id'].count().rename('Qtd de Chamados').reset_index()
         tabela[campo] = tabela[campo].astype(str)
         tabela['Qtd de Chamados'] = tabela['Qtd de Chamados'].astype(int)
+
+        # ➕ NOVA COLUNA DE PORCENTAGEM
+        total = tabela['Qtd de Chamados'].sum()
+        tabela['% do Total'] = (tabela['Qtd de Chamados'] / total * 100).round(2).astype(str) + '%'
+
         with col_table:
             st.dataframe(
                 tabela.style.set_properties(**{'color':'black','background-color':'#f7f7f7','font-size':'14px'}),
                 use_container_width=False,
-                width=300
+                width=350
             )
+
         contagem_x = tabela[campo].tolist()
         contagem_y = tabela['Qtd de Chamados'].tolist()
+
         fig = px.bar(
             x=contagem_x,
             y=contagem_y,
@@ -147,17 +154,21 @@ if uploaded_file is not None:
             color_continuous_scale='Blues',
             template='plotly_white'
         )
+
         fig.update_layout(
             showlegend=False,
-            xaxis=dict(tickfont=dict(color='#000000'), gridcolor='#e0e0e0', showticklabels=True),
+            xaxis=dict(tickfont=dict(color='#000000'), gridcolor='#e0e0e0'),
             yaxis=dict(tickfont=dict(color='#000000'), gridcolor='#e0e0e0'),
             plot_bgcolor='#f7f7f7',
             paper_bgcolor='#f7f7f7'
         )
+
         fig.update_traces(textposition='outside', textfont=dict(color='black', size=12),
                           marker_line_color='black', marker_line_width=1)
+
         with col_graph:
             st.plotly_chart(fig, use_container_width=True)
+
         return fig
 
     # ===============================
@@ -168,9 +179,8 @@ if uploaded_file is not None:
     fig_diagnostico = grafico_com_tabela('Diagnóstico','Diagnóstico:')
     fig_fechado_por = grafico_com_tabela('Fechado por','Fechado por:')
 
-    # Exportar dashboard em HTML bonito e claro
     # ===============================
-    # Exportar dashboard em HTML
+    # Exportar HTML
     # ===============================
     def to_html_bonito():
         buffer = io.StringIO()
@@ -193,11 +203,14 @@ if uploaded_file is not None:
         buffer.write("<h1>Chamados NMC Enterprise</h1>")
         buffer.write(f"<div class='metric'>⏱ Tempo médio (min): {tempo_medio:.2f}</div>")
         buffer.write(f"<div class='metric'>📌 Maior ofensor: {maior_ofensor} ({qtd_ofensor} chamados, {pct_ofensor}%)</div>")
-        for titulo, fig in zip(['Abertos por:', 'Reclamação:', 'Diagnóstico:', 'Fechado por:'], [fig_abertos_por, fig_reclamacao, fig_diagnostico, fig_fechado_por]):
+
+        for titulo, fig in zip(['Abertos por:', 'Reclamação:', 'Diagnóstico:', 'Fechado por:'], 
+                               [fig_abertos_por, fig_reclamacao, fig_diagnostico, fig_fechado_por]):
             buffer.write(f"<h2>{titulo}</h2>")
             buffer.write("<div class='fig-container'>")
             buffer.write(fig.to_html(full_html=False, include_plotlyjs='cdn'))
             buffer.write("</div>")
+
         buffer.write("<h2>Tabela completa de chamados</h2>")
         buffer.write(df_filtrado.to_html(index=False))
         buffer.write("</body></html>")
