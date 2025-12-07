@@ -29,8 +29,6 @@ uploaded_file = st.sidebar.file_uploader("Selecione o arquivo", type=["csv"])
 
 if uploaded_file is None:
     st.title("📊 Dashboard Chamados")
-    # Aqui você pode colocar uma figura decorativa
-    st.image("https://i.imgur.com/4NZ6uLY.png", width=300)  # exemplo
     st.info("Envie um arquivo CSV para visualizar o dashboard.")
 else:
     df = pd.read_csv(uploaded_file, encoding='latin1', sep=None, engine='python')
@@ -49,8 +47,6 @@ else:
         relatorio_tipo = "enterprise"
         titulo_dashboard = "📊 Chamados NMC Enterprise"
     st.title(titulo_dashboard)
-    # Figura decorativa
-    st.image("https://i.imgur.com/4NZ6uLY.png", width=300)  # exemplo
 
     # ---------------- NORMALIZAÇÃO ----------------
     df = df.applymap(lambda x: str(x).strip() if pd.notnull(x) else "")
@@ -95,7 +91,6 @@ else:
     pct_abertos = (total_abertos/total_chamados*100) if total_chamados else 0
     pct_fechados = (total_fechados/total_chamados*100) if total_chamados else 0
 
-    # Tempo médio Enterprise
     if relatorio_tipo == "enterprise" and 'Data de abertura' in df_filtrado.columns and 'Hora de abertura' in df_filtrado.columns:
         df_enc = df_filtrado[df_filtrado['Fechado']].copy()
         if not df_enc.empty:
@@ -108,7 +103,6 @@ else:
     else:
         tempo_medio = 0.0
 
-    # Maior ofensor
     campo_ofensor = 'Causa raiz' if relatorio_tipo=="consumer" else 'Diagnóstico'
     df_valid_ofensor = df_filtrado[df_filtrado[campo_ofensor]!=""]
     if not df_valid_ofensor.empty:
@@ -130,14 +124,14 @@ else:
     st.write(f"🔴 Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)")
 
     # ---------------- FUNÇÃO GRÁFICO ----------------
-    def grafico_com_tabela(df_graf, coluna, titulo):
+    def grafico_com_tabela(df_graf, coluna, titulo, icone="📁"):
         df_graf = df_graf[df_graf[coluna].notna() & (df_graf[coluna]!="")]
         if df_graf.empty:
             st.info(f"Nenhum dado para {titulo}")
             return None,None
         tabela = df_graf.groupby(coluna).size().reset_index(name="Qtd de Chamados")
         tabela['% do Total'] = (tabela['Qtd de Chamados']/tabela['Qtd de Chamados'].sum()*100).round(2)
-        st.subheader(titulo)
+        st.subheader(f"{icone} {titulo}")
         col_table, col_graph = st.columns([1.4,3])
         with col_table:
             st.dataframe(tabela, height=550)
@@ -149,23 +143,23 @@ else:
         return fig, tabela
 
     # ---------------- GRÁFICOS ----------------
-    # Chamados abertos por usuário – todos
-    fig_abertos, tab_abertos = grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário")
+    # Chamados abertos
+    fig_abertos, tab_abertos = grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário", icone="🔵")
 
     # Chamados fechados
     col_fechado = 'Fechado por' if relatorio_tipo=="enterprise" else 'Caso modificado pela última vez por'
     df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado]!="")]
-    fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário")
+    fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário", icone="🔴")
 
     # Categoria / Assunto
     col_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
     titulo_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
-    fig_categoria, tab_categoria = grafico_com_tabela(df_filtrado[df_filtrado[col_categoria]!=""], col_categoria, titulo_categoria)
+    fig_categoria, tab_categoria = grafico_com_tabela(df_filtrado[df_filtrado[col_categoria]!=""], col_categoria, titulo_categoria, icone="📌")
 
     # Diagnóstico / Causa raiz
     col_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa raiz'
     titulo_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa Raiz'
-    fig_diag, tab_diag = grafico_com_tabela(df_filtrado[df_filtrado[col_diag]!=""], col_diag, titulo_diag)
+    fig_diag, tab_diag = grafico_com_tabela(df_filtrado[df_filtrado[col_diag]!=""], col_diag, titulo_diag, icone="📌")
 
     # ---------------- DOWNLOAD ----------------
     def to_html_bonito():
