@@ -45,7 +45,7 @@ else:
         titulo_dashboard = "📊 Chamados Consumer"
     else:
         relatorio_tipo = "enterprise"
-        titulo_dashboard = "📊 Chamados NMC Enterprise"
+        titulo_dashboard = "📊 Chamados Enterprise"
     st.title(titulo_dashboard)
 
     # ---------------- NORMALIZAÇÃO ----------------
@@ -143,33 +143,46 @@ else:
         return fig, tabela
 
     # ---------------- GRÁFICOS ----------------
-    # Chamados abertos
     fig_abertos, tab_abertos = grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário", icone="🔵")
-
-    # Chamados fechados
     col_fechado = 'Fechado por' if relatorio_tipo=="enterprise" else 'Caso modificado pela última vez por'
     df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado]!="")]
     fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário", icone="🔴")
-
-    # Categoria / Assunto
     col_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
     titulo_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
     fig_categoria, tab_categoria = grafico_com_tabela(df_filtrado[df_filtrado[col_categoria]!=""], col_categoria, titulo_categoria, icone="📌")
-
-    # Diagnóstico / Causa raiz
     col_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa raiz'
     titulo_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa Raiz'
     fig_diag, tab_diag = grafico_com_tabela(df_filtrado[df_filtrado[col_diag]!=""], col_diag, titulo_diag, icone="📌")
 
-    # ---------------- DOWNLOAD ----------------
+    # ---------------- DOWNLOAD HTML COMPLETO ----------------
     def to_html_bonito():
         buffer = io.StringIO()
-        buffer.write(f"<html><head><meta charset='utf-8'><title>{titulo_dashboard}</title></head><body>")
+        buffer.write("<html><head><meta charset='utf-8'><title>{}</title>".format(titulo_dashboard))
+        buffer.write("<style>body{font-family:Arial;background:#f0f4f8;margin:20px;}h1,h2{color:#000;}table{border-collapse:collapse;width:100%;margin:10px 0;}th,td{border:1px solid #ccc;padding:5px;background:#fafafa;}th{background:#e2e2e2;} .metric{font-weight:bold;margin:5px 0;}</style>")
+        buffer.write("</head><body>")
         buffer.write(f"<h1>{titulo_dashboard}</h1>")
-        buffer.write(f"<p>Total de chamados: {total_chamados}</p>")
-        buffer.write(f"<p>Chamados abertos: {total_abertos}</p>")
-        buffer.write(f"<p>Chamados fechados: {total_fechados}</p>")
-        buffer.write(f"<p>Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</p>")
+        buffer.write(f"<div class='metric'>Total de chamados: {total_chamados}</div>")
+        buffer.write(f"<div class='metric'>Chamados abertos: {total_abertos} ({pct_abertos:.1f}%)</div>")
+        buffer.write(f"<div class='metric'>Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)</div>")
+        buffer.write(f"<div class='metric'>Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
+
+        # Tabelas + gráficos
+        for titulo, tabela, fig in [
+            ("Chamados abertos por usuário", tab_abertos, fig_abertos),
+            ("Chamados fechados por usuário", tab_fechados, fig_fechados),
+            (titulo_categoria, tab_categoria, fig_categoria),
+            (titulo_diag, tab_diag, fig_diag)
+        ]:
+            if tabela is not None and fig is not None:
+                buffer.write(f"<h2>{titulo}</h2>")
+                buffer.write("<div style='display:flex; gap:40px; align-items:flex-start;'>")
+                buffer.write("<div style='width:45%;'>{}</div>".format(tabela.to_html(index=False)))
+                buffer.write("<div style='width:55%;'>{}</div>".format(fig.to_html(full_html=False, include_plotlyjs='cdn')))
+                buffer.write("</div>")
+
+        # Tabela completa filtrada
+        buffer.write("<h2>Tabela completa filtrada</h2>")
+        buffer.write(df_filtrado.to_html(index=False))
         buffer.write("</body></html>")
         return buffer.getvalue().encode("utf-8")
 
