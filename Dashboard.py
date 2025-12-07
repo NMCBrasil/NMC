@@ -17,11 +17,9 @@ st.markdown("""
 /* Fundo do dashboard */
 .stApp { background-color: #f0f4f8; color: #000000; }
 
-/* Sidebar leve e clara */
+/* Sidebar clara e legível */
 .css-18e3th9, .css-1d391kg { background-color: #e8e8e8 !important; color: #000000 !important; }
-
-/* Letras de métricas */
-.stMetricLabel, .stMetricValue, .css-1v3fvcr, .css-1aumxhk { color: #000000 !important; }
+.css-1v3fvcr, .css-1aumxhk { color: #000000 !important; }
 
 /* Botão de download */
 .stDownloadButton button {
@@ -36,7 +34,7 @@ st.markdown("""
 /* Títulos e textos gerais */
 h1, h2, h3, h4, p, span, div { color: #000000 !important; }
 
-/* Tabela interna do Streamlit: fundo claro, texto preto */
+/* Tabela interna do Streamlit: fundo claro, texto preto, fonte legível */
 div.stDataFrame div.row_widget.stDataFrame {
     background-color: #f7f7f7 !important;
     color: #000000 !important;
@@ -54,8 +52,8 @@ def carregar_dados(file):
     df.columns = df.columns.str.strip()
     return df
 
-# Upload CSV
-st.sidebar.header("Upload de arquivo CSV")
+# Sidebar
+st.sidebar.header("Upload de CSV")
 uploaded_file = st.sidebar.file_uploader("Escolha o arquivo CSV", type=["csv"])
 
 if uploaded_file is not None:
@@ -74,9 +72,7 @@ if uploaded_file is not None:
     if categoria_selecionada:
         df_filtrado = df_filtrado[df_filtrado['Reclamação'].isin(categoria_selecionada)]
 
-    # --------------------
-    # Métricas principais
-    # --------------------
+    # Métricas
     df_encerrados = df_filtrado[df_filtrado['Status'].str.lower() == 'fechado'].copy()
     if not df_encerrados.empty:
         df_encerrados['DataHoraAbertura'] = pd.to_datetime(
@@ -102,21 +98,22 @@ if uploaded_file is not None:
         qtd_ofensor = 0
         pct_ofensor = 0.0
 
-    # Layout das métricas
+    # Métricas exibidas
     col1, col2, col3 = st.columns(3)
     col1.metric("⏱ Tempo médio (min)", f"{tempo_medio:.2f}")
     col2.metric("📌 Maior ofensor", f"{maior_ofensor}")
     col3.metric("📊 % de chamados do maior ofensor", f"{pct_ofensor}% ({qtd_ofensor} chamados)")
 
-    # --------------------
-    # Função para gráficos + tabela lado a lado
-    # --------------------
+    # Função para gráficos + tabela
     def grafico_com_tabela(campo, titulo):
         st.subheader(titulo)
-        col_table, col_graph = st.columns([1.2,3])  # tabela estreita mas legível
+        col_table, col_graph = st.columns([1.5,3])  # tabela estreita, legível
 
-        # Tabela compacta
         tabela = df_filtrado.groupby(campo)['Id'].count().rename('Qtd de Chamados').reset_index()
+        # Ajusta largura mínima das colunas para caber o conteúdo
+        tabela[campo] = tabela[campo].astype(str)
+        tabela['Qtd de Chamados'] = tabela['Qtd de Chamados'].astype(int)
+
         with col_table:
             st.dataframe(
                 tabela.style.set_properties(**{
@@ -125,10 +122,9 @@ if uploaded_file is not None:
                     'font-size':'14px'
                 }),
                 use_container_width=False,
-                width=250  # largura suficiente para leitura
+                width=300  # largura suficiente para leitura
             )
 
-        # Gráfico
         contagem = tabela.set_index(campo)['Qtd de Chamados']
         fig = px.bar(
             x=contagem.index,
@@ -156,17 +152,13 @@ if uploaded_file is not None:
             st.plotly_chart(fig, use_container_width=True)
         return fig
 
-    # --------------------
-    # Gráficos principais com tabela
-    # --------------------
-    fig_pessoa = grafico_com_tabela('Criado por','📋 Chamados por pessoa')
-    fig_reclamacao = grafico_com_tabela('Reclamação','📊 Chamados por Reclamação')
-    fig_diagnostico = grafico_com_tabela('Diagnóstico','📊 Chamados por Diagnóstico')
-    fig_fechado_por = grafico_com_tabela('Fechado por','📊 Chamados por Responsável pelo Fechamento')
+    # Gráficos principais com tabela e novos títulos
+    fig_abertos_por = grafico_com_tabela('Criado por','Abertos por:')
+    fig_reclamacao = grafico_com_tabela('Reclamação','Reclamação:')
+    fig_diagnostico = grafico_com_tabela('Diagnóstico','Diagnóstico:')
+    fig_fechado_por = grafico_com_tabela('Fechado por','Fechado por:')
 
-    # --------------------
-    # Exportar dashboard completo em HTML
-    # --------------------
+    # Exportar dashboard em HTML
     def to_html():
         buffer = io.StringIO()
         buffer.write("<html><head><meta charset='utf-8'><title>Dashboard NMC</title>")
@@ -184,7 +176,7 @@ if uploaded_file is not None:
         buffer.write("<h1>Chamados NMC Enterprise</h1>")
         buffer.write(f"<p>Tempo médio: {tempo_medio:.2f} min</p>")
         buffer.write(f"<p>Maior ofensor: {maior_ofensor} ({qtd_ofensor} chamados, {pct_ofensor}%)</p>")
-        for fig in [fig_pessoa, fig_reclamacao, fig_diagnostico, fig_fechado_por]:
+        for fig in [fig_abertos_por, fig_reclamacao, fig_diagnostico, fig_fechado_por]:
             buffer.write(fig.to_html(full_html=False, include_plotlyjs='cdn'))
         buffer.write("<h2>Tabela completa de chamados</h2>")
         buffer.write(df_filtrado.to_html(index=False))
