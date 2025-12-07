@@ -35,11 +35,10 @@ if uploaded_file is None:
 
 # ---------------------- DEPOIS DO UPLOAD ----------------------
 if uploaded_file is not None:
-    # CARREGAR DADOS
     df = pd.read_csv(uploaded_file, encoding='latin1', sep=None, engine='python')
     df.columns = df.columns.str.strip()
 
-    # DETECTAR TIPO DE RELATÓRIO
+    # ---------------------- DETECTAR TIPO DE RELATÓRIO ----------------------
     colunas_consumer = [
         "Situação", "Assunto", "Data/Hora de abertura", "Criado por",
         "Causa raiz", "Tipo de registro do caso", "Caso modificado pela última vez por"
@@ -97,14 +96,11 @@ if uploaded_file is not None:
 
     # ---------------------- FILTRAGEM DE DADOS ----------------------
     df_filtrado = df.copy()
-
-    # Marcar chamados fechados
     if relatorio_tipo == "enterprise":
         df_filtrado['Fechado'] = df_filtrado[mapa['Status']].astype(str).str.strip().str.lower() == 'fechado'
     else:
         df_filtrado['Fechado'] = df_filtrado['Situação'] == "Resolvido ou completado"
 
-    # Aplicar filtros
     if responsavel_selecionado and mapa['Fechado por']:
         df_filtrado = df_filtrado[df_filtrado[mapa['Fechado por']].isin(responsavel_selecionado)]
     if categoria_selecionada and mapa['Reclamação']:
@@ -131,7 +127,7 @@ if uploaded_file is not None:
             tempo_medio = df_encerrados['TempoAtendimentoMin'].mean().round(2)
 
     total_chamados = len(df_filtrado)
-    total_abertos = len(df_filtrado)  # sempre todos
+    total_abertos = len(df_filtrado[~df_filtrado['Fechado']])
     total_fechados = df_filtrado['Fechado'].sum()
     pct_abertos = (total_abertos / total_chamados * 100) if total_chamados else 0
     pct_fechados = (total_fechados / total_chamados * 100) if total_chamados else 0
@@ -152,7 +148,7 @@ if uploaded_file is not None:
     col3.metric("📊 % dos chamados do maior ofensor", f"{pct_ofensor}%  ({qtd_ofensor})")
 
     st.write(f"### 📑 Total de chamados: **{total_chamados}**")
-    st.write(f"🔵 **Chamados abertos:** {total_abertos} (todos)")
+    st.write(f"🔵 **Chamados abertos:** {total_abertos} ({pct_abertos:.1f}%)")
     st.write(f"🔴 **Chamados fechados:** {total_fechados} ({pct_fechados:.1f}%)")
 
     # ---------------------- FUNÇÃO DE GRÁFICOS ----------------------
@@ -183,19 +179,15 @@ if uploaded_file is not None:
         return fig, tabela
 
     # ---------------------- GRÁFICOS ----------------------
-    # Chamados abertos por usuário (todos)
     df_abertos = df_filtrado.copy()
     fig_abertos_por, tab_abertos = grafico_com_tabela(df_abertos, "Criado por", "Chamados abertos por usuário")
 
-    # Reclamação/Assunto
     campo_reclamacao = mapa['Reclamação'] if relatorio_tipo == "enterprise" else "Assunto"
     fig_reclamacao, tab_reclamacao = grafico_com_tabela(df_filtrado, campo_reclamacao, "Classificação por Reclamação/Assunto")
 
-    # Diagnóstico/Causa raiz
     campo_diag = mapa['Diagnóstico'] if relatorio_tipo == "enterprise" else "Causa raiz"
     fig_diagnostico, tab_diagnostico = grafico_com_tabela(df_filtrado, campo_diag, "Classificação por Diagnóstico/Causa raiz")
 
-    # Chamados fechados por usuário
     if relatorio_tipo == "enterprise":
         df_fechados = df_filtrado[df_filtrado['Fechado']].copy()
         campo_fechado = "Fechado por"
@@ -219,7 +211,7 @@ if uploaded_file is not None:
         buffer.write(f"<h1>{titulo_dashboard}</h1>")
         buffer.write(f"<div class='metric'>⏱ Tempo médio total (min): {tempo_medio}</div>")
         buffer.write(f"<div class='metric'>📑 Total de chamados: {total_chamados}</div>")
-        buffer.write(f"<div class='metric'>🔵 Abertos: {total_abertos} (todos)</div>")
+        buffer.write(f"<div class='metric'>🔵 Abertos: {total_abertos} ({pct_abertos:.1f}%)</div>")
         buffer.write(f"<div class='metric'>🔴 Fechados: {total_fechados} ({pct_fechados:.1f}%)</div>")
         buffer.write(f"<div class='metric'>📌 Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
 
