@@ -108,8 +108,9 @@ if uploaded_file is not None:
     else:
         tempo_medio = 0.0
 
+    # Maior ofensor baseado em Diagnóstico
     if not df_filtrado.empty:
-        criadores = df_filtrado['Criado por'].value_counts()
+        criadores = df_filtrado['Diagnóstico'].value_counts()
         maior_ofensor = criadores.idxmax()
         qtd_ofensor = criadores.max()
         pct_ofensor = round((qtd_ofensor / len(df_filtrado) * 100), 2)
