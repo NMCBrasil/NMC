@@ -65,11 +65,31 @@ if uploaded_file:
     # Tempo médio de atendimento (em minutos) - apenas fechados
     # ------------------------
     df_encerrados = df_filtrado[df_filtrado['Status'].str.lower() == 'fechado'].copy()
-    if 'Data de abertura' in df_encerrados.columns and 'Hora de abertura' in df_encerrados.columns and \
-       'Data de fechamento' in df_encerrados.columns and 'Hora de fechamento' in df_encerrados.columns:
 
-        df_encerrados['DataHoraAbertura'] = pd.to_datetime(df_encerrados['Data de abertura'] + ' ' + df_encerrados['Hora de abertura'], errors='coerce')
-        df_encerrados['DataHoraFechamento'] = pd.to_datetime(df_encerrados['Data de fechamento'] + ' ' + df_encerrados['Hora de fechamento'], errors='coerce')
+    if all(c in df_encerrados.columns for c in ['Data de abertura', 'Hora de abertura', 'Data de fechamento', 'Hora de fechamento']):
+        # Substitui valores nulos por string vazia antes de concatenar
+        df_encerrados['Data de abertura'] = df_encerrados['Data de abertura'].fillna('')
+        df_encerrados['Hora de abertura'] = df_encerrados['Hora de abertura'].fillna('')
+        df_encerrados['Data de fechamento'] = df_encerrados['Data de fechamento'].fillna('')
+        df_encerrados['Hora de fechamento'] = df_encerrados['Hora de fechamento'].fillna('')
+
+        # Só concatena se ambos tiverem valor
+        df_encerrados['DataHoraAbertura'] = pd.to_datetime(
+            df_encerrados.apply(
+                lambda row: f"{row['Data de abertura']} {row['Hora de abertura']}" if row['Data de abertura'] and row['Hora de abertura'] else pd.NaT,
+                axis=1
+            ),
+            errors='coerce'
+        )
+
+        df_encerrados['DataHoraFechamento'] = pd.to_datetime(
+            df_encerrados.apply(
+                lambda row: f"{row['Data de fechamento']} {row['Hora de fechamento']}" if row['Data de fechamento'] and row['Hora de fechamento'] else pd.NaT,
+                axis=1
+            ),
+            errors='coerce'
+        )
+
         df_encerrados['TempoAtendimento'] = (df_encerrados['DataHoraFechamento'] - df_encerrados['DataHoraAbertura']).dt.total_seconds() / 60
         tempo_medio = round(df_encerrados['TempoAtendimento'].mean(), 2)
         st.metric("Tempo médio em min por chamado", f"{tempo_medio}")
