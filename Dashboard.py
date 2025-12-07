@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS customizado para cores claras e textos pretos, incluindo sidebar
+# CSS customizado para cores claras e textos pretos
 st.markdown("""
 <style>
 /* Fundo do dashboard */
@@ -26,12 +26,12 @@ section[data-testid="stSidebar"] h2,
 section[data-testid="stSidebar"] h3, 
 section[data-testid="stSidebar"] label, 
 section[data-testid="stSidebar"] span, 
-section[data-testid="stSidebar"] div {
+section[data-testid="stSidebar"] div, 
+section[data-testid="stSidebar"] input, 
+section[data-testid="stSidebar"] select {
     color: #000000 !important;
+    background-color: #f0f0f0 !important;
 }
-
-/* Letras de métricas */
-.stMetricLabel, .stMetricValue, .css-1v3fvcr, .css-1aumxhk { color: #000000 !important; }
 
 /* Botão de download */
 .stDownloadButton button {
@@ -43,6 +43,9 @@ section[data-testid="stSidebar"] div {
     font-weight: bold !important;
 }
 
+/* Letras de métricas */
+.stMetricLabel, .stMetricValue { color: #000000 !important; }
+
 /* Títulos e textos gerais */
 h1, h2, h3, h4, p, span, div { color: #000000 !important; }
 
@@ -51,6 +54,11 @@ div.stDataFrame div.row_widget.stDataFrame {
     background-color: #f7f7f7 !important;
     color: #000000 !important;
     font-size: 14px;
+}
+
+/* Gráficos Plotly: fundo claro */
+.plotly-graph-div {
+    background-color: #f7f7f7 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -122,7 +130,6 @@ if uploaded_file is not None:
         col_table, col_graph = st.columns([1.5,3])  # tabela estreita, legível
 
         tabela = df_filtrado.groupby(campo)['Id'].count().rename('Qtd de Chamados').reset_index()
-        # Ajusta largura mínima das colunas para caber o conteúdo
         tabela[campo] = tabela[campo].astype(str)
         tabela['Qtd de Chamados'] = tabela['Qtd de Chamados'].astype(int)
 
@@ -134,7 +141,7 @@ if uploaded_file is not None:
                     'font-size':'14px'
                 }),
                 use_container_width=False,
-                width=300  # largura suficiente para leitura
+                width=300
             )
 
         contagem = tabela.set_index(campo)['Qtd de Chamados']
