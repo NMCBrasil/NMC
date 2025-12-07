@@ -62,8 +62,12 @@ div[data-baseweb="select"] > div, div[data-baseweb="select"] input, div[data-bas
 }
 
 /* File uploader */
-div.stFileUploader div, div.stFileUploader input, div.stFileUploader span {
+div.stFileUploader input[type="file"] ~ div {
     background-color: #f0f0f0 !important;
+    color: #000000 !important;
+    font-weight: bold !important;
+}
+div.stFileUploader input[type="file"] ~ div span {
     color: #000000 !important;
 }
 </style>
