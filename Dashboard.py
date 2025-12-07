@@ -1,14 +1,13 @@
-# Dashboard Dinâmico (Consumer + Enterprise) – Versão Completa com Chamados Fechados
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import io
 
 # ------------------------------------------------------------
-# CONFIGURAÇÃO DO APP
+# CONFIGURAÇÃO
 # ------------------------------------------------------------
 st.set_page_config(
-    page_title="Chamados Dinâmico",
+    page_title="Dashboard Chamados",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -23,30 +22,25 @@ div.stDataFrame div.row_widget.stDataFrame { background-color: #f7f7f7 !importan
 .plotly-graph-div { background-color: #f7f7f7 !important; }
 .stDownloadButton button { color: #000000 !important; background-color: #d9e4f5 !important; border: 1px solid #000000 !important; padding: 6px 12px !important; border-radius: 5px !important; font-weight: bold !important; }
 section[data-testid="stSidebar"] { background-color: #e8e8e8 !important; color: #000000 !important; }
-section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] div, section[data-testid="stSidebar"] input, section[data-testid="stSidebar"] select { color: #000000 !important; background-color: #f0f0f0 !important; }
-div[data-baseweb="select"] > div, div[data-baseweb="select"] input, div[data-baseweb="select"] span { background-color: #f0f0f0 !important; color: #000000 !important; }
-input[type="file"]::file-selector-button { background-color: #d9e4f5 !important; color: #000000 !important; font-weight: bold !important; border: 1px solid #000000; border-radius: 5px; padding: 5px 10px; }
 input[type="file"] { background-color: #d9e4f5 !important; color: #000000 !important; font-weight: bold !important; border: 1px solid #000000; border-radius: 5px; padding: 5px; }
 </style>
 """, unsafe_allow_html=True)
 
 # ------------------------------------------------------------
-# FUNÇÃO PARA CARREGAMENTO DO CSV
+# TELA INICIAL
 # ------------------------------------------------------------
-@st.cache_data
-def carregar_dados(file):
-    df = pd.read_csv(file, encoding='latin1', sep=None, engine='python')
-    df.columns = df.columns.str.strip()
-    return df
+st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Logo_Transparente.png/320px-Logo_Transparente.png", width=120)
+st.title("📊 Dashboard Chamados")
+st.info("Envie um arquivo CSV para visualizar o dashboard.")
 
 # ------------------------------------------------------------
-# SIDEBAR – Upload
+# UPLOAD
 # ------------------------------------------------------------
-st.sidebar.header("📂 Importar arquivo CSV")
-uploaded_file = st.sidebar.file_uploader("Selecione o arquivo", type=["csv"])
-
+uploaded_file = st.file_uploader("Selecione o arquivo", type=["csv"])
 if uploaded_file is not None:
-    df = carregar_dados(uploaded_file)
+
+    df = pd.read_csv(uploaded_file, encoding='latin1', sep=None, engine='python')
+    df.columns = df.columns.str.strip()
 
     # ------------------------------------------------------------
     # DETECÇÃO DO TIPO DE RELATÓRIO
@@ -61,10 +55,11 @@ if uploaded_file is not None:
     else:
         titulo_dashboard = "📊 Chamados NMC Enterprise"
         relatorio_tipo = "enterprise"
+
     st.title(titulo_dashboard)
 
     # ------------------------------------------------------------
-    # MAPEAR COLUNAS DINÂMICAMENTE
+    # Mapear colunas
     # ------------------------------------------------------------
     mapa = {
         'Status': None if relatorio_tipo == "consumer" else 'Status',
@@ -80,7 +75,7 @@ if uploaded_file is not None:
     }
 
     # ------------------------------------------------------------
-    # SUBSTITUIÇÃO AUTOMÁTICA DO “NMC Auto” (Enterprise)
+    # Substituir NMC Auto (Enterprise)
     # ------------------------------------------------------------
     if mapa['Histórico'] and mapa['Fechado por']:
         df_fe = df[df[mapa['Status']].astype(str).str.strip().str.lower() == 'fechado'].copy()
@@ -97,7 +92,7 @@ if uploaded_file is not None:
         df.update(df_fe)
 
     # ------------------------------------------------------------
-    # FILTROS DINÂMICOS
+    # FILTROS
     # ------------------------------------------------------------
     st.sidebar.header("🔎 Filtros")
     def filtro_multiselect(campo_nome, label):
@@ -126,11 +121,11 @@ if uploaded_file is not None:
     # DETERMINAR CHAMADOS FECHADOS
     # ------------------------------------------------------------
     if relatorio_tipo == "consumer":
-        status_fechado = df_filtrado[
+        df_fechados = df_filtrado[
             df_filtrado['Situação'].astype(str).str.lower().str.contains('resolvido|completado')
         ].copy()
         total_chamados = len(df_filtrado)
-        total_fechados = len(status_fechado)
+        total_fechados = len(df_fechados)
         total_abertos = total_chamados - total_fechados
         pct_abertos = (total_abertos / total_chamados * 100) if total_chamados > 0 else 0
         pct_fechados = (total_fechados / total_chamados * 100) if total_chamados > 0 else 0
@@ -182,68 +177,34 @@ if uploaded_file is not None:
     st.write(f"🔴 **Chamados fechados:** {total_fechados} ({pct_fechados:.1f}%)")
 
     # ------------------------------------------------------------
-    # GRÁFICOS E TABELAS (Consumer e Enterprise)
+    # FUNÇÃO PARA TABELA + GRÁFICO
     # ------------------------------------------------------------
-    def grafico_com_tabela(campo, titulo):
-        if not campo or campo not in df_filtrado.columns:
+    def grafico_com_tabela(df_base, campo, titulo):
+        if not campo or campo not in df_base.columns:
             return None, None
-        st.subheader(f"📁 {titulo}")
-        col_table, col_graph = st.columns([1.4, 3])
-        df_filtrado[campo] = df_filtrado[campo].fillna("Não informado").astype(str)
-        tabela = df_filtrado.groupby(campo)['Criado por'].count().rename("Qtd de Chamados").reset_index()
+        col_table, col_graph = st.columns([1.4,3])
+        df_base[campo] = df_base[campo].fillna("Não informado").astype(str)
+        tabela = df_base.groupby(campo)['Criado por'].count().rename("Qtd de Chamados").reset_index()
         tabela['% do Total'] = (tabela['Qtd de Chamados'] / tabela['Qtd de Chamados'].sum() * 100).round(2)
         with col_table:
-            st.dataframe(tabela, height=550 if campo in ["Reclamação", "Diagnóstico"] else 350, use_container_width=True)
-        fig = px.bar(tabela, x=campo, y="Qtd de Chamados", text="Qtd de Chamados", color="Qtd de Chamados",
-                     color_continuous_scale="Blues", template="plotly_white")
+            st.dataframe(tabela, height=400, use_container_width=True)
+        fig = px.bar(tabela, x=campo, y="Qtd de Chamados", text="Qtd de Chamados",
+                     color="Qtd de Chamados", color_continuous_scale="Blues", template="plotly_white")
         fig.update_traces(textposition="outside", marker_line_color="black", marker_line_width=1)
         with col_graph:
             st.plotly_chart(fig, use_container_width=True)
         return fig, tabela
 
-    figs_tabs = [
-        (mapa.get('Criado por'), "Chamados abertos por usuário"),
-        (mapa.get('Reclamação'), "Classificação por Reclamação"),
-        (mapa.get('Diagnóstico'), "Classificação por Diagnóstico"),
-        (mapa.get('Fechado por'), "Chamados fechados por usuário")
-    ]
-
-    figs, tabs = [], []
-    for campo, titulo in figs_tabs:
-        fig, tab = grafico_com_tabela(campo, titulo)
-        figs.append(fig)
-        tabs.append(tab)
-        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
-
     # ------------------------------------------------------------
-    # FILTRO + TABELA + GRÁFICO DE CHAMADOS FECHADOS (Consumer)
+    # GRÁFICOS PRINCIPAIS
     # ------------------------------------------------------------
-    if relatorio_tipo == "consumer":
-        st.sidebar.header("🔒 Chamados Fechados - Filtros")
-        responsavel_fechado = df_filtrado['Caso modificado pela última vez por'].dropna().unique()
-        responsavel_fechado_selecionado = st.sidebar.multiselect("Fechado por (Consumer)", responsavel_fechado)
-        df_fechados = status_fechado.copy()
-        if responsavel_fechado_selecionado:
-            df_fechados = df_fechados[df_fechados['Caso modificado pela última vez por'].isin(responsavel_fechado_selecionado)]
-
-        st.subheader("📋 Chamados Fechados (Consumer)")
-        st.dataframe(df_fechados, use_container_width=True, height=400)
-
-        st.subheader("📊 Chamados Fechados por Usuário (Consumer)")
-        if not df_fechados.empty:
-            tabela_fechados = df_fechados.groupby('Caso modificado pela última vez por')['Situação'].count().rename("Qtd de Chamados").reset_index()
-            tabela_fechados['% do Total'] = (tabela_fechados['Qtd de Chamados'] / tabela_fechados['Qtd de Chamados'].sum() * 100).round(2)
-            fig_fechados = px.bar(
-                tabela_fechados,
-                x='Caso modificado pela última vez por',
-                y='Qtd de Chamados',
-                text='Qtd de Chamados',
-                color='Qtd de Chamados',
-                color_continuous_scale="Blues",
-                template="plotly_white"
-            )
-            fig_fechados.update_traces(textposition="outside", marker_line_color="black", marker_line_width=1)
-            st.plotly_chart(fig_fechados, use_container_width=True)
+    fig_abertos, tab_abertos = grafico_com_tabela(df_filtrado, mapa.get('Criado por'), "Chamados abertos por usuário")
+    fig_reclamacao, tab_reclamacao = grafico_com_tabela(df_filtrado, mapa.get('Reclamação'), "Classificação por Reclamação")
+    fig_diagnostico, tab_diagnostico = grafico_com_tabela(df_filtrado, mapa.get('Diagnóstico'), "Classificação por Diagnóstico")
+    if relatorio_tipo == "enterprise":
+        fig_fechado, tab_fechado = grafico_com_tabela(df_filtrado[df_filtrado[mapa['Status']].astype(str).str.strip().str.lower()=='fechado'], mapa.get('Fechado por'), "Chamados fechados por usuário")
+    elif relatorio_tipo == "consumer":
+        fig_fechado, tab_fechado = grafico_com_tabela(df_fechados, 'Caso modificado pela última vez por', "Chamados fechados")
 
     # ------------------------------------------------------------
     # EXPORTAÇÃO HTML
@@ -251,23 +212,18 @@ if uploaded_file is not None:
     def to_html_bonito():
         buffer = io.StringIO()
         buffer.write(f"""
-        <html>
-        <head>
-        <meta charset='utf-8'>
-        <style>
-            body {{ background:#f0f4f8; font-family:Arial; color:#000; margin:25px; }}
-            h1 {{ text-align:center; }}
-            h2 {{ margin-top:40px; }}
-            table {{ border-collapse:collapse; width:100%; margin:15px 0; }}
-            th,td {{ border:1px solid #ccc; padding:6px; background:#fafafa; }}
-            th {{ background:#e2e2e2; }}
-            .metric {{ margin:6px 0; font-weight:bold; }}
-            .linha {{ display:flex; flex-direction:row; gap:40px; align-items:flex-start; }}
-            .col-esq {{ width:45%; }}
-            .col-dir {{ width:55%; }}
-        </style>
-        </head>
-        <body>
+        <html><head><meta charset='utf-8'><style>
+        body {{ background:#f0f4f8; font-family:Arial; color:#000; margin:25px; }}
+        h1 {{ text-align:center; }}
+        h2 {{ margin-top:40px; }}
+        table {{ border-collapse:collapse; width:100%; margin:15px 0; }}
+        th,td {{ border:1px solid #ccc; padding:6px; background:#fafafa; }}
+        th {{ background:#e2e2e2; }}
+        .metric {{ margin:6px 0; font-weight:bold; }}
+        .linha {{ display:flex; flex-direction:row; gap:40px; align-items:flex-start; }}
+        .col-esq {{ width:45%; }}
+        .col-dir {{ width:55%; }}
+        </style></head><body>
         """)
         buffer.write(f"<h1>{titulo_dashboard}</h1>")
         buffer.write(f"<div class='metric'>⏱ Tempo médio total (min): {tempo_medio}</div>")
@@ -276,27 +232,17 @@ if uploaded_file is not None:
         buffer.write(f"<div class='metric'>🔴 Fechados: {total_fechados} ({pct_fechados:.1f}%)</div>")
         buffer.write(f"<div class='metric'>📌 Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
 
-        for titulo, fig, tabela in zip([t[1] for t in figs_tabs], figs, tabs):
-            if fig is None or tabela is None:
+        figs = [fig_abertos, fig_reclamacao, fig_diagnostico, fig_fechado]
+        tabs = [tab_abertos, tab_reclamacao, tab_diagnostico, tab_fechado]
+        titulos = ["Chamados abertos por usuário", "Classificação por Reclamação", "Classificação por Diagnóstico", "Chamados fechados"]
+        for titulo, fig, tab in zip(titulos, figs, tabs):
+            if fig is None or tab is None:
                 continue
-            buffer.write(f"<h2>{titulo}</h2>")
-            buffer.write("<div class='linha'>")
-            buffer.write("<div class='col-esq'>")
-            buffer.write(tabela.to_html(index=False))
-            buffer.write("</div>")
-            buffer.write("<div class='col-dir'>")
-            buffer.write(fig.to_html(full_html=False, include_plotlyjs='cdn'))
-            buffer.write("</div>")
-            buffer.write("</div>")
+            buffer.write(f"<h2>{titulo}</h2><div class='linha'><div class='col-esq'>{tab.to_html(index=False)}</div><div class='col-dir'>{fig.to_html(full_html=False, include_plotlyjs='cdn')}</div></div>")
 
-        # Chamados fechados Consumer
-        if relatorio_tipo == "consumer" and not df_fechados.empty:
-            buffer.write("<h2>📋 Chamados Fechados (Consumer)</h2>")
-            buffer.write(df_fechados.to_html(index=False))
-            tabela_fechados_html = tabela_fechados.to_html(index=False)
-            buffer.write("<h2>📊 Chamados Fechados por Usuário (Consumer)</h2>")
-            buffer.write(tabela_fechados_html)
-
+        # Tabela completa filtrada
+        buffer.write("<h2>Tabela completa filtrada</h2>")
+        buffer.write(df_filtrado.to_html(index=False))
         buffer.write("</body></html>")
         return buffer.getvalue().encode("utf-8")
 
@@ -306,6 +252,3 @@ if uploaded_file is not None:
         file_name="dashboard_nmc.html",
         mime="text/html"
     )
-
-else:
-    st.info("Envie um arquivo CSV para visualizar o dashboard.")
