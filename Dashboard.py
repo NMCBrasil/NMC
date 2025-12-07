@@ -204,8 +204,13 @@ if uploaded_file is not None:
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
     fig_diagnostico, tab_diagnostico = grafico_com_tabela(mapa['Diagnóstico'], "Classificação por Diagnóstico")
     st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
-    if relatorio_tipo == "enterprise":
-        fig_fechado_por, tab_fechado = grafico_com_tabela(mapa['Fechado por'], "Chamados fechados por usuário")
+
+    # ------------------------------------------------------------
+    # Chamados fechados (Consumer ou Enterprise)
+    # ------------------------------------------------------------
+    df_fechados = df_filtrado[df_filtrado['Fechado']].copy()
+    if not df_fechados.empty:
+        fig_fechados, tab_fechados = grafico_com_tabela("Criado por", "Chamados fechados")
         st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
 
     # ------------------------------------------------------------
@@ -238,13 +243,15 @@ if uploaded_file is not None:
         buffer.write(f"<div class='metric'>🔵 Abertos: {total_abertos} ({pct_abertos:.1f}%)</div>")
         buffer.write(f"<div class='metric'>🔴 Fechados: {total_fechados} ({pct_fechados:.1f}%)</div>")
         buffer.write(f"<div class='metric'>📌 Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
+
         nomes = ["Chamados abertos por usuário", "Classificação por Reclamação", "Classificação por Diagnóstico"]
         figs = [fig_abertos_por, fig_reclamacao, fig_diagnostico]
         tabs = [tab_abertos, tab_reclamacao, tab_diagnostico]
-        if relatorio_tipo == "enterprise":
-            nomes.append("Chamados fechados por usuário")
-            figs.append(fig_fechado_por)
-            tabs.append(tab_fechado)
+        if not df_fechados.empty:
+            nomes.append("Chamados fechados")
+            figs.append(fig_fechados)
+            tabs.append(tab_fechados)
+
         for titulo, fig, tabela in zip(nomes, figs, tabs):
             buffer.write(f"<h2>{titulo}</h2>")
             buffer.write("<div class='linha'>")
@@ -254,6 +261,7 @@ if uploaded_file is not None:
             buffer.write("<div class='col-dir'>")
             buffer.write(fig.to_html(full_html=False, include_plotlyjs='cdn'))
             buffer.write("</div></div>")
+
         buffer.write("<h2>Tabela completa filtrada</h2>")
         buffer.write(df_filtrado.to_html(index=False))
         buffer.write("</body></html>")
