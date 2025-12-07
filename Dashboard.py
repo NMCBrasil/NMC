@@ -11,20 +11,33 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS customizado
+# CSS customizado para fundo claro e textos pretos
 st.markdown("""
 <style>
-.stApp { background-color: #f5f7fa; color: #0a0a0a; }
+/* Fundo do dashboard */
+.stApp { background-color: #f0f4f8; color: #000000; }
+
+/* Sidebar leve */
 .css-18e3th9 { background-color: #eaeaea !important; }
-.stMetricLabel, .stMetricValue, .css-1v3fvcr, .css-1aumxhk { color: #0a0a0a !important; }
+
+/* Letras de métricas */
+.stMetricLabel, .stMetricValue, .css-1v3fvcr, .css-1aumxhk { color: #000000 !important; }
+
+/* Botão de download */
 .stDownloadButton button {
-    color: #0a0a0a !important;
+    color: #000000 !important;
     background-color: #d9e4f5 !important;
-    border: 1px solid #0a0a0a !important;
+    border: 1px solid #000000 !important;
     padding: 6px 12px !important;
     border-radius: 5px !important;
     font-weight: bold !important;
 }
+
+/* Títulos e textos gerais */
+h1, h2, h3, h4, p, span, div { color: #000000 !important; }
+
+/* Tabela interna do Streamlit */
+div.stDataFrame div.row_widget.stDataFrame { background-color: #f7f7f7 !important; color: #000000 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -104,7 +117,7 @@ if uploaded_file is not None:
         # Tabela
         tabela = df_filtrado.groupby(campo)['Id'].count().rename('Qtd de Chamados').reset_index()
         with col_table:
-            st.dataframe(tabela, use_container_width=True)
+            st.dataframe(tabela.style.set_properties(**{'color':'black','background-color':'#f7f7f7'}), use_container_width=True)
 
         # Gráfico
         contagem = tabela.set_index(campo)['Qtd de Chamados']
@@ -120,9 +133,9 @@ if uploaded_file is not None:
         fig.update_layout(
             plot_bgcolor='#f7f7f7',
             paper_bgcolor='#f7f7f7',
-            title_font=dict(color='#0a0a0a', size=16),
-            xaxis=dict(title=campo, title_font=dict(color='#0a0a0a'), tickfont=dict(color='#0a0a0a'), gridcolor='white'),
-            yaxis=dict(title='Quantidade', title_font=dict(color='#0a0a0a'), tickfont=dict(color='#0a0a0a'), gridcolor='white')
+            title_font=dict(color='#000000', size=16),
+            xaxis=dict(title=campo, title_font=dict(color='#000000'), tickfont=dict(color='#000000'), gridcolor='#e0e0e0'),
+            yaxis=dict(title='Quantidade', title_font=dict(color='#000000'), tickfont=dict(color='#000000'), gridcolor='#e0e0e0')
         )
         fig.update_traces(textposition='outside', textfont=dict(color='black', size=12),
                           marker_line_color='black', marker_line_width=1)
@@ -146,12 +159,12 @@ if uploaded_file is not None:
         buffer.write("<html><head><meta charset='utf-8'><title>Dashboard NMC</title>")
         buffer.write("""
         <style>
-        body {background-color: #f5f7fa; color: #0a0a0a; font-family: Arial, sans-serif;}
-        h1, h2, h4, p {color: #0a0a0a;}
+        body {background-color: #f0f4f8; color: #000000; font-family: Arial, sans-serif;}
+        h1, h2, h3, h4, p {color: #000000;}
         table {border-collapse: collapse; width: 100%; font-size:14px;}
-        th, td {border: 1px solid #ccc; padding: 6px; text-align: left;}
+        th, td {border: 1px solid #ccc; padding: 6px; text-align: left; color: black; background-color:#f7f7f7;}
         th {background-color: #e0e0e0;}
-        tr:nth-child(even) {background-color: #f9f9f9;}
+        tr:nth-child(even) {background-color: #f7f7f7;}
         </style>
         """)
         buffer.write("</head><body>")
