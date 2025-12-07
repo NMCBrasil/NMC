@@ -11,15 +11,27 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS customizado para cores claras e textos pretos
+# CSS customizado para cores claras e textos pretos, incluindo sidebar
 st.markdown("""
 <style>
 /* Fundo do dashboard */
 .stApp { background-color: #f0f4f8; color: #000000; }
 
-/* Sidebar clara e legível */
-.css-18e3th9, .css-1d391kg { background-color: #e8e8e8 !important; color: #000000 !important; }
-.css-1v3fvcr, .css-1aumxhk { color: #000000 !important; }
+/* Sidebar totalmente clara e legível */
+section[data-testid="stSidebar"] {
+    background-color: #e8e8e8 !important;
+    color: #000000 !important;
+}
+section[data-testid="stSidebar"] h2, 
+section[data-testid="stSidebar"] h3, 
+section[data-testid="stSidebar"] label, 
+section[data-testid="stSidebar"] span, 
+section[data-testid="stSidebar"] div {
+    color: #000000 !important;
+}
+
+/* Letras de métricas */
+.stMetricLabel, .stMetricValue, .css-1v3fvcr, .css-1aumxhk { color: #000000 !important; }
 
 /* Botão de download */
 .stDownloadButton button {
