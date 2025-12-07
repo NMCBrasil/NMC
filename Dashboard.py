@@ -11,19 +11,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS customizado para cores leves e textos legíveis
+# CSS customizado
 st.markdown("""
 <style>
-/* Fundo do dashboard */
 .stApp { background-color: #f5f7fa; color: #0a0a0a; }
-
-/* Sidebar leve */
 .css-18e3th9 { background-color: #eaeaea !important; }
-
-/* Letras de métricas */
 .stMetricLabel, .stMetricValue, .css-1v3fvcr, .css-1aumxhk { color: #0a0a0a !important; }
-
-/* Botão de download */
 .stDownloadButton button {
     color: #0a0a0a !important;
     background-color: #d9e4f5 !important;
@@ -77,21 +70,25 @@ if uploaded_file is not None:
         )
         df_encerrados['TempoAtendimentoMin'] = (
             (df_encerrados['DataHoraFechamento'] - df_encerrados['DataHoraAbertura']).dt.total_seconds() / 60
-        ).round(2).clip(lower=0)
-        tempo_medio = df_encerrados['TempoAtendimentoMin'].mean()
+        ).clip(lower=0).dropna().round(2)
+        if not df_encerrados['TempoAtendimentoMin'].empty:
+            tempo_medio = df_encerrados['TempoAtendimentoMin'].mean().round(2)
+        else:
+            tempo_medio = 0.0
     else:
         tempo_medio = 0.0
 
     if not df_filtrado.empty:
-        maior_ofensor = df_filtrado['Criado por'].value_counts().idxmax()
-        qtd_ofensor = df_filtrado['Criado por'].value_counts().max()
-        pct_ofensor = (qtd_ofensor / len(df_filtrado) * 100).round(2)
+        criadores = df_filtrado['Criado por'].value_counts()
+        maior_ofensor = criadores.idxmax()
+        qtd_ofensor = criadores.max()
+        pct_ofensor = round((qtd_ofensor / len(df_filtrado) * 100), 2)
     else:
         maior_ofensor = '-'
         qtd_ofensor = 0
         pct_ofensor = 0.0
 
-    # Layout das métricas em 3 colunas
+    # Layout das métricas
     col1, col2, col3 = st.columns(3)
     col1.metric("⏱ Tempo médio (min)", f"{tempo_medio:.2f}")
     col2.metric("📌 Maior ofensor", f"{maior_ofensor}")
@@ -105,12 +102,12 @@ if uploaded_file is not None:
         col_table, col_graph = st.columns([2,3])
 
         # Tabela
-        tabela = df_filtrado[[campo,'Id','Status','Cliente']].groupby(campo).count().rename(columns={'Id':'Qtd de Chamados'})
+        tabela = df_filtrado.groupby(campo)['Id'].count().rename('Qtd de Chamados').reset_index()
         with col_table:
             st.dataframe(tabela, use_container_width=True)
 
         # Gráfico
-        contagem = df_filtrado[campo].value_counts()
+        contagem = tabela.set_index(campo)['Qtd de Chamados']
         fig = px.bar(
             x=contagem.index,
             y=contagem.values,
