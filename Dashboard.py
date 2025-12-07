@@ -1,4 +1,4 @@
-# Dashboard.py
+# Dashboard Dinâmico
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -49,57 +49,40 @@ if uploaded_file is not None:
     df = carregar_dados(uploaded_file)
 
     # ------------------------------------------------------------
-    # DETECÇÃO AUTOMÁTICA DO TIPO DE RELATÓRIO
+    # DETECÇÃO DO TIPO DE RELATÓRIO
     # ------------------------------------------------------------
     colunas_consumer = [
         "Situação", "Assunto", "Data/Hora de abertura", "Criado por",
         "Causa raiz", "Tipo de registro do caso", "Caso modificado pela última vez por"
     ]
-    
     if all(col in df.columns for col in colunas_consumer):
         titulo_dashboard = "📊 Chamados Consumer"
         relatorio_tipo = "consumer"
     else:
         titulo_dashboard = "📊 Chamados NMC Enterprise"
         relatorio_tipo = "enterprise"
-    
     st.title(titulo_dashboard)
 
-    # ------------------------------------------------------------
-    # EXIBIR COLUNAS DETECTADAS
-    # ------------------------------------------------------------
+    # Mostrar colunas detectadas
     st.sidebar.header("📋 Colunas detectadas")
     for col in df.columns:
         st.sidebar.write(col)
 
     # ------------------------------------------------------------
-    # MAPEAR COLUNAS DINAMICAMENTE
+    # MAPEAR COLUNAS DINÂMICAMENTE
     # ------------------------------------------------------------
-    colunas_esperadas = {
-        'Status': ['Status', 'Situação'],
-        'Fechado por': ['Fechado por', 'Caso modificado pela última vez por', 'Responsável'],
-        'Histórico': ['Histórico', 'Logs'],
-        'Reclamação': ['Reclamação', 'Assunto', 'Tipo de registro do caso'],
-        'Criado por': ['Criado por', 'Solicitante'],
-        'Diagnóstico': ['Diagnóstico', 'Resultado', 'Causa raiz'],
-        'Data de abertura': ['Data de abertura', 'Data inicial', 'Data/Hora de abertura'],
-        'Hora de abertura': ['Hora de abertura', 'Hora inicial'],
-        'Data de fechamento': ['Data de fechamento', 'Data final'],
-        'Hora de fechamento': ['Hora de fechamento', 'Hora final']
+    mapa = {
+        'Status': None if relatorio_tipo == "consumer" else 'Status',
+        'Fechado por': None if relatorio_tipo == "consumer" else 'Fechado por',
+        'Histórico': None if relatorio_tipo == "consumer" else 'Histórico',
+        'Reclamação': 'Assunto' if relatorio_tipo == "consumer" else 'Reclamação',
+        'Criado por': 'Criado por',
+        'Diagnóstico': 'Causa raiz' if relatorio_tipo == "consumer" else 'Diagnóstico',
+        'Data de abertura': 'Data/Hora de abertura' if relatorio_tipo == "consumer" else 'Data de abertura',
+        'Hora de abertura': None if relatorio_tipo == "consumer" else 'Hora de abertura',
+        'Data de fechamento': None if relatorio_tipo == "consumer" else 'Data de fechamento',
+        'Hora de fechamento': None if relatorio_tipo == "consumer" else 'Hora de fechamento',
     }
-
-    def mapear_colunas(df):
-        mapeadas = {}
-        for padrao, possiveis in colunas_esperadas.items():
-            for col in possiveis:
-                if col in df.columns:
-                    mapeadas[padrao] = col
-                    break
-            else:
-                mapeadas[padrao] = None
-        return mapeadas
-
-    mapa = mapear_colunas(df)
     st.sidebar.header("📌 Colunas mapeadas")
     st.sidebar.json(mapa)
 
@@ -107,9 +90,7 @@ if uploaded_file is not None:
     # SUBSTITUIÇÃO AUTOMÁTICA DO “NMC Auto”
     # ------------------------------------------------------------
     if mapa['Histórico'] and mapa['Fechado por']:
-        df_fe = df[df.get(mapa['Status'], pd.Series())\
-                     .astype(str).str.strip().str.lower() == 'fechado'].copy()
-
+        df_fe = df[df[mapa['Status']].astype(str).str.strip().str.lower() == 'fechado'].copy()
         def substituir_fechado_por(row):
             historico = str(row.get(mapa['Histórico'], ''))
             if 'Usuário efetuando abertura:' in historico and row.get(mapa['Fechado por'], '') == 'NMC Auto':
@@ -119,7 +100,6 @@ if uploaded_file is not None:
                 except:
                     pass
             return row
-
         df_fe = df_fe.apply(substituir_fechado_por, axis=1)
         df.update(df_fe)
 
@@ -127,7 +107,6 @@ if uploaded_file is not None:
     # FILTROS DINÂMICOS
     # ------------------------------------------------------------
     st.sidebar.header("🔎 Filtros")
-
     def filtro_multiselect(campo_nome, label):
         if mapa.get(campo_nome) and mapa[campo_nome] in df.columns:
             opcoes = df[mapa[campo_nome]].dropna().unique()
@@ -141,13 +120,13 @@ if uploaded_file is not None:
     diagnostico_selecionado = filtro_multiselect('Diagnóstico', "Diagnóstico")
 
     df_filtrado = df.copy()
-    if responsavel_selecionado:
+    if responsavel_selecionado and mapa['Fechado por']:
         df_filtrado = df_filtrado[df_filtrado[mapa['Fechado por']].isin(responsavel_selecionado)]
-    if categoria_selecionada:
+    if categoria_selecionada and mapa['Reclamação']:
         df_filtrado = df_filtrado[df_filtrado[mapa['Reclamação']].isin(categoria_selecionada)]
-    if criado_selecionado:
+    if criado_selecionado and mapa['Criado por']:
         df_filtrado = df_filtrado[df_filtrado[mapa['Criado por']].isin(criado_selecionado)]
-    if diagnostico_selecionado:
+    if diagnostico_selecionado and mapa['Diagnóstico']:
         df_filtrado = df_filtrado[df_filtrado[mapa['Diagnóstico']].fillna("Não informado").isin(diagnostico_selecionado)]
 
     # ------------------------------------------------------------
@@ -164,28 +143,24 @@ if uploaded_file is not None:
         total_chamados = total_abertos = total_fechados = pct_abertos = pct_fechados = 0
 
     tempo_medio = 0.0
-    if mapa.get('Data de abertura') and mapa['Data de abertura'] in df_filtrado.columns \
-       and mapa.get('Data de fechamento') and mapa['Data de fechamento'] in df_filtrado.columns:
-        df_encerrados = df_filtrado[df_filtrado[status_col].astype(str).str.lower() == 'fechado'].copy()
-        if not df_encerrados.empty:
+    if mapa.get('Data de abertura') in df_filtrado.columns:
+        df_encerrados = df_filtrado.copy()
+        if mapa.get('Data de abertura') and mapa.get('Data de fechamento') and \
+           mapa['Data de abertura'] in df_encerrados.columns and mapa['Data de fechamento'] in df_encerrados.columns:
             df_encerrados['DataHoraAbertura'] = pd.to_datetime(df_encerrados[mapa['Data de abertura']], errors='coerce')
             df_encerrados['DataHoraFechamento'] = pd.to_datetime(df_encerrados[mapa['Data de fechamento']], errors='coerce')
             df_encerrados['TempoAtendimentoMin'] = ((df_encerrados['DataHoraFechamento'] - df_encerrados['DataHoraAbertura']).dt.total_seconds()/60).clip(lower=0).dropna()
             if not df_encerrados['TempoAtendimentoMin'].empty:
                 tempo_medio = df_encerrados['TempoAtendimentoMin'].mean().round(2)
 
-    # Maior ofensor
-    if mapa.get('Diagnóstico') and mapa['Diagnóstico'] in df_filtrado.columns:
+    maior_ofensor, qtd_ofensor, pct_ofensor = "-", 0, 0.0
+    if mapa.get('Diagnóstico') in df_filtrado.columns:
         df_filtrado[mapa['Diagnóstico']] = df_filtrado[mapa['Diagnóstico']].fillna('Não informado')
         if not df_filtrado.empty:
             cont_diag = df_filtrado[mapa['Diagnóstico']].value_counts()
             maior_ofensor = cont_diag.idxmax()
             qtd_ofensor = cont_diag.max()
             pct_ofensor = round(qtd_ofensor / len(df_filtrado) * 100, 2)
-        else:
-            maior_ofensor, qtd_ofensor, pct_ofensor = "-", 0, 0.0
-    else:
-        maior_ofensor, qtd_ofensor, pct_ofensor = "-", 0, 0.0
 
     # ------------------------------------------------------------
     # EXIBIÇÃO DAS MÉTRICAS
@@ -203,7 +178,7 @@ if uploaded_file is not None:
     # FUNÇÃO GRÁFICO + TABELA
     # ------------------------------------------------------------
     def grafico_com_tabela(campo, titulo):
-        if campo not in df_filtrado.columns:
+        if not campo or campo not in df_filtrado.columns:
             return None, None
         st.subheader(f"📁 {titulo}")
         col_table, col_graph = st.columns([1.4, 3])
@@ -220,7 +195,7 @@ if uploaded_file is not None:
         return fig, tabela
 
     # ------------------------------------------------------------
-    # GRÁFICOS PRINCIPAIS (DINÂMICOS)
+    # GRÁFICOS PRINCIPAIS
     # ------------------------------------------------------------
     figs_tabs = [
         (mapa.get('Criado por'), "Chamados abertos por usuário"),
