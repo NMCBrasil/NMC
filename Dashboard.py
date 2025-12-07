@@ -145,8 +145,8 @@ else:
         return fig, tabela
 
     # ---------------- GRÁFICOS ----------------
-    # Chamados abertos
-    fig_abertos, tab_abertos = grafico_com_tabela(df_filtrado[~df_filtrado['Fechado']], "Criado por", "Chamados abertos por usuário")
+    # Chamados abertos por usuário – mostra todos os chamados
+    fig_abertos, tab_abertos = grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário")
     # Chamados fechados
     col_fechado = 'Fechado por' if relatorio_tipo=="enterprise" else 'Caso modificado pela última vez por'
     df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado]!="")]
