@@ -29,6 +29,8 @@ uploaded_file = st.sidebar.file_uploader("Selecione o arquivo", type=["csv"])
 
 if uploaded_file is None:
     st.title("📊 Dashboard Chamados")
+    # Aqui você pode colocar uma figura decorativa
+    st.image("https://i.imgur.com/4NZ6uLY.png", width=300)  # exemplo
     st.info("Envie um arquivo CSV para visualizar o dashboard.")
 else:
     df = pd.read_csv(uploaded_file, encoding='latin1', sep=None, engine='python')
@@ -47,6 +49,8 @@ else:
         relatorio_tipo = "enterprise"
         titulo_dashboard = "📊 Chamados NMC Enterprise"
     st.title(titulo_dashboard)
+    # Figura decorativa
+    st.image("https://i.imgur.com/4NZ6uLY.png", width=300)  # exemplo
 
     # ---------------- NORMALIZAÇÃO ----------------
     df = df.applymap(lambda x: str(x).strip() if pd.notnull(x) else "")
@@ -68,7 +72,7 @@ else:
         filtro_aberto = st.sidebar.multiselect("Chamados abertos por usuário", df['Criado por'].unique())
         filtro_fechado = st.sidebar.multiselect("Chamados fechados por usuário", df['Caso modificado pela última vez por'].unique())
         filtro_categoria = st.sidebar.multiselect("Assunto", df['Assunto'].unique())
-        filtro_diag = st.sidebar.multiselect("Causa raiz", df['Causa raiz'].unique())
+        filtro_diag = st.sidebar.multiselect("Causa Raiz", df['Causa raiz'].unique())
 
     # ---------------- APLICAR FILTROS ----------------
     df_filtrado = df.copy()
@@ -91,7 +95,7 @@ else:
     pct_abertos = (total_abertos/total_chamados*100) if total_chamados else 0
     pct_fechados = (total_fechados/total_chamados*100) if total_chamados else 0
 
-    # ---------------- TEMPO MÉDIO (Enterprise) ----------------
+    # Tempo médio Enterprise
     if relatorio_tipo == "enterprise" and 'Data de abertura' in df_filtrado.columns and 'Hora de abertura' in df_filtrado.columns:
         df_enc = df_filtrado[df_filtrado['Fechado']].copy()
         if not df_enc.empty:
@@ -104,9 +108,9 @@ else:
     else:
         tempo_medio = 0.0
 
-    # ---------------- MAIOR OFENSOR ----------------
+    # Maior ofensor
     campo_ofensor = 'Causa raiz' if relatorio_tipo=="consumer" else 'Diagnóstico'
-    df_valid_ofensor = df_filtrado[df_filtrado[campo_ofensor].notna() & (df_filtrado[campo_ofensor]!="")]
+    df_valid_ofensor = df_filtrado[df_filtrado[campo_ofensor]!=""]
     if not df_valid_ofensor.empty:
         cont_ofensor = df_valid_ofensor[campo_ofensor].value_counts()
         maior_ofensor = cont_ofensor.idxmax()
@@ -145,18 +149,23 @@ else:
         return fig, tabela
 
     # ---------------- GRÁFICOS ----------------
-    # Chamados abertos por usuário – mostra todos os chamados
+    # Chamados abertos por usuário – todos
     fig_abertos, tab_abertos = grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário")
+
     # Chamados fechados
     col_fechado = 'Fechado por' if relatorio_tipo=="enterprise" else 'Caso modificado pela última vez por'
     df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado]!="")]
     fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário")
+
     # Categoria / Assunto
     col_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
-    fig_categoria, tab_categoria = grafico_com_tabela(df_filtrado[df_filtrado[col_categoria]!=""], col_categoria, "Classificação por Categoria")
+    titulo_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
+    fig_categoria, tab_categoria = grafico_com_tabela(df_filtrado[df_filtrado[col_categoria]!=""], col_categoria, titulo_categoria)
+
     # Diagnóstico / Causa raiz
     col_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa raiz'
-    fig_diag, tab_diag = grafico_com_tabela(df_filtrado[df_filtrado[col_diag]!=""], col_diag, "Classificação por Diagnóstico / Causa raiz")
+    titulo_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa Raiz'
+    fig_diag, tab_diag = grafico_com_tabela(df_filtrado[df_filtrado[col_diag]!=""], col_diag, titulo_diag)
 
     # ---------------- DOWNLOAD ----------------
     def to_html_bonito():
