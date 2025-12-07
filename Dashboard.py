@@ -14,16 +14,60 @@ st.set_page_config(
 # CSS customizado para cores claras e textos pretos
 st.markdown("""
 <style>
+/* Fundo geral */
 .stApp { background-color: #f0f4f8; color: #000000; }
-section[data-testid="stSidebar"] { background-color: #e8e8e8 !important; color: #000000 !important; }
+
+/* Sidebar clara e legível */
+section[data-testid="stSidebar"] {
+    background-color: #e8e8e8 !important;
+    color: #000000 !important;
+}
 section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3,
 section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span,
 section[data-testid="stSidebar"] div, section[data-testid="stSidebar"] input,
-section[data-testid="stSidebar"] select { color: #000000 !important; background-color: #f0f0f0 !important; }
-.stDownloadButton button { color: #000000 !important; background-color: #d9e4f5 !important; border: 1px solid #000000 !important; padding: 6px 12px !important; border-radius: 5px !important; font-weight: bold !important; }
+section[data-testid="stSidebar"] select {
+    color: #000000 !important;
+    background-color: #f0f0f0 !important;
+}
+
+/* Inputs, selects e multiselects */
+div[data-baseweb="select"] > div,
+div[data-baseweb="select"] input,
+div[data-baseweb="select"] span {
+    background-color: #f0f0f0 !important;
+    color: #000000 !important;
+}
+
+/* File uploader */
+div.stFileUploader div, div.stFileUploader input {
+    background-color: #f0f0f0 !important;
+    color: #000000 !important;
+}
+
+/* Botão de download */
+.stDownloadButton button {
+    color: #000000 !important;
+    background-color: #d9e4f5 !important;
+    border: 1px solid #000000 !important;
+    padding: 6px 12px !important;
+    border-radius: 5px !important;
+    font-weight: bold !important;
+}
+
+/* Letras de métricas */
 .stMetricLabel, .stMetricValue { color: #000000 !important; }
+
+/* Títulos e textos gerais */
 h1, h2, h3, h4, p, span, div { color: #000000 !important; }
-div.stDataFrame div.row_widget.stDataFrame { background-color: #f7f7f7 !important; color: #000000 !important; font-size: 14px; }
+
+/* Tabela interna do Streamlit */
+div.stDataFrame div.row_widget.stDataFrame {
+    background-color: #f7f7f7 !important;
+    color: #000000 !important;
+    font-size: 14px;
+}
+
+/* Gráficos Plotly: fundo claro */
 .plotly-graph-div { background-color: #f7f7f7 !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -132,7 +176,7 @@ if uploaded_file is not None:
     fig_diagnostico = grafico_com_tabela('Diagnóstico','Diagnóstico:')
     fig_fechado_por = grafico_com_tabela('Fechado por','Fechado por:')
 
-    # Exportar dashboard em HTML bonito
+    # Exportar dashboard em HTML bonito e compacto
     def to_html_bonito():
         buffer = io.StringIO()
         buffer.write("<html><head><meta charset='utf-8'><title>Dashboard NMC</title>")
