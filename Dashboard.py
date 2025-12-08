@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -30,8 +29,24 @@ uploaded_file = st.sidebar.file_uploader("Selecione o arquivo", type=["csv"])
 
 if uploaded_file is None:
     st.title("📊 Dashboard Chamados")
+    
+    # ---------------- OBSERVAÇÃO INICIAL ----------------
+    st.markdown("""
+    <div style='background-color:#d9e4f5; padding:20px; border-radius:10px; color:#000;'>
+        <h3>ℹ️ Atenção</h3>
+        <p>Para que o dashboard funcione corretamente, seu relatório deve conter os seguintes campos:</p>
+        <ul>
+            <li><strong>Enterprise:</strong> Status, Criado por, Fechado por, Data de abertura, Hora de abertura, Data de fechamento, Hora de fechamento, Reclamação, Diagnóstico</li>
+            <li><strong>Consumer:</strong> Situação, Assunto, Data/Hora de abertura, Criado por, Causa raiz, Tipo de registro do caso, Caso modificado pela última vez por</li>
+        </ul>
+        <p>💡 Dica: As colunas podem estar em qualquer ordem, mas os nomes devem estar corretos.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.info("Envie um arquivo CSV para visualizar o dashboard.")
+
 else:
+    # ---------------- LEITURA CSV ----------------
     df = pd.read_csv(uploaded_file, encoding='latin1', sep=None, engine='python')
     df.columns = df.columns.str.strip()
     df = df.fillna("")
@@ -41,7 +56,7 @@ else:
         "Situação", "Assunto", "Data/Hora de abertura", "Criado por",
         "Causa raiz", "Tipo de registro do caso", "Caso modificado pela última vez por"
     ]
-    if all(col in df.columns for col in colunas_consumer):
+    if any(col in df.columns for col in colunas_consumer):
         relatorio_tipo = "consumer"
         titulo_dashboard = "📊 Chamados Consumer"
     else:
@@ -92,6 +107,7 @@ else:
     pct_abertos = (total_abertos/total_chamados*100) if total_chamados else 0
     pct_fechados = (total_fechados/total_chamados*100) if total_chamados else 0
 
+    # ---------------- TEMPO MÉDIO (Enterprise) ----------------
     if relatorio_tipo == "enterprise" and 'Data de abertura' in df_filtrado.columns and 'Hora de abertura' in df_filtrado.columns:
         df_enc = df_filtrado[df_filtrado['Fechado']].copy()
         if not df_enc.empty:
@@ -104,6 +120,7 @@ else:
     else:
         tempo_medio = 0.0
 
+    # ---------------- MAIOR OFENSOR ----------------
     campo_ofensor = 'Causa raiz' if relatorio_tipo=="consumer" else 'Diagnóstico'
     df_valid_ofensor = df_filtrado[df_filtrado[campo_ofensor]!=""]
     if not df_valid_ofensor.empty:
