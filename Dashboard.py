@@ -20,7 +20,6 @@ div.stDataFrame div.row_widget.stDataFrame { background-color: #f7f7f7 !importan
 section[data-testid="stSidebar"] { background-color: #e8e8e8 !important; color: #000 !important; }
 section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] div, section[data-testid="stSidebar"] input, section[data-testid="stSidebar"] select { color: #000 !important; background-color: #f0f0f0 !important; }
 input[type="file"] { background-color: #d9e4f5 !important; color: #000 !important; font-weight: bold !important; border: 1px solid #000; border-radius: 5px; padding: 5px; }
-.observacao { background:#d9e4f5; padding:15px; border-radius:10px; margin-bottom:20px; font-size:14px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -28,25 +27,35 @@ input[type="file"] { background-color: #d9e4f5 !important; color: #000 !importan
 st.sidebar.header("📂 Importar arquivo CSV")
 uploaded_file = st.sidebar.file_uploader("Selecione o arquivo", type=["csv"])
 
+# ---------------- TELA INICIAL ANTES DO UPLOAD ----------------
 if uploaded_file is None:
     st.title("📊 Dashboard Chamados")
     st.markdown("""
-    <div class="observacao">
-    <b>Observação:</b> Para que o dashboard funcione corretamente, seu relatório precisa conter as seguintes colunas:
-    <ul>
-    <li><b>Enterprise:</b> Status, Criado por, Fechado por, Reclamação, Diagnóstico, Data de abertura, Hora de abertura, Data de fechamento, Hora de fechamento, Id</li>
-    <li><b>Consumer:</b> Situação, Criado por, Caso modificado pela última vez por, Assunto, Causa raiz, Tipo de registro do caso, Data/Hora de abertura</li>
-    </ul>
+    <div style="
+        background-color:#d9e4f5;
+        padding:20px;
+        border-radius:12px;
+        margin-bottom:20px;
+        font-size:15px;
+        line-height:1.5;
+        color:#000;
+        box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+    ">
+        <b>📌 Observação:</b><br>
+        Para que o dashboard funcione corretamente, seu relatório precisa conter as seguintes colunas:<br><br>
+        <b>Enterprise:</b> Status, Criado por, Fechado por, Reclamação, Diagnóstico, Data de abertura, Hora de abertura, Data de fechamento, Hora de fechamento, Id<br>
+        <b>Consumer:</b> Situação, Criado por, Caso modificado pela última vez por, Assunto, Causa raiz, Tipo de registro do caso, Data/Hora de abertura
     </div>
     """, unsafe_allow_html=True)
     st.info("Envie um arquivo CSV para visualizar o dashboard.")
+
+# ---------------- PROCESSAMENTO DO UPLOAD ----------------
 else:
-    # ---------------- CARREGAR DADOS ----------------
     df = pd.read_csv(uploaded_file, encoding='latin1', sep=None, engine='python')
     df.columns = df.columns.str.strip()
     df = df.fillna("")
 
-    # ---------------- DETECTAR TIPO ----------------
+    # ---------------- DETECTAR TIPO DE RELATÓRIO ----------------
     colunas_consumer = [
         "Situação", "Assunto", "Data/Hora de abertura", "Criado por",
         "Causa raiz", "Tipo de registro do caso", "Caso modificado pela última vez por"
@@ -54,17 +63,15 @@ else:
     if all(col in df.columns for col in colunas_consumer):
         relatorio_tipo = "consumer"
         titulo_dashboard = "📊 Chamados Consumer"
-    elif 'Status' in df.columns:
+    else:
         relatorio_tipo = "enterprise"
         titulo_dashboard = "📊 Chamados Enterprise"
-    else:
-        st.error("Relatório inválido ou colunas essenciais ausentes")
-        st.stop()
-
     st.title(titulo_dashboard)
+
+    # ---------------- NORMALIZAÇÃO ----------------
     df = df.applymap(lambda x: str(x).strip() if pd.notnull(x) else "")
 
-    # ---------------- FLAG FECHADO ----------------
+    # ---------------- FLAG CHAMADOS FECHADOS ----------------
     if relatorio_tipo == "enterprise":
         df['Fechado'] = df['Status'].str.lower() == "fechado"
     else:
@@ -104,7 +111,6 @@ else:
     pct_abertos = (total_abertos/total_chamados*100) if total_chamados else 0
     pct_fechados = (total_fechados/total_chamados*100) if total_chamados else 0
 
-    # Tempo médio (Enterprise apenas)
     if relatorio_tipo == "enterprise" and 'Data de abertura' in df_filtrado.columns and 'Hora de abertura' in df_filtrado.columns:
         df_enc = df_filtrado[df_filtrado['Fechado']].copy()
         if not df_enc.empty:
@@ -117,7 +123,6 @@ else:
     else:
         tempo_medio = 0.0
 
-    # Maior ofensor
     campo_ofensor = 'Causa raiz' if relatorio_tipo=="consumer" else 'Diagnóstico'
     df_valid_ofensor = df_filtrado[df_filtrado[campo_ofensor]!=""]
     if not df_valid_ofensor.empty:
@@ -133,6 +138,7 @@ else:
     col1.metric("⏱ Tempo médio total (min)", f"{tempo_medio:.2f}")
     col2.metric("📌 Maior ofensor", f"{maior_ofensor}")
     col3.metric("📊 % dos chamados do maior ofensor", f"{pct_ofensor}%  ({qtd_ofensor})")
+
     st.write(f"### 📑 Total de chamados: **{total_chamados}**")
     st.write(f"🔵 Chamados abertos: {total_abertos} ({pct_abertos:.1f}%)")
     st.write(f"🔴 Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)")
@@ -180,6 +186,7 @@ else:
         buffer.write(f"<div class='metric'>Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)</div>")
         buffer.write(f"<div class='metric'>Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
 
+        # Tabelas + gráficos
         for titulo, tabela, fig in [
             ("Chamados abertos por usuário", tab_abertos, fig_abertos),
             ("Chamados fechados por usuário", tab_fechados, fig_fechados),
@@ -193,6 +200,7 @@ else:
                 buffer.write("<div style='width:55%;'>{}</div>".format(fig.to_html(full_html=False, include_plotlyjs='cdn')))
                 buffer.write("</div>")
 
+        # Tabela completa filtrada
         buffer.write("<h2>Tabela completa filtrada</h2>")
         if relatorio_tipo=="consumer":
             df_exibir = df_filtrado[df_filtrado.apply(lambda row: any(row[col] for col in ['Criado por', 'Caso modificado pela última vez por', 'Assunto', 'Causa raiz']), axis=1)]
