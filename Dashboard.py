@@ -182,7 +182,11 @@ else:
 
         # Tabela completa filtrada
         buffer.write("<h2>Tabela completa filtrada</h2>")
-        buffer.write(df_filtrado.to_html(index=False))
+        if relatorio_tipo=="consumer":
+            df_exibir = df_filtrado[df_filtrado.apply(lambda row: any(row[col] for col in ['Criado por', 'Caso modificado pela última vez por', 'Assunto', 'Causa raiz']), axis=1)]
+        else:
+            df_exibir = df_filtrado
+        buffer.write(df_exibir.to_html(index=False))
         buffer.write("</body></html>")
         return buffer.getvalue().encode("utf-8")
 
