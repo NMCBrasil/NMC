@@ -18,19 +18,15 @@ st.set_page_config(
 # ------------------------------------------------------------
 st.markdown("""
 <style>
-/* Métricas e tabelas */
-.stMetricLabel, .stMetricValue { color: #000000 !important; }
-div.stDataFrame div.row_widget.stDataFrame { background-color: #f7f7f7 !important; color: #000000 !important; font-size: 14px; }
-/* Gráficos */
+.stMetricLabel, .stMetricValue { color: #000 !important; }
+div.stDataFrame div.row_widget.stDataFrame { background-color: #f7f7f7 !important; color: #000 !important; font-size:14px; }
 .plotly-graph-div { background-color: #f7f7f7 !important; }
-/* Botões */
-.stDownloadButton button { color: #000000 !important; background-color: #d9e4f5 !important; border: 1px solid #000000 !important; padding: 6px 12px !important; border-radius: 5px !important; font-weight: bold !important; }
-/* Sidebar */
-section[data-testid="stSidebar"] { background-color: #e8e8e8 !important; color: #000000 !important; }
-section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] div, section[data-testid="stSidebar"] input, section[data-testid="stSidebar"] select { color: #000000 !important; background-color: #f0f0f0 !important; }
-div[data-baseweb="select"] > div, div[data-baseweb="select"] input, div[data-baseweb="select"] span { background-color: #f0f0f0 !important; color: #000000 !important; }
-input[type="file"]::file-selector-button { background-color: #d9e4f5 !important; color: #000000 !important; font-weight: bold !important; border: 1px solid #000000; border-radius: 5px; padding: 5px 10px; }
-input[type="file"] { background-color: #d9e4f5 !important; color: #000000 !important; font-weight: bold !important; border: 1px solid #000000; border-radius: 5px; padding: 5px; }
+.stDownloadButton button { color: #000 !important; background-color: #d9e4f5 !important; border: 1px solid #000 !important; padding:6px 12px !important; border-radius:5px !important; font-weight:bold !important; }
+section[data-testid="stSidebar"] { background-color: #e8e8e8 !important; color: #000 !important; }
+section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] div, section[data-testid="stSidebar"] input, section[data-testid="stSidebar"] select { color: #000 !important; background-color:#f0f0f0 !important; }
+div[data-baseweb="select"] > div, div[data-baseweb="select"] input, div[data-baseweb="select"] span { background-color:#f0f0f0 !important; color:#000 !important; }
+input[type="file"]::file-selector-button { background-color:#d9e4f5 !important; color:#000 !important; font-weight:bold !important; border:1px solid #000; border-radius:5px; padding:5px 10px; }
+input[type="file"] { background-color:#d9e4f5 !important; color:#000 !important; font-weight:bold !important; border:1px solid #000; border-radius:5px; padding:5px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -59,15 +55,15 @@ else:
     df = carregar_dados(uploaded_file)
 
     # ------------------------------------------------------------
-    # DETECÇÃO AUTOMÁTICA DO TIPO DE RELATÓRIO
+    # DETECÇÃO AUTOMÁTICA
     # ------------------------------------------------------------
-    colunas_chave_consumer = ["Situação", "Assunto", "Causa raiz", "Caso modificado pela última vez por"]
-    colunas_chave_enterprise = ["Status", "Reclamação", "Diagnóstico", "Fechado por"]
+    colunas_consumer = ["Situação", "Assunto", "Causa raiz", "Caso modificado pela última vez por"]
+    colunas_enterprise = ["Status", "Reclamação", "Diagnóstico", "Fechado por"]
 
-    if any(col in df.columns for col in colunas_chave_consumer):
+    if any(col in df.columns for col in colunas_consumer):
         relatorio_tipo = "consumer"
         titulo_dashboard = "📊 Chamados Consumer"
-    elif any(col in df.columns for col in colunas_chave_enterprise):
+    elif any(col in df.columns for col in colunas_enterprise):
         relatorio_tipo = "enterprise"
         titulo_dashboard = "📊 Chamados Enterprise"
     else:
@@ -77,7 +73,7 @@ else:
     st.title(titulo_dashboard)
 
     # ------------------------------------------------------------
-    # FILTRAGEM DE CHAMADOS ABERTOS E FECHADOS
+    # SEPARAÇÃO DE ABERTOS E FECHADOS
     # ------------------------------------------------------------
     if relatorio_tipo == "enterprise":
         df['Fechado'] = df['Status'].astype(str).str.lower() == 'fechado'
@@ -87,7 +83,7 @@ else:
         campo_fechado = "Fechado por"
         campo_categoria = "Reclamação"
         campo_diagnostico = "Diagnóstico"
-    elif relatorio_tipo == "consumer":
+    else:  # consumer
         df_abertos = df[df['Situação'].astype(str).str.lower() == 'aberto'].copy()
         df_fechados = df[
             df['Situação'].astype(str).str.lower().isin(['resolvido', 'completado']) &
@@ -107,7 +103,7 @@ else:
     pct_abertos = (total_abertos / total_chamados * 100) if total_chamados > 0 else 0
     pct_fechados = (total_fechados / total_chamados * 100) if total_chamados > 0 else 0
 
-    # Tempo médio apenas Enterprise
+    # Tempo médio apenas enterprise
     if relatorio_tipo == "enterprise" and not df_fechados.empty:
         df_fechados['DataHoraAbertura'] = pd.to_datetime(
             df_fechados['Data de abertura'] + ' ' + df_fechados['Hora de abertura'], errors='coerce'
@@ -123,28 +119,19 @@ else:
         tempo_medio = 0.0
 
     # Maior ofensor
-    if relatorio_tipo == "enterprise":
-        if campo_diagnostico in df.columns:
-            cont_diag = df[campo_diagnostico].fillna("Não informado").value_counts()
-            maior_ofensor = cont_diag.idxmax()
-            qtd_ofensor = cont_diag.max()
-            pct_ofensor = round(qtd_ofensor / len(df) * 100, 2)
+    if campo_diagnostico in df.columns:
+        cont_diag = df[campo_diagnostico].dropna()
+        if not cont_diag.empty:
+            maior_ofensor = cont_diag.value_counts().idxmax()
+            qtd_ofensor = cont_diag.value_counts().max()
+            pct_ofensor = round(qtd_ofensor / len(cont_diag) * 100, 2)
         else:
             maior_ofensor, qtd_ofensor, pct_ofensor = "-", 0, 0.0
     else:
-        if campo_diagnostico in df.columns:
-            cont_diag = df[campo_diagnostico].dropna()
-            if not cont_diag.empty:
-                maior_ofensor = cont_diag.value_counts().idxmax()
-                qtd_ofensor = cont_diag.value_counts().max()
-                pct_ofensor = round(qtd_ofensor / len(cont_diag) * 100, 2)
-            else:
-                maior_ofensor, qtd_ofensor, pct_ofensor = "-", 0, 0.0
-        else:
-            maior_ofensor, qtd_ofensor, pct_ofensor = "-", 0, 0.0
+        maior_ofensor, qtd_ofensor, pct_ofensor = "-", 0, 0.0
 
     # ------------------------------------------------------------
-    # METRICAS NA TELA
+    # EXIBIÇÃO DE MÉTRICAS
     # ------------------------------------------------------------
     col1, col2, col3 = st.columns(3)
     col1.metric("⏱ Tempo médio total (min)", f"{tempo_medio:.2f}")
@@ -156,7 +143,7 @@ else:
     st.write(f"🔴 Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)")
 
     # ------------------------------------------------------------
-    # FUNÇÃO DE GRÁFICO E TABELA
+    # FUNÇÃO GRÁFICO + TABELA
     # ------------------------------------------------------------
     def grafico_com_tabela(df_graf, campo, titulo):
         st.subheader(f"📁 {titulo}")
@@ -197,7 +184,7 @@ else:
         fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, campo_fechado, "Chamados fechados por usuário")
 
     # ------------------------------------------------------------
-    # DOWNLOAD
+    # DOWNLOAD HTML
     # ------------------------------------------------------------
     def to_html_bonito():
         buffer = io.StringIO()
