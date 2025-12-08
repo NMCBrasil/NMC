@@ -1,121 +1,152 @@
+# Dashboard.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import io
 
-# ---------------- CONFIGURAÇÃO ----------------
+# ------------------------------------------------------------
+# CONFIGURAÇÃO DO APP
+# ------------------------------------------------------------
 st.set_page_config(
-    page_title="Chamados Enterprise / Consumer",
+    page_title="Chamados Enterprise",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ---------------- ESTILO ----------------
+# Aparência geral
 st.markdown("""
 <style>
-.stMetricLabel, .stMetricValue { color: #000 !important; }
-div.stDataFrame div.row_widget.stDataFrame { background-color: #f7f7f7 !important; color: #000 !important; font-size: 14px; }
+.stMetricLabel, .stMetricValue { color: #000000 !important; }
+div.stDataFrame div.row_widget.stDataFrame { background-color: #f7f7f7 !important; color: #000000 !important; font-size: 14px; }
 .plotly-graph-div { background-color: #f7f7f7 !important; }
-.stDownloadButton button { color: #000 !important; background-color: #d9e4f5 !important; border: 1px solid #000 !important; padding: 6px 12px !important; border-radius: 5px !important; font-weight: bold !important; }
-section[data-testid="stSidebar"] { background-color: #e8e8e8 !important; color: #000 !important; }
-section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] div, section[data-testid="stSidebar"] input, section[data-testid="stSidebar"] select { color: #000 !important; background-color: #f0f0f0 !important; }
-input[type="file"] { background-color: #d9e4f5 !important; color: #000 !important; font-weight: bold !important; border: 1px solid #000; border-radius: 5px; padding: 5px; }
+.stDownloadButton button { color: #000000 !important; background-color: #d9e4f5 !important; border: 1px solid #000000 !important; padding: 6px 12px !important; border-radius: 5px !important; font-weight: bold !important; }
+section[data-testid="stSidebar"] { background-color: #e8e8e8 !important; color: #000000 !important; }
+section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3, section[data-testid="stSidebar"] label, section[data-testid="stSidebar"] span, section[data-testid="stSidebar"] div, section[data-testid="stSidebar"] input, section[data-testid="stSidebar"] select { color: #000000 !important; background-color: #f0f0f0 !important; }
+div[data-baseweb="select"] > div, div[data-baseweb="select"] input, div[data-baseweb="select"] span { background-color: #f0f0f0 !important; color: #000000 !important; }
+input[type="file"]::file-selector-button { background-color: #d9e4f5 !important; color: #000000 !important; font-weight: bold !important; border: 1px solid #000000; border-radius: 5px; padding: 5px 10px; }
+input[type="file"] { background-color: #d9e4f5 !important; color: #000000 !important; font-weight: bold !important; border: 1px solid #000000; border-radius: 5px; padding: 5px; }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- UPLOAD ----------------
+# ------------------------------------------------------------
+# FUNÇÃO PARA CARREGAMENTO DO CSV
+# ------------------------------------------------------------
+@st.cache_data
+def carregar_dados(file):
+    df = pd.read_csv(file, encoding='latin1', sep=None, engine='python')
+    df.columns = df.columns.str.strip()
+    return df
+
+# ------------------------------------------------------------
+# SIDEBAR – Upload
+# ------------------------------------------------------------
 st.sidebar.header("📂 Importar arquivo CSV")
 uploaded_file = st.sidebar.file_uploader("Selecione o arquivo", type=["csv"])
 
+# Título inicial antes do upload
 if uploaded_file is None:
     st.title("📊 Dashboard Chamados")
     st.info("Envie um arquivo CSV para visualizar o dashboard.")
 else:
-    df = pd.read_csv(uploaded_file, encoding='latin1', sep=None, engine='python')
-    df.columns = df.columns.str.strip()
-    df = df.fillna("")
+    df = carregar_dados(uploaded_file)
 
-    # ---------------- DETECTAR TIPO DE RELATÓRIO ----------------
-    colunas_consumer = [
-        "Situação", "Assunto", "Data/Hora de abertura", "Criado por",
-        "Causa raiz", "Tipo de registro do caso", "Caso modificado pela última vez por"
-    ]
-    if all(col in df.columns for col in colunas_consumer):
+    # ------------------------------------------------------------
+    # DETECÇÃO AUTOMÁTICA DO TIPO DE RELATÓRIO
+    # ------------------------------------------------------------
+    colunas_chave_consumer = ["Situação", "Assunto", "Causa raiz", "Caso modificado pela última vez por"]
+    if any(col in df.columns for col in colunas_chave_consumer):
         relatorio_tipo = "consumer"
         titulo_dashboard = "📊 Chamados Consumer"
     else:
         relatorio_tipo = "enterprise"
         titulo_dashboard = "📊 Chamados Enterprise"
+
     st.title(titulo_dashboard)
 
-    # ---------------- NORMALIZAÇÃO ----------------
-    df = df.applymap(lambda x: str(x).strip() if pd.notnull(x) else "")
-
-    # ---------------- FLAG CHAMADOS FECHADOS ----------------
-    if relatorio_tipo == "enterprise":
-        df['Fechado'] = df['Status'].str.lower() == "fechado"
-    else:
-        df['Fechado'] = df['Situação'].str.lower() == "resolvido ou completado"
-
-    # ---------------- FILTROS ----------------
-    st.sidebar.header("🔎 Filtros")
-    if relatorio_tipo == "enterprise":
-        filtro_aberto = st.sidebar.multiselect("Chamados abertos por usuário", df['Criado por'].unique())
-        filtro_fechado = st.sidebar.multiselect("Chamados fechados por usuário", df['Fechado por'].unique())
-        filtro_categoria = st.sidebar.multiselect("Reclamação", df['Reclamação'].unique())
-        filtro_diag = st.sidebar.multiselect("Diagnóstico", df['Diagnóstico'].unique())
-    else:
-        filtro_aberto = st.sidebar.multiselect("Chamados abertos por usuário", df['Criado por'].unique())
-        filtro_fechado = st.sidebar.multiselect("Chamados fechados por usuário", df['Caso modificado pela última vez por'].unique())
-        filtro_categoria = st.sidebar.multiselect("Assunto", df['Assunto'].unique())
-        filtro_diag = st.sidebar.multiselect("Causa Raiz", df['Causa raiz'].unique())
-
-    # ---------------- APLICAR FILTROS ----------------
-    df_filtrado = df.copy()
-    if filtro_aberto:
-        df_filtrado = df_filtrado[df_filtrado['Criado por'].isin(filtro_aberto)]
-    if filtro_fechado:
-        col_fechado = 'Fechado por' if relatorio_tipo=="enterprise" else 'Caso modificado pela última vez por'
-        df_filtrado = df_filtrado[df_filtrado[col_fechado].isin(filtro_fechado)]
-    if filtro_categoria:
-        col_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
-        df_filtrado = df_filtrado[df_filtrado[col_categoria].isin(filtro_categoria)]
-    if filtro_diag:
-        col_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa raiz'
-        df_filtrado = df_filtrado[df_filtrado[col_diag].isin(filtro_diag)]
-
-    # ---------------- MÉTRICAS ----------------
-    total_chamados = len(df_filtrado)
-    total_abertos = len(df_filtrado[~df_filtrado['Fechado']])
-    total_fechados = df_filtrado['Fechado'].sum()
-    pct_abertos = (total_abertos/total_chamados*100) if total_chamados else 0
-    pct_fechados = (total_fechados/total_chamados*100) if total_chamados else 0
-
-    if relatorio_tipo == "enterprise" and 'Data de abertura' in df_filtrado.columns and 'Hora de abertura' in df_filtrado.columns:
-        df_enc = df_filtrado[df_filtrado['Fechado']].copy()
-        if not df_enc.empty:
-            df_enc['DataHoraAbertura'] = pd.to_datetime(df_enc['Data de abertura'] + ' ' + df_enc['Hora de abertura'], errors='coerce')
-            df_enc['DataHoraFechamento'] = pd.to_datetime(df_enc['Data de fechamento'] + ' ' + df_enc['Hora de fechamento'], errors='coerce')
-            df_enc['TempoAtendimentoMin'] = ((df_enc['DataHoraFechamento'] - df_enc['DataHoraAbertura']).dt.total_seconds()/60).clip(lower=0)
-            tempo_medio = round(df_enc['TempoAtendimentoMin'].mean(),2)
+    # ------------------------------------------------------------
+    # FUNÇÕES PARA CALCULAR CHAMADOS ABERTOS E FECHADOS
+    # ------------------------------------------------------------
+    def calcular_chamados(df, tipo):
+        df_copy = df.copy()
+        if tipo == "consumer":
+            # Normalizar letras maiúsculas/minúsculas
+            df_copy['Situação'] = df_copy['Situação'].astype(str).str.lower()
+            df_copy['Fechado'] = df_copy['Situação'].isin(['resolvido', 'completado'])
+            df_copy['Aberto'] = ~df_copy['Fechado']
         else:
-            tempo_medio = 0.0
-    else:
-        tempo_medio = 0.0
+            df_copy['Status'] = df_copy['Status'].astype(str).str.lower()
+            df_copy['Fechado'] = df_copy['Status'] == 'fechado'
+            df_copy['Aberto'] = df_copy['Status'] == 'aberto'
+        return df_copy
 
-    campo_ofensor = 'Causa raiz' if relatorio_tipo=="consumer" else 'Diagnóstico'
-    df_valid_ofensor = df_filtrado[df_filtrado[campo_ofensor]!=""]
-    if not df_valid_ofensor.empty:
-        cont_ofensor = df_valid_ofensor[campo_ofensor].value_counts()
-        maior_ofensor = cont_ofensor.idxmax()
-        qtd_ofensor = cont_ofensor.max()
+    df = calcular_chamados(df, relatorio_tipo)
+
+    # ------------------------------------------------------------
+    # FILTROS
+    # ------------------------------------------------------------
+    st.sidebar.header("🔎 Filtros")
+    filtros = {}
+
+    if relatorio_tipo == "enterprise":
+        if 'Fechado por' in df.columns:
+            responsaveis = df['Fechado por'].dropna().unique()
+            filtros['Fechado por'] = st.sidebar.multiselect("Fechado por", responsaveis)
+        if 'Reclamação' in df.columns:
+            categorias = df['Reclamação'].dropna().unique()
+            filtros['Reclamação'] = st.sidebar.multiselect("Reclamação", categorias)
+        if 'Criado por' in df.columns:
+            criados = df['Criado por'].dropna().unique()
+            filtros['Criado por'] = st.sidebar.multiselect("Criado por", criados)
+        if 'Diagnóstico' in df.columns:
+            diagnosticos = df['Diagnóstico'].fillna("Não informado").unique()
+            filtros['Diagnóstico'] = st.sidebar.multiselect("Diagnóstico", diagnosticos)
+    else:  # consumer
+        if 'Caso modificado pela última vez por' in df.columns:
+            responsaveis = df['Caso modificado pela última vez por'].dropna().unique()
+            filtros['Fechado por'] = st.sidebar.multiselect("Fechado por", responsaveis)
+        if 'Assunto' in df.columns:
+            categorias = df['Assunto'].dropna().unique()
+            filtros['Assunto'] = st.sidebar.multiselect("Assunto", categorias)
+        if 'Criado por' in df.columns:
+            criados = df['Criado por'].dropna().unique()
+            filtros['Criado por'] = st.sidebar.multiselect("Criado por", criados)
+        if 'Causa raiz' in df.columns:
+            diagnosticos = df['Causa raiz'].fillna("Não informado").unique()
+            filtros['Causa Raiz'] = st.sidebar.multiselect("Causa Raiz", diagnosticos)
+
+    # Aplicar filtros
+    df_filtrado = df.copy()
+    for chave, valores in filtros.items():
+        if valores:
+            df_filtrado = df_filtrado[df_filtrado[chave].isin(valores)]
+
+    # ------------------------------------------------------------
+    # MÉTRICAS
+    # ------------------------------------------------------------
+    total_chamados = len(df_filtrado)
+    total_abertos = df_filtrado['Aberto'].sum() if 'Aberto' in df_filtrado.columns else 0
+    total_fechados = df_filtrado['Fechado'].sum() if 'Fechado' in df_filtrado.columns else 0
+    pct_abertos = (total_abertos / total_chamados * 100) if total_chamados > 0 else 0
+    pct_fechados = (total_fechados / total_chamados * 100) if total_chamados > 0 else 0
+
+    if relatorio_tipo == "enterprise" and 'Diagnóstico' in df_filtrado.columns:
+        cont_diag = df_filtrado['Diagnóstico'].fillna("Não informado").value_counts()
+        maior_ofensor = cont_diag.idxmax()
+        qtd_ofensor = cont_diag.max()
+        pct_ofensor = round(qtd_ofensor / len(df_filtrado) * 100, 2)
+    elif relatorio_tipo == "consumer" and 'Causa raiz' in df_filtrado.columns:
+        cont_diag = df_filtrado['Causa raiz'].fillna("Não informado").value_counts()
+        maior_ofensor = cont_diag.idxmax()
+        qtd_ofensor = cont_diag.max()
         pct_ofensor = round(qtd_ofensor / len(df_filtrado) * 100, 2)
     else:
-        maior_ofensor, qtd_ofensor, pct_ofensor = "-",0,0.0
+        maior_ofensor, qtd_ofensor, pct_ofensor = "-", 0, 0.0
 
-    # ---------------- MÉTRICAS NA TELA ----------------
+    # ------------------------------------------------------------
+    # EXIBIÇÃO DE MÉTRICAS
+    # ------------------------------------------------------------
     col1, col2, col3 = st.columns(3)
-    col1.metric("⏱ Tempo médio total (min)", f"{tempo_medio:.2f}")
+    col1.metric("⏱ Tempo médio total (min)", "-")  # Calcular se quiser
     col2.metric("📌 Maior ofensor", f"{maior_ofensor}")
     col3.metric("📊 % dos chamados do maior ofensor", f"{pct_ofensor}%  ({qtd_ofensor})")
 
@@ -123,74 +154,110 @@ else:
     st.write(f"🔵 Chamados abertos: {total_abertos} ({pct_abertos:.1f}%)")
     st.write(f"🔴 Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)")
 
-    # ---------------- FUNÇÃO GRÁFICO ----------------
-    def grafico_com_tabela(df_graf, coluna, titulo, icone="📁"):
-        df_graf = df_graf[df_graf[coluna].notna() & (df_graf[coluna]!="")]
-        if df_graf.empty:
-            st.info(f"Nenhum dado para {titulo}")
-            return None,None
-        tabela = df_graf.groupby(coluna).size().reset_index(name="Qtd de Chamados")
-        tabela['% do Total'] = (tabela['Qtd de Chamados']/tabela['Qtd de Chamados'].sum()*100).round(2)
-        st.subheader(f"{icone} {titulo}")
-        col_table, col_graph = st.columns([1.4,3])
+    # ------------------------------------------------------------
+    # TABELAS E GRÁFICOS (Exemplo: Chamados abertos por usuário)
+    # ------------------------------------------------------------
+    def grafico_com_tabela(df_graf, campo, titulo):
+        st.subheader(f"📁 {titulo}")
+        col_table, col_graph = st.columns([1.4, 3])
+
+        if campo not in df_graf.columns:
+            st.warning(f"Coluna '{campo}' não existe neste relatório.")
+            return None, None
+
+        df_graf[campo] = df_graf[campo].fillna("Não informado").astype(str)
+        tabela = df_graf.groupby(campo)['Aberto'].count().rename("Qtd de Chamados").reset_index()
+        tabela['% do Total'] = (tabela['Qtd de Chamados'] / tabela['Qtd de Chamados'].sum() * 100).round(2)
+
+        # Remover linhas vazias
+        tabela = tabela[tabela[campo].str.strip() != ""]
+
         with col_table:
-            st.dataframe(tabela, height=550)
-        fig = px.bar(tabela, x=coluna, y="Qtd de Chamados", text="Qtd de Chamados",
-                     color="Qtd de Chamados", color_continuous_scale="Blues", template="plotly_white")
+            st.dataframe(tabela, height=350, use_container_width=True)
+
+        fig = px.bar(
+            tabela,
+            x=campo,
+            y="Qtd de Chamados",
+            text="Qtd de Chamados",
+            color="Qtd de Chamados",
+            color_continuous_scale="Blues",
+            template="plotly_white"
+        )
         fig.update_traces(textposition="outside", marker_line_color="black", marker_line_width=1)
+
         with col_graph:
             st.plotly_chart(fig, use_container_width=True)
+
         return fig, tabela
 
-    # ---------------- GRÁFICOS ----------------
-    fig_abertos, tab_abertos = grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário", icone="🔵")
-    col_fechado = 'Fechado por' if relatorio_tipo=="enterprise" else 'Caso modificado pela última vez por'
-    df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado]!="")]
-    fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário", icone="🔴")
-    col_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
-    titulo_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
-    fig_categoria, tab_categoria = grafico_com_tabela(df_filtrado[df_filtrado[col_categoria]!=""], col_categoria, titulo_categoria, icone="📌")
-    col_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa raiz'
-    titulo_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa Raiz'
-    fig_diag, tab_diag = grafico_com_tabela(df_filtrado[df_filtrado[col_diag]!=""], col_diag, titulo_diag, icone="📌")
+    # Chamados abertos por usuário
+    if 'Criado por' in df_filtrado.columns:
+        fig_abertos, tab_abertos = grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário")
 
-    # ---------------- TABELA COMPLETA FILTRADA ----------------
-    st.write("<h2>Tabela completa filtrada</h2>", unsafe_allow_html=True)
-    if relatorio_tipo == "consumer":
-        df_exibir = df_filtrado[df_filtrado.apply(lambda row: any(row[col] for col in ['Criado por', 'Caso modificado pela última vez por', 'Assunto', 'Causa raiz']), axis=1)]
-    else:
-        df_exibir = df_filtrado
-    st.dataframe(df_exibir, use_container_width=True)
+    # Chamados fechados por usuário
+    if relatorio_tipo == "enterprise" and 'Fechado por' in df_filtrado.columns:
+        df_fechados = df_filtrado[df_filtrado['Fechado']]
+        fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, "Fechado por", "Chamados fechados por usuário")
+    elif relatorio_tipo == "consumer" and 'Caso modificado pela última vez por' in df_filtrado.columns:
+        df_fechados = df_filtrado[df_filtrado['Fechado']]
+        fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, "Caso modificado pela última vez por", "Chamados fechados por usuário")
 
-    # ---------------- DOWNLOAD HTML ----------------
+    # ------------------------------------------------------------
+    # DOWNLOAD HTML
+    # ------------------------------------------------------------
     def to_html_bonito():
         buffer = io.StringIO()
-        buffer.write(f"<html><head><meta charset='utf-8'><title>{titulo_dashboard}</title>")
-        buffer.write("<style>body{font-family:Arial;background:#f0f4f8;margin:20px;}h1,h2{color:#000;}table{border-collapse:collapse;width:100%;margin:10px 0;}th,td{border:1px solid #ccc;padding:5px;background:#fafafa;}th{background:#e2e2e2;} .metric{font-weight:bold;margin:5px 0;}</style>")
-        buffer.write("</head><body>")
+        buffer.write("""
+        <html>
+        <head>
+        <meta charset='utf-8'>
+        <style>
+            body { background:#f0f4f8; font-family:Arial; color:#000; margin:25px; }
+            h1 { text-align:center; }
+            h2 { margin-top:40px; }
+            table { border-collapse:collapse; width:100%; margin:15px 0; }
+            th,td { border:1px solid #ccc; padding:6px; background:#fafafa; }
+            th { background:#e2e2e2; }
+            .metric { margin:6px 0; font-weight:bold; }
+            .linha { display:flex; flex-direction:row; gap:40px; align-items:flex-start; }
+            .col-esq { width:45%; }
+            .col-dir { width:55%; }
+        </style>
+        </head>
+        <body>
+        """)
         buffer.write(f"<h1>{titulo_dashboard}</h1>")
-        buffer.write(f"<div class='metric'>Total de chamados: {total_chamados}</div>")
-        buffer.write(f"<div class='metric'>Chamados abertos: {total_abertos} ({pct_abertos:.1f}%)</div>")
-        buffer.write(f"<div class='metric'>Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)</div>")
-        buffer.write(f"<div class='metric'>Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
+        buffer.write(f"<div class='metric'>📑 Total de chamados: {total_chamados}</div>")
+        buffer.write(f"<div class='metric'>🔵 Abertos: {total_abertos} ({pct_abertos:.1f}%)</div>")
+        buffer.write(f"<div class='metric'>🔴 Fechados: {total_fechados} ({pct_fechados:.1f}%)</div>")
+        buffer.write(f"<div class='metric'>📌 Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
 
-        for titulo, tabela, fig in [
-            ("Chamados abertos por usuário", tab_abertos, fig_abertos),
-            ("Chamados fechados por usuário", tab_fechados, fig_fechados),
-            (titulo_categoria, tab_categoria, fig_categoria),
-            (titulo_diag, tab_diag, fig_diag)
-        ]:
-            if tabela is not None and fig is not None:
+        # Gráficos e tabelas
+        figs_tabs = [
+            (fig_abertos, tab_abertos, "Chamados abertos por usuário"),
+            (fig_fechados, tab_fechados, "Chamados fechados por usuário")
+        ]
+        for fig, tabela, titulo in figs_tabs:
+            if fig is not None and tabela is not None:
                 buffer.write(f"<h2>{titulo}</h2>")
-                buffer.write("<div style='display:flex; gap:40px; align-items:flex-start;'>")
-                buffer.write("<div style='width:45%;'>{}</div>".format(tabela.to_html(index=False)))
-                buffer.write("<div style='width:55%;'>{}</div>".format(fig.to_html(full_html=False, include_plotlyjs='cdn')))
+                buffer.write("<div class='linha'>")
+                buffer.write("<div class='col-esq'>")
+                buffer.write(tabela.to_html(index=False))
+                buffer.write("</div>")
+                buffer.write("<div class='col-dir'>")
+                buffer.write(fig.to_html(full_html=False, include_plotlyjs='cdn'))
+                buffer.write("</div>")
                 buffer.write("</div>")
 
-        # Tabela completa filtrada
         buffer.write("<h2>Tabela completa filtrada</h2>")
-        buffer.write(df_exibir.to_html(index=False))
+        buffer.write(df_filtrado.to_html(index=False))
         buffer.write("</body></html>")
         return buffer.getvalue().encode("utf-8")
 
-    st.download_button("📥 Baixar Dashboard Completo", data=to_html_bonito(), file_name="dashboard.html", mime="text/html")
+    st.download_button(
+        label="📥 Baixar Dashboard Completo",
+        data=to_html_bonito(),
+        file_name=f"{titulo_dashboard.replace('📊 ', '').replace(' ', '_').lower()}.html",
+        mime="text/html"
+    )
