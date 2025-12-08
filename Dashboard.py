@@ -5,7 +5,7 @@ import io
 
 # ---------------- CONFIGURAÇÃO ----------------
 st.set_page_config(
-    page_title="Dashboard Chamados",
+    page_title="Chamados Enterprise / Consumer",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -154,10 +154,18 @@ else:
     titulo_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa Raiz'
     fig_diag, tab_diag = grafico_com_tabela(df_filtrado[df_filtrado[col_diag]!=""], col_diag, titulo_diag, icone="📌")
 
-    # ---------------- DOWNLOAD HTML COMPLETO ----------------
+    # ---------------- TABELA COMPLETA FILTRADA ----------------
+    st.write("<h2>Tabela completa filtrada</h2>", unsafe_allow_html=True)
+    if relatorio_tipo == "consumer":
+        df_exibir = df_filtrado[df_filtrado.apply(lambda row: any(row[col] for col in ['Criado por', 'Caso modificado pela última vez por', 'Assunto', 'Causa raiz']), axis=1)]
+    else:
+        df_exibir = df_filtrado
+    st.dataframe(df_exibir, use_container_width=True)
+
+    # ---------------- DOWNLOAD HTML ----------------
     def to_html_bonito():
         buffer = io.StringIO()
-        buffer.write("<html><head><meta charset='utf-8'><title>{}</title>".format(titulo_dashboard))
+        buffer.write(f"<html><head><meta charset='utf-8'><title>{titulo_dashboard}</title>")
         buffer.write("<style>body{font-family:Arial;background:#f0f4f8;margin:20px;}h1,h2{color:#000;}table{border-collapse:collapse;width:100%;margin:10px 0;}th,td{border:1px solid #ccc;padding:5px;background:#fafafa;}th{background:#e2e2e2;} .metric{font-weight:bold;margin:5px 0;}</style>")
         buffer.write("</head><body>")
         buffer.write(f"<h1>{titulo_dashboard}</h1>")
@@ -166,7 +174,6 @@ else:
         buffer.write(f"<div class='metric'>Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)</div>")
         buffer.write(f"<div class='metric'>Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
 
-        # Tabelas + gráficos
         for titulo, tabela, fig in [
             ("Chamados abertos por usuário", tab_abertos, fig_abertos),
             ("Chamados fechados por usuário", tab_fechados, fig_fechados),
@@ -182,10 +189,6 @@ else:
 
         # Tabela completa filtrada
         buffer.write("<h2>Tabela completa filtrada</h2>")
-        if relatorio_tipo=="consumer":
-            df_exibir = df_filtrado[df_filtrado.apply(lambda row: any(row[col] for col in ['Criado por', 'Caso modificado pela última vez por', 'Assunto', 'Causa raiz']), axis=1)]
-        else:
-            df_exibir = df_filtrado
         buffer.write(df_exibir.to_html(index=False))
         buffer.write("</body></html>")
         return buffer.getvalue().encode("utf-8")
