@@ -17,12 +17,19 @@ st.markdown("""
 div.stDataFrame div.row_widget.stDataFrame { background-color: #f7f7f7 !important; color: #000 !important; font-size: 14px; }
 .plotly-graph-div { background-color: #f7f7f7 !important; }
 .stDownloadButton button { color: #000 !important; background-color: #d9e4f5 !important; border: 1px solid #000 !important; padding: 6px 12px !important; border-radius: 5px !important; font-weight: bold !important; }
+section[data-testid="stSidebar"] { background-color: #e8e8e8 !important; color: #000 !important; }
 section[data-testid="stSidebar"] label,
 section[data-testid="stSidebar"] span,
 section[data-testid="stSidebar"] div,
 section[data-testid="stSidebar"] input,
-section[data-testid="stSidebar"] select { color: #000 !important; background-color: #f0f0f0 !important; }
-input[type="file"] { background-color: #d9e4f5 !important; color: #000 !important; font-weight: bold !important; border: 1px solid #000; border-radius: 5px; padding: 5px; }
+section[data-testid="stSidebar"] select {
+    color: #000 !important; background-color: #f0f0f0 !important;
+}
+input[type="file"] {
+    background-color: #d9e4f5 !important; color: #000 !important;
+    font-weight: bold !important; border: 1px solid #000;
+    border-radius: 5px; padding: 5px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -48,6 +55,7 @@ if uploaded_file is None:
     st.info("Envie um arquivo CSV para visualizar o dashboard.")
 
 else:
+
     # ---------------- LEITURA DO CSV ----------------
     df = pd.read_csv(uploaded_file, encoding='latin1', sep=None, engine='python')
     df.columns = df.columns.str.strip()
@@ -80,29 +88,28 @@ else:
                     return chave
             return valor
 
-        # Cria Assunto_Normalizado (se já existir, sobrescreve com a mesma lógica)
         df["Assunto_Normalizado"] = df["Assunto"].apply(normaliza_assunto)
 
     # ---------------- FLAG DE FECHADO ----------------
     if relatorio_tipo == "enterprise":
-        df['Fechado'] = df.get('Status', "").str.lower() == "fechado"
+        df['Fechado'] = df['Status'].str.lower() == "fechado"
     else:
-        df['Fechado'] = df.get('Situação', "").str.lower() == "resolvido ou completado"
+        df['Fechado'] = df['Situação'].str.lower() == "resolvido ou completado"
 
     # ---------------- FILTROS ----------------
     st.sidebar.header("🔎 Filtros")
     if relatorio_tipo == "enterprise":
         filtro_aberto = st.sidebar.multiselect("Chamados abertos por usuário", df['Criado por'].unique())
-        filtro_fechado = st.sidebar.multiselect("Chamados fechados por usuário", df.get('Fechado por', pd.Series([], dtype=str)).unique())
-        filtro_categoria = st.sidebar.multiselect("Reclamação", df.get('Reclamação', pd.Series([], dtype=str)).unique())
-        filtro_diag = st.sidebar.multiselect("Diagnóstico", df.get('Diagnóstico', pd.Series([], dtype=str)).unique())
+        filtro_fechado = st.sidebar.multiselect("Chamados fechados por usuário", df['Fechado por'].unique())
+        filtro_categoria = st.sidebar.multiselect("Reclamação", df['Reclamação'].unique())
+        filtro_diag = st.sidebar.multiselect("Diagnóstico", df['Diagnóstico'].unique())
     else:
         filtro_aberto = st.sidebar.multiselect("Chamados abertos por usuário", df['Criado por'].unique())
         filtro_fechado = st.sidebar.multiselect(
-            "Chamados fechados por usuário", df.get('Caso modificado pela última vez por', pd.Series([], dtype=str)).unique()
+            "Chamados fechados por usuário", df['Caso modificado pela última vez por'].unique()
         )
-        filtro_categoria = st.sidebar.multiselect("Assunto", df.get('Assunto', pd.Series([], dtype=str)).unique())
-        filtro_diag = st.sidebar.multiselect("Causa Raiz", df.get('Causa raiz', pd.Series([], dtype=str)).unique())
+        # ❌ sem filtro de Assunto
+        filtro_diag = st.sidebar.multiselect("Causa Raiz", df['Causa raiz'].unique())
 
     # ---------------- APLICAR FILTROS ----------------
     df_filtrado = df.copy()
@@ -112,18 +119,15 @@ else:
 
     if filtro_fechado:
         col_fechado = "Fechado por" if relatorio_tipo == "enterprise" else "Caso modificado pela última vez por"
-        if col_fechado in df_filtrado.columns:
-            df_filtrado = df_filtrado[df_filtrado[col_fechado].isin(filtro_fechado)]
+        df_filtrado = df_filtrado[df_filtrado[col_fechado].isin(filtro_fechado)]
 
-    if filtro_categoria:
-        col_categoria = "Reclamação" if relatorio_tipo == "enterprise" else "Assunto"
-        if col_categoria in df_filtrado.columns:
-            df_filtrado = df_filtrado[df_filtrado[col_categoria].isin(filtro_categoria)]
+    # Apenas enterprise tem filtro de reclamação
+    if relatorio_tipo == "enterprise" and filtro_categoria:
+        df_filtrado = df_filtrado[df_filtrado["Reclamação"].isin(filtro_categoria)]
 
     if filtro_diag:
         col_diag = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
-        if col_diag in df_filtrado.columns:
-            df_filtrado = df_filtrado[df_filtrado[col_diag].isin(filtro_diag)]
+        df_filtrado = df_filtrado[df_filtrado[col_diag].isin(filtro_diag)]
 
     # ---------------- MÉTRICAS ----------------
     total_chamados = len(df_filtrado)
@@ -137,25 +141,16 @@ else:
     col1, col2, col3 = st.columns(3)
     col1.metric("⏱ Tempo médio total (min)", "0.00")
 
-    # ---------------- MAIOR OFENSOR (Diagnóstico / Causa raiz) ----------------
-    if relatorio_tipo == "enterprise":
-        coluna_ofensor = "Diagnóstico"
-    else:
-        coluna_ofensor = "Causa raiz"
+    # ---------------- MAIOR OFENSOR ----------------
+    coluna_ofensor = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
 
-    # segurança: coluna pode não existir
-    if coluna_ofensor not in df_filtrado.columns or total_chamados == 0:
-        maior_ofensor = "-"
-        pct_maior = 0.0
+    if total_chamados > 0:
+        contagem = df_filtrado[coluna_ofensor].value_counts()
+        maior_ofensor = contagem.index[0]
+        qtd_maior = contagem.iloc[0]
+        pct_maior = (qtd_maior / total_chamados * 100)
     else:
-        contagem = df_filtrado[coluna_ofensor].replace("", pd.NA).dropna().value_counts()
-        if contagem.empty:
-            maior_ofensor = "-"
-            pct_maior = 0.0
-        else:
-            maior_ofensor = contagem.index[0]
-            qtd_maior = contagem.iloc[0]
-            pct_maior = (qtd_maior / total_chamados * 100)
+        maior_ofensor, pct_maior = "-", 0
 
     col2.metric("📌 Maior ofensor", maior_ofensor)
     col3.metric("📊 % dos chamados do maior ofensor", f"{pct_maior:.1f}%")
@@ -164,10 +159,10 @@ else:
     st.write(f"### 📑 Total de chamados: **{total_chamados}**")
     st.write(" ")
 
-    # ---------------- EXTRA CONSUMER (Operações - Evento / Operações - CM) ----------------
+    # ---------------- EXTRA CONSUMER ----------------
     if relatorio_tipo == "consumer":
-        qtd_evento = (df_filtrado.get("Tipo de registro do caso", pd.Series([], dtype=str)) == "Operações - Evento").sum()
-        qtd_cm = (df_filtrado.get("Tipo de registro do caso", pd.Series([], dtype=str)) == "Operações - CM").sum()
+        qtd_evento = (df_filtrado["Tipo de registro do caso"] == "Operações - Evento").sum()
+        qtd_cm = (df_filtrado["Tipo de registro do caso"] == "Operações - CM").sum()
 
         st.write(f"🟦 Operações - Evento: **{qtd_evento}**")
         st.write(f"🟪 Operações - CM: **{qtd_cm}**")
@@ -176,12 +171,8 @@ else:
     st.write(f"🔵 Chamados abertos: {total_abertos} ({pct_abertos:.1f}%)")
     st.write(f"🔴 Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)")
 
-    # ---------------- FUNÇÃO DE GRÁFICOS (Geral) ----------------
+    # ---------------- FUNÇÃO DE GRÁFICOS ----------------
     def grafico_com_tabela(df_graf, coluna, titulo, icone="📁"):
-        if coluna not in df_graf.columns:
-            st.info(f"Nenhum dado para {titulo} (coluna {coluna} não encontrada).")
-            return None, None
-
         df_graf = df_graf[df_graf[coluna] != ""]
         if df_graf.empty:
             st.info(f"Nenhum dado para {titulo}")
@@ -200,7 +191,11 @@ else:
             tabela, x=coluna, y="Qtd", text="Qtd",
             color="Qtd", color_continuous_scale="Blues", template="plotly_white"
         )
-        fig.update_traces(textposition="outside", marker_line_color="black", marker_line_width=1)
+        fig.update_traces(
+            textposition="outside",
+            marker_line_color="black",
+            marker_line_width=1
+        )
 
         with col_g:
             st.plotly_chart(fig, use_container_width=True)
@@ -211,60 +206,40 @@ else:
     grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário", "🔵")
 
     col_fechado = "Fechado por" if relatorio_tipo == "enterprise" else "Caso modificado pela última vez por"
-    if col_fechado in df_filtrado.columns:
-        df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado] != "")]
-        grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário", "🔴")
-    else:
-        st.info("Coluna de fechados não encontrada para gráfico.")
+    df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado] != "")]
+    grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário", "🔴")
 
-    col_categoria = "Reclamação" if relatorio_tipo == "enterprise" else "Assunto"
-    if col_categoria in df_filtrado.columns:
-        grafico_com_tabela(df_filtrado[df_filtrado[col_categoria] != ""], col_categoria, col_categoria, "📌")
-    else:
-        st.info(f"Coluna {col_categoria} não encontrada para gráfico.")
+    # ❌ Removido grafico/tabela de Assunto para consumer
+    if relatorio_tipo == "enterprise":
+        grafico_com_tabela(df_filtrado[df_filtrado["Reclamação"] != ""], "Reclamação", "Reclamação", "📌")
 
+    # Diagnóstico / Causa raiz
     col_diag = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
-    if col_diag in df_filtrado.columns:
-        grafico_com_tabela(df_filtrado[df_filtrado[col_diag] != ""], col_diag, col_diag, "📌")
-    else:
-        st.info(f"Coluna {col_diag} não encontrada para gráfico.")
+    grafico_com_tabela(df_filtrado[df_filtrado[col_diag] != ""], col_diag, col_diag, "📌")
 
-    # ---------------- GRÁFICO ESPECIAL CONSUMER (E65 / 63W/T19 / J3) ----------------
+    # ---------------- GRÁFICO ESPECIAL CONSUMER ----------------
     if relatorio_tipo == "consumer":
         st.subheader("🔧 Ocorrências de E65 / 63W/T19 / J3")
 
-        # garante que Assunto_Normalizado exista (criado antes na normalização)
-        if "Assunto_Normalizado" not in df_filtrado.columns:
-            df_filtrado["Assunto_Normalizado"] = df_filtrado.get("Assunto", "").apply(normaliza_assunto)
+        df_chaves = df_filtrado.copy()
+        df_chaves["Assunto_Normalizado"] = df_chaves["Assunto"].apply(normaliza_assunto)
 
-        # pega apenas os registros que foram classificados como E65 / 63W/T19 / J3
-        df_assuntos_especificos = df_filtrado[df_filtrado["Assunto_Normalizado"].isin(["E65", "63W/T19", "J3"])].copy()
+        tabela_chaves = df_chaves["Assunto_Normalizado"].value_counts().reset_index()
+        tabela_chaves.columns = ["Assunto", "Qtd"]
+        tabela_chaves["%"] = (tabela_chaves["Qtd"] / tabela_chaves["Qtd"].sum() * 100).round(2)
 
-        if df_assuntos_especificos.empty:
-            st.info("Nenhum registro encontrado para E65 / 63W/T19 / J3")
-        else:
-            # tabela agregada (Assunto_Normalizado, Qtd, %)
-            tabela_chaves = df_assuntos_especificos["Assunto_Normalizado"].value_counts().reset_index()
-            tabela_chaves.columns = ["Assunto", "Qtd"]
-            tabela_chaves["%"] = (tabela_chaves["Qtd"] / tabela_chaves["Qtd"].sum() * 100).round(2)
+        col_t, col_g = st.columns([1.4, 3])
+        with col_t:
+            st.dataframe(tabela_chaves, height=300)
 
-            col_t, col_g = st.columns([1.4, 3])
-            with col_t:
-                st.dataframe(tabela_chaves, height=300)
+        fig_chaves = px.bar(
+            tabela_chaves, x="Assunto", y="Qtd", text="Qtd",
+            color="Qtd", color_continuous_scale="Blues", template="plotly_white"
+        )
+        fig_chaves.update_traces(textposition="outside")
 
-            fig_chaves = px.bar(
-                tabela_chaves,
-                x="Assunto",
-                y="Qtd",
-                text="Qtd",
-                color="Qtd",
-                color_continuous_scale="Blues",
-                template="plotly_white"
-            )
-            fig_chaves.update_traces(textposition="outside", marker_line_color="black", marker_line_width=1)
-
-            with col_g:
-                st.plotly_chart(fig_chaves, use_container_width=True)
+        with col_g:
+            st.plotly_chart(fig_chaves, use_container_width=True)
 
     # ---------------- DOWNLOAD HTML ----------------
     def to_html_bonito():
