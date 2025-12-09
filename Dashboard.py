@@ -102,14 +102,12 @@ else:
 
         def normaliza_satelite(valor):
             texto = str(valor).upper()
-
             if "E65" in texto:
                 return "E65"
             if "63W" in texto or "T19" in texto:
                 return "63W/T19"
             if "J3" in texto:
                 return "J3"
-
             return "Não informado"
 
         df["Satélite"] = df["Assunto"].apply(normaliza_satelite)
@@ -129,13 +127,9 @@ else:
         filtro_diag = st.sidebar.multiselect("Diagnóstico", df.get('Diagnóstico', '').unique())
     else:
         filtro_aberto = st.sidebar.multiselect("Chamados abertos por usuário", df.get('Criado por', '').unique())
-        filtro_fechado = st.sidebar.multiselect(
-            "Chamados fechados por usuário", df.get('Caso modificado pela última vez por', '').unique()
-        )
+        filtro_fechado = st.sidebar.multiselect("Chamados fechados por usuário", df.get('Caso modificado pela última vez por', '').unique())
         filtro_diag = st.sidebar.multiselect("Causa Raiz", df.get('Causa raiz', '').unique())
-        filtro_satelite = st.sidebar.multiselect(
-            "Satélite", df["Satélite"].unique(), default=df["Satélite"].unique()
-        )
+        filtro_satelite = st.sidebar.multiselect("Satélite", df["Satélite"].unique())
 
     # ---------------- APLICAR FILTROS ----------------
     df_filtrado = df.copy()
@@ -190,7 +184,6 @@ else:
     if relatorio_tipo == "consumer":
         qtd_evento = (df_filtrado["Tipo de registro do caso"] == "Operações - Evento").sum()
         qtd_cm = (df_filtrado["Tipo de registro do caso"] == "Operações - CM").sum()
-
         st.write(f"🟦 Operações - Evento: **{qtd_evento}**")
         st.write(f"🟪 Operações - CM: **{qtd_cm}**")
 
@@ -218,7 +211,6 @@ else:
 
         st.subheader(f"{icone} {titulo}")
         col_t, col_g = st.columns([1.4, 3])
-
         tabela_height = min(350, 50 + len(tabela) * 35)
 
         with col_t:
@@ -237,7 +229,6 @@ else:
 
     # ---------------- GRÁFICOS ----------------
     grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário", "🔵")
-
     col_fechado = "Fechado por" if relatorio_tipo == "enterprise" else "Caso modificado pela última vez por"
     df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado] != "Não informado")]
     grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário", "🔴")
@@ -251,15 +242,12 @@ else:
     # ---------------- SATÉLITE ----------------
     if relatorio_tipo == "consumer":
         st.subheader("🛰 Satélite")
-
         tabela_sat = df_filtrado["Satélite"].value_counts().reset_index()
         tabela_sat.columns = ["Satélite", "Qtd"]
         tabela_sat["%"] = (tabela_sat["Qtd"] / tabela_sat["Qtd"].sum() * 100).round(2)
-
         tabela_sat = tabela_limpa(tabela_sat)
 
         col_t, col_g = st.columns([1.4, 3])
-
         tabela_height = min(350, 50 + len(tabela_sat) * 35)
 
         with col_t:
