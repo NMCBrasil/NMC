@@ -13,23 +13,55 @@ st.set_page_config(
 # ---------------- ESTILO ----------------
 st.markdown("""
 <style>
+
 .stMetricLabel, .stMetricValue { color: #000 !important; }
-div.stDataFrame div.row_widget.stDataFrame { background-color: #f7f7f7 !important; color: #000 !important; font-size: 14px; }
+
+div.stDataFrame div.row_widget.stDataFrame {
+    background-color: #f7f7f7 !important;
+    color: #000 !important;
+    font-size: 14px;
+}
+
 .plotly-graph-div { background-color: #f7f7f7 !important; }
-.stDownloadButton button { color: #000 !important; background-color: #d9e4f5 !important; border: 1px solid #000 !important; padding: 6px 12px !important; border-radius: 5px !important; font-weight: bold !important; }
-section[data-testid="stSidebar"] { background-color: #e8e8e8 !important; color: #000 !important; }
+
+.stDownloadButton button {
+    color: #000 !important;
+    background-color: #d9e4f5 !important;
+    border: 1px solid #000 !important;
+    padding: 6px 12px !important;
+    border-radius: 5px !important;
+    font-weight: bold !important;
+}
+
+section[data-testid="stSidebar"] {
+    background-color: #e8e8e8 !important;
+    color: #000 !important;
+}
+
 section[data-testid="stSidebar"] label,
 section[data-testid="stSidebar"] span,
 section[data-testid="stSidebar"] div,
 section[data-testid="stSidebar"] input,
 section[data-testid="stSidebar"] select {
-    color: #000 !important; background-color: #f0f0f0 !important;
+    color: #000 !important;
+    background-color: #f0f0f0 !important;
 }
+
 input[type="file"] {
-    background-color: #d9e4f5 !important; color: #000 !important;
-    font-weight: bold !important; border: 1px solid #000;
-    border-radius: 5px; padding: 5px;
+    background-color: #d9e4f5 !important;
+    color: #000 !important;
+    font-weight: bold !important;
+    border: 1px solid #000;
+    border-radius: 5px;
+    padding: 5px;
 }
+
+/* ------ MELHORIA NO FILTRO DE SATÉLITE ------- */
+.sidebar-multiselect .stMultiSelect {
+    max-height: 120px !important;
+    overflow-y: auto !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -40,18 +72,6 @@ uploaded_file = st.sidebar.file_uploader("Selecione o arquivo", type=["csv"])
 # ---------------- TELA INICIAL ----------------
 if uploaded_file is None:
     st.title("📊 Dashboard Chamados")
-    st.markdown("""
-    <div style="
-        background-color:#d9e4f5; padding:20px; border-radius:12px;
-        margin-bottom:20px; font-size:15px; line-height:1.5;
-        color:#000; box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
-    ">
-        <b>📌 Observação:</b><br>
-        Para que o dashboard funcione corretamente, seu relatório precisa conter as seguintes colunas:<br><br>
-        <b>Enterprise:</b> Status, Criado por, Fechado por, Reclamação, Diagnóstico, Datas<br>
-        <b>Consumer:</b> Situação, Criado por, Último modificador, Assunto, Causa raiz, Tipo de registro
-    </div>
-    """, unsafe_allow_html=True)
     st.info("Envie um arquivo CSV para visualizar o dashboard.")
 
 else:
@@ -114,12 +134,15 @@ else:
         )
         filtro_diag = st.sidebar.multiselect("Causa Raiz", df['Causa raiz'].unique())
 
-        # ---------------- FILTRO DE SATÉLITE ----------------
-        filtro_satelite = st.sidebar.multiselect(
-            "Filtrar por Satélite",
-            df["Satélite"].unique(),
-            default=df["Satélite"].unique()
-        )
+        # ---------------- FILTRO DE SATÉLITE (Compacto e bonito) ----------------
+        with st.sidebar.container():
+            st.markdown("### Filtrar por Satélite")
+            filtro_satelite = st.multiselect(
+                " ",
+                df["Satélite"].unique(),
+                default=df["Satélite"].unique(),
+                key="sat_filtro"
+            )
 
     # ---------------- APLICAR FILTROS ----------------
     df_filtrado = df.copy()
@@ -138,11 +161,10 @@ else:
         col_diag = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
         df_filtrado = df_filtrado[df_filtrado[col_diag].isin(filtro_diag)]
 
-    # filtro satélite
     if relatorio_tipo == "consumer" and filtro_satelite:
         df_filtrado = df_filtrado[df_filtrado["Satélite"].isin(filtro_satelite)]
 
-    # ---------------- LIMPEZA DAS TABELAS ----------------
+    # ---------------- LIMPEZA ----------------
     df_filtrado = df_filtrado.replace("", "Não informado")
 
     # ---------------- MÉTRICAS ----------------
@@ -150,10 +172,6 @@ else:
     total_abertos = len(df_filtrado[~df_filtrado['Fechado']])
     total_fechados = len(df_filtrado[df_filtrado['Fechado']])
 
-    pct_abertos = (total_abertos / total_chamados * 100) if total_chamados else 0
-    pct_fechados = (total_fechados / total_chamados * 100) if total_chamados else 0
-
-    # ---------------- ÁREA DE MÉTRICAS ----------------
     col1, col2, col3 = st.columns(3)
     col1.metric("⏱ Tempo médio total (min)", "0.00")
 
@@ -176,7 +194,6 @@ else:
     st.write(f"### 📑 Total de chamados: **{total_chamados}**")
     st.write(" ")
 
-    # ---------------- EXTRA CONSUMER ----------------
     if relatorio_tipo == "consumer":
         qtd_evento = (df_filtrado["Tipo de registro do caso"] == "Operações - Evento").sum()
         qtd_cm = (df_filtrado["Tipo de registro do caso"] == "Operações - CM").sum()
@@ -184,20 +201,24 @@ else:
         st.write(f"🟦 Operações - Evento: **{qtd_evento}**")
         st.write(f"🟪 Operações - CM: **{qtd_cm}**")
 
-    # ---------------- ABERTOS / FECHADOS ----------------
-    st.write(f"🔵 Chamados abertos: {total_abertos} ({pct_abertos:.1f}%)")
-    st.write(f"🔴 Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)")
+    st.write(f"🔵 Chamados abertos: {total_abertos} ({(total_abertos/total_chamados*100):.1f}%)")
+    st.write(f"🔴 Chamados fechados: {total_fechados} ({(total_fechados/total_chamados*100):.1f}%)")
 
     # ---------------- FUNÇÃO GRÁFICOS ----------------
+    def tabela_limpa(df):
+        df = df.replace("", "Não informado")
+        df = df.dropna(how="all")
+        return df
+
     def grafico_com_tabela(df_graf, coluna, titulo, icone="📁"):
         df_graf = df_graf[df_graf[coluna] != "Não informado"]
-
         if df_graf.empty:
             return None, None
 
         tabela = df_graf.groupby(coluna).size().reset_index(name="Qtd")
         tabela = tabela[tabela["Qtd"] > 0]
         tabela["%"] = (tabela["Qtd"] / tabela["Qtd"].sum() * 100).round(2)
+        tabela = tabela_limpa(tabela)
 
         if tabela.empty:
             return None, None
@@ -205,25 +226,23 @@ else:
         st.subheader(f"{icone} {titulo}")
         col_t, col_g = st.columns([1.4, 3])
 
+        tabela_height = min(350, 50 + len(tabela) * 35)
+
         with col_t:
-            st.dataframe(tabela, height=550)
+            st.dataframe(tabela, height=tabela_height)
 
         fig = px.bar(
             tabela, x=coluna, y="Qtd", text="Qtd",
             color="Qtd", color_continuous_scale="Blues", template="plotly_white"
         )
-        fig.update_traces(
-            textposition="outside",
-            marker_line_color="black",
-            marker_line_width=1
-        )
+        fig.update_traces(textposition="outside")
 
         with col_g:
             st.plotly_chart(fig, use_container_width=True)
 
         return fig, tabela
 
-    # ---------------- GRÁFICOS GERAIS ----------------
+    # ---------------- GRÁFICOS ----------------
     grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário", "🔵")
 
     col_fechado = "Fechado por" if relatorio_tipo == "enterprise" else "Caso modificado pela última vez por"
@@ -240,18 +259,18 @@ else:
     if relatorio_tipo == "consumer":
         st.subheader("🛰 Satélite")
 
-        df_sat = df_filtrado.copy()
-
-        tabela_sat = df_sat["Satélite"].value_counts().reset_index()
+        tabela_sat = df_filtrado["Satélite"].value_counts().reset_index()
         tabela_sat.columns = ["Satélite", "Qtd"]
         tabela_sat["%"] = (tabela_sat["Qtd"] / tabela_sat["Qtd"].sum() * 100).round(2)
 
-        tabela_sat = tabela_sat[tabela_sat["Satélite"] != ""]
+        tabela_sat = tabela_limpa(tabela_sat)
 
         col_t, col_g = st.columns([1.4, 3])
 
+        tabela_height = min(350, 50 + len(tabela_sat) * 35)
+
         with col_t:
-            st.dataframe(tabela_sat, height=350)
+            st.dataframe(tabela_sat, height=tabela_height)
 
         fig_sat = px.bar(
             tabela_sat, x="Satélite", y="Qtd", text="Qtd",
