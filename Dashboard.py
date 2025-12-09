@@ -79,14 +79,18 @@ else:
 
     # ---------------- NORMALIZAÇÃO CONSUMER ----------------
     if relatorio_tipo == "consumer":
-        palavras_chave = ["E65", "63W/T19", "J3"]
 
         def normaliza_assunto(valor):
             texto = str(valor).upper()
-            for chave in palavras_chave:
-                if chave in texto:
-                    return chave
-            return ""  # Se não contiver nenhuma, não entra na análise
+
+            if "E65" in texto:
+                return "E65"
+            if "63W" in texto or "T19" in texto:
+                return "63W/T19"
+            if "J3" in texto:
+                return "J3"
+
+            return "Não informado"
 
         df["Assunto_Normalizado"] = df["Assunto"].apply(normaliza_assunto)
 
@@ -170,7 +174,7 @@ else:
     st.write(f"🔵 Chamados abertos: {total_abertos} ({pct_abertos:.1f}%)")
     st.write(f"🔴 Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)")
 
-    # ---------------- FUNÇÃO DE GRÁFICOS ----------------
+    # ---------------- FUNÇÃO GRÁFICOS ----------------
     def grafico_com_tabela(df_graf, coluna, titulo, icone="📁"):
         df_graf = df_graf[df_graf[coluna] != ""]
         if df_graf.empty:
@@ -213,7 +217,7 @@ else:
     col_diag = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
     grafico_com_tabela(df_filtrado[df_filtrado[col_diag] != ""], col_diag, col_diag, "📌")
 
-    # ---------------- SATÉLITE (E65 / 63W/T19 / J3) ----------------
+    # ---------------- SATÉLITE ----------------
     if relatorio_tipo == "consumer":
         st.subheader("🛰 Satélite")
 
