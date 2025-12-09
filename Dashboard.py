@@ -116,33 +116,26 @@ else:
 
     # ---------------- FLAG DE FECHADO ----------------
     if relatorio_tipo == "enterprise":
-        df['Fechado'] = df['Status'].str.lower() == "fechado"
+        df['Fechado'] = df.get('Status', '').str.lower() == "fechado"
     else:
-        df['Fechado'] = df['Situação'].str.lower() == "resolvido ou completado"
+        df['Fechado'] = df.get('Situação', '').str.lower() == "resolvido ou completado"
 
     # ---------------- FILTROS ----------------
     st.sidebar.header("🔎 Filtros")
     if relatorio_tipo == "enterprise":
-        filtro_aberto = st.sidebar.multiselect("Chamados abertos por usuário", df['Criado por'].unique())
-        filtro_fechado = st.sidebar.multiselect("Chamados fechados por usuário", df['Fechado por'].unique())
-        filtro_categoria = st.sidebar.multiselect("Reclamação", df['Reclamação'].unique())
-        filtro_diag = st.sidebar.multiselect("Diagnóstico", df['Diagnóstico'].unique())
+        filtro_aberto = st.sidebar.multiselect("Chamados abertos por usuário", df.get('Criado por', '').unique())
+        filtro_fechado = st.sidebar.multiselect("Chamados fechados por usuário", df.get('Fechado por', '').unique())
+        filtro_categoria = st.sidebar.multiselect("Reclamação", df.get('Reclamação', '').unique())
+        filtro_diag = st.sidebar.multiselect("Diagnóstico", df.get('Diagnóstico', '').unique())
     else:
-        filtro_aberto = st.sidebar.multiselect("Chamados abertos por usuário", df['Criado por'].unique())
+        filtro_aberto = st.sidebar.multiselect("Chamados abertos por usuário", df.get('Criado por', '').unique())
         filtro_fechado = st.sidebar.multiselect(
-            "Chamados fechados por usuário", df['Caso modificado pela última vez por'].unique()
+            "Chamados fechados por usuário", df.get('Caso modificado pela última vez por', '').unique()
         )
-        filtro_diag = st.sidebar.multiselect("Causa Raiz", df['Causa raiz'].unique())
-
-        # ---------------- FILTRO DE SATÉLITE (Compacto e bonito) ----------------
-        with st.sidebar.container():
-            st.markdown("### Filtrar por Satélite")
-            filtro_satelite = st.multiselect(
-                " ",
-                df["Satélite"].unique(),
-                default=df["Satélite"].unique(),
-                key="sat_filtro"
-            )
+        filtro_diag = st.sidebar.multiselect("Causa Raiz", df.get('Causa raiz', '').unique())
+        filtro_satelite = st.sidebar.multiselect(
+            "Satélite", df["Satélite"].unique(), default=df["Satélite"].unique()
+        )
 
     # ---------------- APLICAR FILTROS ----------------
     df_filtrado = df.copy()
