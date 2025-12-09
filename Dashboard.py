@@ -71,7 +71,6 @@ uploaded_file = st.sidebar.file_uploader("Selecione o arquivo", type=["csv"])
 if uploaded_file is None:
     st.title("📊 Dashboard Chamados")
     st.info("Envie um arquivo CSV para visualizar o dashboard.")
-
 else:
     # ---------------- LEITURA DO CSV ----------------
     df = pd.read_csv(uploaded_file, encoding='latin1', sep=None, engine='python')
@@ -105,7 +104,6 @@ else:
             if "J3" in texto:
                 return "J3"
             return "Não informado"
-
         df["Satélite"] = df["Assunto"].apply(normaliza_satelite)
 
     # ---------------- FLAG DE FECHADO ----------------
@@ -150,18 +148,17 @@ else:
     total_abertos = len(df_filtrado[~df_filtrado['Fechado']])
     total_fechados = len(df_filtrado[df_filtrado['Fechado']])
 
-    # --- TEMPO MÉDIO (Enterprise) ---
+    # --- TEMPO MÉDIO (Enterprise seguro) ---
+    tempo_medio = 0.0
     if relatorio_tipo == "enterprise":
-        # Converter datas
-        df_filtrado['Data/Hora de abertura'] = pd.to_datetime(df_filtrado['Data/Hora de abertura'], errors='coerce')
-        df_filtrado['Data/Hora de fechamento'] = pd.to_datetime(df_filtrado.get('Data/Hora de fechamento', pd.Series(pd.NaT)), errors='coerce')
-        # Calcular diferença em minutos
-        df_filtrado['Tempo_total_min'] = (df_filtrado['Data/Hora de fechamento'] - df_filtrado['Data/Hora de abertura']).dt.total_seconds() / 60
-        # Média apenas dos fechados
-        tempo_medio = df_filtrado.loc[df_filtrado['Fechado'], 'Tempo_total_min'].mean()
-        tempo_medio = round(tempo_medio, 2) if not pd.isna(tempo_medio) else 0.0
-    else:
-        tempo_medio = 0.0
+        abertura_col = 'Data/Hora de abertura'
+        fechamento_col = 'Data/Hora de fechamento'
+        if abertura_col in df_filtrado.columns and fechamento_col in df_filtrado.columns:
+            df_filtrado[abertura_col] = pd.to_datetime(df_filtrado[abertura_col], errors='coerce')
+            df_filtrado[fechamento_col] = pd.to_datetime(df_filtrado[fechamento_col], errors='coerce')
+            df_filtrado['Tempo_total_min'] = (df_filtrado[fechamento_col] - df_filtrado[abertura_col]).dt.total_seconds() / 60
+            tempo_medio = df_filtrado.loc[df_filtrado['Fechado'] & df_filtrado['Tempo_total_min'].notna(), 'Tempo_total_min'].mean()
+            tempo_medio = round(tempo_medio, 2) if not pd.isna(tempo_medio) else 0.0
 
     # --- MAIOR OFENSOR ---
     coluna_ofensor = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
