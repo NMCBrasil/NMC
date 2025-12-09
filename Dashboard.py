@@ -86,7 +86,7 @@ else:
             for chave in palavras_chave:
                 if chave in texto:
                     return chave
-            return valor
+            return ""  # Se não contiver nenhuma, não entra na análise
 
         df["Assunto_Normalizado"] = df["Assunto"].apply(normaliza_assunto)
 
@@ -108,7 +108,6 @@ else:
         filtro_fechado = st.sidebar.multiselect(
             "Chamados fechados por usuário", df['Caso modificado pela última vez por'].unique()
         )
-        # ❌ sem filtro de Assunto
         filtro_diag = st.sidebar.multiselect("Causa Raiz", df['Causa raiz'].unique())
 
     # ---------------- APLICAR FILTROS ----------------
@@ -121,7 +120,6 @@ else:
         col_fechado = "Fechado por" if relatorio_tipo == "enterprise" else "Caso modificado pela última vez por"
         df_filtrado = df_filtrado[df_filtrado[col_fechado].isin(filtro_fechado)]
 
-    # Apenas enterprise tem filtro de reclamação
     if relatorio_tipo == "enterprise" and filtro_categoria:
         df_filtrado = df_filtrado[df_filtrado["Reclamação"].isin(filtro_categoria)]
 
@@ -144,8 +142,9 @@ else:
     # ---------------- MAIOR OFENSOR ----------------
     coluna_ofensor = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
 
-    if total_chamados > 0:
-        contagem = df_filtrado[coluna_ofensor].value_counts()
+    df_valid_ofensor = df_filtrado[df_filtrado[coluna_ofensor] != ""]
+    if len(df_valid_ofensor) > 0:
+        contagem = df_valid_ofensor[coluna_ofensor].value_counts()
         maior_ofensor = contagem.index[0]
         qtd_maior = contagem.iloc[0]
         pct_maior = (qtd_maior / total_chamados * 100)
@@ -175,7 +174,6 @@ else:
     def grafico_com_tabela(df_graf, coluna, titulo, icone="📁"):
         df_graf = df_graf[df_graf[coluna] != ""]
         if df_graf.empty:
-            st.info(f"Nenhum dado para {titulo}")
             return None, None
 
         tabela = df_graf.groupby(coluna).size().reset_index(name="Qtd")
@@ -202,44 +200,45 @@ else:
 
         return fig, tabela
 
-    # ---------------- GRÁFICOS ----------------
+    # ---------------- GRÁFICOS GERAIS ----------------
     grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário", "🔵")
 
     col_fechado = "Fechado por" if relatorio_tipo == "enterprise" else "Caso modificado pela última vez por"
     df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado] != "")]
     grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário", "🔴")
 
-    # ❌ Removido grafico/tabela de Assunto para consumer
     if relatorio_tipo == "enterprise":
         grafico_com_tabela(df_filtrado[df_filtrado["Reclamação"] != ""], "Reclamação", "Reclamação", "📌")
 
-    # Diagnóstico / Causa raiz
     col_diag = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
     grafico_com_tabela(df_filtrado[df_filtrado[col_diag] != ""], col_diag, col_diag, "📌")
 
-    # ---------------- GRÁFICO ESPECIAL CONSUMER ----------------
+    # ---------------- SATÉLITE (E65 / 63W/T19 / J3) ----------------
     if relatorio_tipo == "consumer":
-        st.subheader("🔧 Ocorrências de E65 / 63W/T19 / J3")
+        st.subheader("🛰 Satélite")
 
-        df_chaves = df_filtrado.copy()
-        df_chaves["Assunto_Normalizado"] = df_chaves["Assunto"].apply(normaliza_assunto)
+        df_sat = df_filtrado[df_filtrado["Assunto_Normalizado"].isin(["E65", "63W/T19", "J3"])]
 
-        tabela_chaves = df_chaves["Assunto_Normalizado"].value_counts().reset_index()
-        tabela_chaves.columns = ["Assunto", "Qtd"]
-        tabela_chaves["%"] = (tabela_chaves["Qtd"] / tabela_chaves["Qtd"].sum() * 100).round(2)
+        if df_sat.empty:
+            st.info("Nenhum dado encontrado para E65 / 63W/T19 / J3.")
+        else:
+            tabela_sat = df_sat["Assunto_Normalizado"].value_counts().reset_index()
+            tabela_sat.columns = ["Satélite", "Qtd"]
+            tabela_sat["%"] = (tabela_sat["Qtd"] / tabela_sat["Qtd"].sum() * 100).round(2)
 
-        col_t, col_g = st.columns([1.4, 3])
-        with col_t:
-            st.dataframe(tabela_chaves, height=300)
+            col_t, col_g = st.columns([1.4, 3])
 
-        fig_chaves = px.bar(
-            tabela_chaves, x="Assunto", y="Qtd", text="Qtd",
-            color="Qtd", color_continuous_scale="Blues", template="plotly_white"
-        )
-        fig_chaves.update_traces(textposition="outside")
+            with col_t:
+                st.dataframe(tabela_sat, height=350)
 
-        with col_g:
-            st.plotly_chart(fig_chaves, use_container_width=True)
+            fig_sat = px.bar(
+                tabela_sat, x="Satélite", y="Qtd", text="Qtd",
+                color="Qtd", color_continuous_scale="Blues", template="plotly_white"
+            )
+            fig_sat.update_traces(textposition="outside")
+
+            with col_g:
+                st.plotly_chart(fig_sat, use_container_width=True)
 
     # ---------------- DOWNLOAD HTML ----------------
     def to_html_bonito():
