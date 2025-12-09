@@ -177,6 +177,7 @@ else:
     # ---------------- FUNÇÃO GRÁFICOS ----------------
     def grafico_com_tabela(df_graf, coluna, titulo, icone="📁"):
         df_graf = df_graf[df_graf[coluna] != ""]
+        df_graf = df_graf[df_graf[coluna] != "Não informado"]
         if df_graf.empty:
             return None, None
 
@@ -221,7 +222,9 @@ else:
     if relatorio_tipo == "consumer":
         st.subheader("🛰 Satélite")
 
-        df_sat = df_filtrado[df_filtrado["Assunto_Normalizado"].isin(["E65", "63W/T19", "J3"])]
+        # CONSIDERA TUDO, INCLUINDO "Não informado"
+        df_sat = df_filtrado.copy()
+        df_sat = df_sat[df_sat["Assunto_Normalizado"] != ""]        
 
         if df_sat.empty:
             st.info("Nenhum dado encontrado para E65 / 63W/T19 / J3.")
