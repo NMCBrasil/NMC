@@ -162,20 +162,19 @@ else:
     col1, col2, col3 = st.columns(3)
     col1.metric("⏱ Tempo médio total (min)", "0.00")
 
-    # ---------------- MAIOR OFENSOR ----------------
+    # ---------------- MAIOR OFENSOR (PRECISO) ----------------
     coluna_ofensor = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
-
     df_valid_ofensor = df_filtrado[df_filtrado[coluna_ofensor] != "Não informado"]
-    if len(df_valid_ofensor) > 0:
+    if not df_valid_ofensor.empty:
         contagem = df_valid_ofensor[coluna_ofensor].value_counts()
         maior_ofensor = contagem.index[0]
         qtd_maior = contagem.iloc[0]
-        pct_maior = (qtd_maior / total_chamados * 100)
+        pct_maior = (qtd_maior / df_valid_ofensor.shape[0] * 100)  # cálculo preciso
     else:
         maior_ofensor, pct_maior = "-", 0
 
     col2.metric("📌 Maior ofensor", maior_ofensor)
-    col3.metric("📊 % dos chamados do maior ofensor", f"{pct_maior:.1f}%")
+    col3.metric("📊 % dos chamados do maior ofensor", f"{pct_maior:.2f}%")
 
     # ---------------- TOTAL ----------------
     st.write(f"### 📑 Total de chamados: **{total_chamados}**")
