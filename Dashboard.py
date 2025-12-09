@@ -27,7 +27,7 @@ input[type="file"] { background-color: #d9e4f5 !important; color: #000 !importan
 st.sidebar.header("📂 Importar arquivo CSV")
 uploaded_file = st.sidebar.file_uploader("Selecione o arquivo", type=["csv"])
 
-# ---------------- TELA INICIAL ANTES DO UPLOAD ----------------
+# ---------------- TELA INICIAL ----------------
 if uploaded_file is None:
     st.title("📊 Dashboard Chamados")
     st.markdown("""
@@ -49,7 +49,6 @@ if uploaded_file is None:
     """, unsafe_allow_html=True)
     st.info("Envie um arquivo CSV para visualizar o dashboard.")
 
-# ---------------- PROCESSAMENTO DO UPLOAD ----------------
 else:
     df = pd.read_csv(uploaded_file, encoding='latin1', sep=None, engine='python')
     df.columns = df.columns.str.strip()
@@ -70,6 +69,19 @@ else:
 
     # ---------------- NORMALIZAÇÃO ----------------
     df = df.applymap(lambda x: str(x).strip() if pd.notnull(x) else "")
+
+    # ---------------- NORMALIZAÇÃO ESPECIAL ONLY CONSUMER ----------------
+    if relatorio_tipo == "consumer":
+        palavras_chave = ["E65", "63W/T19", "J3"]
+
+        def normaliza_assunto(valor):
+            texto = str(valor).upper()
+            for chave in palavras_chave:
+                if chave in texto:
+                    return chave
+            return "Não informado"
+
+        df["Assunto_Normalizado"] = df["Assunto"].apply(normaliza_assunto)
 
     # ---------------- FLAG CHAMADOS FECHADOS ----------------
     if relatorio_tipo == "enterprise":
@@ -162,7 +174,7 @@ else:
             st.plotly_chart(fig, use_container_width=True)
         return fig, tabela
 
-    # ---------------- GRÁFICOS ----------------
+    # ---------------- GRÁFICOS NORMAIS ----------------
     fig_abertos, tab_abertos = grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário", icone="🔵")
     col_fechado = 'Fechado por' if relatorio_tipo=="enterprise" else 'Caso modificado pela última vez por'
     df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado]!="")]
@@ -173,6 +185,35 @@ else:
     col_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa raiz'
     titulo_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa Raiz'
     fig_diag, tab_diag = grafico_com_tabela(df_filtrado[df_filtrado[col_diag]!=""], col_diag, titulo_diag, icone="📌")
+
+    # ---------------- GRÁFICO ESPECIAL CONSUMER: E65 / 63W/T19 / J3 ----------------
+    if relatorio_tipo == "consumer":
+        st.subheader("🔧 Ocorrências de E65 / 63W/T19 / J3")
+
+        df_chaves = df_filtrado.copy()
+        df_chaves["Assunto_Normalizado"] = df_chaves["Assunto"].apply(normaliza_assunto)
+
+        tabela_chaves = df_chaves["Assunto_Normalizado"].value_counts().reset_index()
+        tabela_chaves.columns = ["Assunto", "Qtd"]
+        tabela_chaves["% do Total"] = (tabela_chaves["Qtd"] / tabela_chaves["Qtd"].sum() * 100).round(2)
+
+        col_t, col_g = st.columns([1.4, 3])
+        with col_t:
+            st.dataframe(tabela_chaves, height=300)
+
+        fig_chaves = px.bar(
+            tabela_chaves,
+            x="Assunto",
+            y="Qtd",
+            text="Qtd",
+            color="Qtd",
+            color_continuous_scale="Blues",
+            template="plotly_white"
+        )
+        fig_chaves.update_traces(textposition="outside", marker_line_color="black", marker_line_width=1)
+
+        with col_g:
+            st.plotly_chart(fig_chaves, use_container_width=True)
 
     # ---------------- DOWNLOAD HTML COMPLETO ----------------
     def to_html_bonito():
@@ -186,7 +227,7 @@ else:
         buffer.write(f"<div class='metric'>Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)</div>")
         buffer.write(f"<div class='metric'>Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
 
-        # Tabelas + gráficos
+        # Tabelas normais + gráficos
         for titulo, tabela, fig in [
             ("Chamados abertos por usuário", tab_abertos, fig_abertos),
             ("Chamados fechados por usuário", tab_fechados, fig_fechados),
@@ -200,13 +241,17 @@ else:
                 buffer.write("<div style='width:55%;'>{}</div>".format(fig.to_html(full_html=False, include_plotlyjs='cdn')))
                 buffer.write("</div>")
 
-        # Tabela completa filtrada
+        # ➜ Adiciona E65 / 63W/T19 / J3 ao HTML
+        if relatorio_tipo == "consumer":
+            buffer.write("<h2>Ocorrências de E65 / 63W/T19 / J3</h2>")
+            buffer.write("<div style='display:flex; gap:40px; align-items:flex-start;'>")
+            buffer.write("<div style='width:45%;'>{}</div>".format(tabela_chaves.to_html(index=False)))
+            buffer.write("<div style='width:55%;'>{}</div>".format(fig_chaves.to_html(full_html=False, include_plotlyjs='cdn')))
+            buffer.write("</div>")
+
+        # Tabela completa
         buffer.write("<h2>Tabela completa filtrada</h2>")
-        if relatorio_tipo=="consumer":
-            df_exibir = df_filtrado[df_filtrado.apply(lambda row: any(row[col] for col in ['Criado por', 'Caso modificado pela última vez por', 'Assunto', 'Causa raiz']), axis=1)]
-        else:
-            df_exibir = df_filtrado
-        buffer.write(df_exibir.to_html(index=False))
+        buffer.write(df_filtrado.to_html(index=False))
         buffer.write("</body></html>")
         return buffer.getvalue().encode("utf-8")
 
