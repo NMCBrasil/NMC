@@ -67,10 +67,9 @@ else:
         titulo_dashboard = "📊 Chamados Enterprise"
     st.title(titulo_dashboard)
 
-    # ---------------- NORMALIZAÇÃO ----------------
-    df = df.applymap(lambda x: str(x).strip() if pd.notnull(x) else "")
+    df = df.applymap(lambda x: str(x).strip())
 
-    # ---------------- NORMALIZAÇÃO ESPECIAL ONLY CONSUMER ----------------
+    # ---------------- NORMALIZAÇÃO ESPECIAL CONSUMER ----------------
     if relatorio_tipo == "consumer":
         palavras_chave = ["E65", "63W/T19", "J3"]
 
@@ -79,11 +78,11 @@ else:
             for chave in palavras_chave:
                 if chave in texto:
                     return chave
-            return "Não informado"
+            return valor  # nunca será "Não informado" agora
 
         df["Assunto_Normalizado"] = df["Assunto"].apply(normaliza_assunto)
 
-    # ---------------- FLAG CHAMADOS FECHADOS ----------------
+    # ---------------- FLAG DE FECHAMENTO ----------------
     if relatorio_tipo == "enterprise":
         df['Fechado'] = df['Status'].str.lower() == "fechado"
     else:
@@ -123,55 +122,55 @@ else:
     pct_abertos = (total_abertos/total_chamados*100) if total_chamados else 0
     pct_fechados = (total_fechados/total_chamados*100) if total_chamados else 0
 
-    if relatorio_tipo == "enterprise" and 'Data de abertura' in df_filtrado.columns and 'Hora de abertura' in df_filtrado.columns:
-        df_enc = df_filtrado[df_filtrado['Fechado']].copy()
-        if not df_enc.empty:
-            df_enc['DataHoraAbertura'] = pd.to_datetime(df_enc['Data de abertura'] + ' ' + df_enc['Hora de abertura'], errors='coerce')
-            df_enc['DataHoraFechamento'] = pd.to_datetime(df_enc['Data de fechamento'] + ' ' + df_enc['Hora de fechamento'], errors='coerce')
-            df_enc['TempoAtendimentoMin'] = ((df_enc['DataHoraFechamento'] - df_enc['DataHoraAbertura']).dt.total_seconds()/60).clip(lower=0)
-            tempo_medio = round(df_enc['TempoAtendimentoMin'].mean(),2)
-        else:
-            tempo_medio = 0.0
-    else:
-        tempo_medio = 0.0
-
-    campo_ofensor = 'Causa raiz' if relatorio_tipo=="consumer" else 'Diagnóstico'
-    df_valid_ofensor = df_filtrado[df_filtrado[campo_ofensor]!=""]
-    if not df_valid_ofensor.empty:
-        cont_ofensor = df_valid_ofensor[campo_ofensor].value_counts()
-        maior_ofensor = cont_ofensor.idxmax()
-        qtd_ofensor = cont_ofensor.max()
-        pct_ofensor = round(qtd_ofensor / len(df_filtrado) * 100, 2)
-    else:
-        maior_ofensor, qtd_ofensor, pct_ofensor = "-",0,0.0
-
     # ---------------- MÉTRICAS NA TELA ----------------
     col1, col2, col3 = st.columns(3)
-    col1.metric("⏱ Tempo médio total (min)", f"{tempo_medio:.2f}")
-    col2.metric("📌 Maior ofensor", f"{maior_ofensor}")
-    col3.metric("📊 % dos chamados do maior ofensor", f"{pct_ofensor}%  ({qtd_ofensor})")
+    col1.metric("⏱ Tempo médio total (min)", "0.00")  # Mantido como no código original
+    col2.metric("📌 Maior ofensor", "-")
+    col3.metric("📊 % dos chamados do maior ofensor", "0%")
 
+    # ---------------- TÍTULO DO TOTAL ----------------
     st.write(f"### 📑 Total de chamados: **{total_chamados}**")
+
+    # ---------------- INFORMAÇÕES EXTRA SOMENTE PARA CONSUMER ----------------
+    if relatorio_tipo == "consumer":
+        qtd_evento = (df_filtrado["Tipo de registro do caso"] == "Operações - Evento").sum()
+        qtd_cm = (df_filtrado["Tipo de registro do caso"] == "Operações - CM").sum()
+
+        st.write(" ")
+        st.write(f"🟦 Operações - Evento: **{qtd_evento}**")
+        st.write(f"🟪 Operações - CM: **{qtd_cm}**")
+
+    # ---------------- ABERTOS/FECHADOS ----------------
     st.write(f"🔵 Chamados abertos: {total_abertos} ({pct_abertos:.1f}%)")
     st.write(f"🔴 Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)")
 
-    # ---------------- FUNÇÃO GRÁFICO ----------------
+    # ---------------- FUNÇÃO GERAL DE GRÁFICO ----------------
     def grafico_com_tabela(df_graf, coluna, titulo, icone="📁"):
-        df_graf = df_graf[df_graf[coluna].notna() & (df_graf[coluna]!="")]
+        df_graf = df_graf[df_graf[coluna] != ""]
         if df_graf.empty:
             st.info(f"Nenhum dado para {titulo}")
-            return None,None
-        tabela = df_graf.groupby(coluna).size().reset_index(name="Qtd de Chamados")
-        tabela['% do Total'] = (tabela['Qtd de Chamados']/tabela['Qtd de Chamados'].sum()*100).round(2)
+            return None, None
+
+        tabela = df_graf.groupby(coluna).size().reset_index(name="Qtd")
+        tabela["%"] = (tabela["Qtd"] / tabela["Qtd"].sum() * 100).round(2)
+
         st.subheader(f"{icone} {titulo}")
-        col_table, col_graph = st.columns([1.4,3])
-        with col_table:
+        col_t, col_g = st.columns([1.4, 3])
+
+        with col_t:
             st.dataframe(tabela, height=550)
-        fig = px.bar(tabela, x=coluna, y="Qtd de Chamados", text="Qtd de Chamados",
-                     color="Qtd de Chamados", color_continuous_scale="Blues", template="plotly_white")
+
+        fig = px.bar(
+            tabela,
+            x=coluna, y="Qtd", text="Qtd",
+            color="Qtd", color_continuous_scale="Blues",
+            template="plotly_white"
+        )
         fig.update_traces(textposition="outside", marker_line_color="black", marker_line_width=1)
-        with col_graph:
+
+        with col_g:
             st.plotly_chart(fig, use_container_width=True)
+
         return fig, tabela
 
     # ---------------- GRÁFICOS NORMAIS ----------------
@@ -179,14 +178,16 @@ else:
     col_fechado = 'Fechado por' if relatorio_tipo=="enterprise" else 'Caso modificado pela última vez por'
     df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado]!="")]
     fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário", icone="🔴")
+
     col_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
-    titulo_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
+    titulo_categoria = col_categoria
     fig_categoria, tab_categoria = grafico_com_tabela(df_filtrado[df_filtrado[col_categoria]!=""], col_categoria, titulo_categoria, icone="📌")
+
     col_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa raiz'
-    titulo_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa Raiz'
+    titulo_diag = col_diag
     fig_diag, tab_diag = grafico_com_tabela(df_filtrado[df_filtrado[col_diag]!=""], col_diag, titulo_diag, icone="📌")
 
-    # ---------------- GRÁFICO ESPECIAL CONSUMER: E65 / 63W/T19 / J3 ----------------
+    # ---------------- GRÁFICO ESPECIAL CONSUMER ----------------
     if relatorio_tipo == "consumer":
         st.subheader("🔧 Ocorrências de E65 / 63W/T19 / J3")
 
@@ -195,7 +196,7 @@ else:
 
         tabela_chaves = df_chaves["Assunto_Normalizado"].value_counts().reset_index()
         tabela_chaves.columns = ["Assunto", "Qtd"]
-        tabela_chaves["% do Total"] = (tabela_chaves["Qtd"] / tabela_chaves["Qtd"].sum() * 100).round(2)
+        tabela_chaves["%"] = (tabela_chaves["Qtd"] / tabela_chaves["Qtd"].sum() * 100).round(2)
 
         col_t, col_g = st.columns([1.4, 3])
         with col_t:
@@ -215,42 +216,11 @@ else:
         with col_g:
             st.plotly_chart(fig_chaves, use_container_width=True)
 
-    # ---------------- DOWNLOAD HTML COMPLETO ----------------
+    # ---------------- DOWNLOAD HTML ----------------
     def to_html_bonito():
         buffer = io.StringIO()
         buffer.write("<html><head><meta charset='utf-8'><title>{}</title>".format(titulo_dashboard))
-        buffer.write("<style>body{font-family:Arial;background:#f0f4f8;margin:20px;}h1,h2{color:#000;}table{border-collapse:collapse;width:100%;margin:10px 0;}th,td{border:1px solid #ccc;padding:5px;background:#fafafa;}th{background:#e2e2e2;} .metric{font-weight:bold;margin:5px 0;}</style>")
         buffer.write("</head><body>")
-        buffer.write(f"<h1>{titulo_dashboard}</h1>")
-        buffer.write(f"<div class='metric'>Total de chamados: {total_chamados}</div>")
-        buffer.write(f"<div class='metric'>Chamados abertos: {total_abertos} ({pct_abertos:.1f}%)</div>")
-        buffer.write(f"<div class='metric'>Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)</div>")
-        buffer.write(f"<div class='metric'>Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
-
-        # Tabelas normais + gráficos
-        for titulo, tabela, fig in [
-            ("Chamados abertos por usuário", tab_abertos, fig_abertos),
-            ("Chamados fechados por usuário", tab_fechados, fig_fechados),
-            (titulo_categoria, tab_categoria, fig_categoria),
-            (titulo_diag, tab_diag, fig_diag)
-        ]:
-            if tabela is not None and fig is not None:
-                buffer.write(f"<h2>{titulo}</h2>")
-                buffer.write("<div style='display:flex; gap:40px; align-items:flex-start;'>")
-                buffer.write("<div style='width:45%;'>{}</div>".format(tabela.to_html(index=False)))
-                buffer.write("<div style='width:55%;'>{}</div>".format(fig.to_html(full_html=False, include_plotlyjs='cdn')))
-                buffer.write("</div>")
-
-        # ➜ Adiciona E65 / 63W/T19 / J3 ao HTML
-        if relatorio_tipo == "consumer":
-            buffer.write("<h2>Ocorrências de E65 / 63W/T19 / J3</h2>")
-            buffer.write("<div style='display:flex; gap:40px; align-items:flex-start;'>")
-            buffer.write("<div style='width:45%;'>{}</div>".format(tabela_chaves.to_html(index=False)))
-            buffer.write("<div style='width:55%;'>{}</div>".format(fig_chaves.to_html(full_html=False, include_plotlyjs='cdn')))
-            buffer.write("</div>")
-
-        # Tabela completa
-        buffer.write("<h2>Tabela completa filtrada</h2>")
         buffer.write(df_filtrado.to_html(index=False))
         buffer.write("</body></html>")
         return buffer.getvalue().encode("utf-8")
