@@ -78,7 +78,7 @@ else:
             for chave in palavras_chave:
                 if chave in texto:
                     return chave
-            return valor  # nunca será "Não informado" agora
+            return valor
 
         df["Assunto_Normalizado"] = df["Assunto"].apply(normaliza_assunto)
 
@@ -122,16 +122,30 @@ else:
     pct_abertos = (total_abertos/total_chamados*100) if total_chamados else 0
     pct_fechados = (total_fechados/total_chamados*100) if total_chamados else 0
 
-    # ---------------- MÉTRICAS NA TELA ----------------
+    # ---------------- MÉTRICAS VISUAIS ----------------
     col1, col2, col3 = st.columns(3)
-    col1.metric("⏱ Tempo médio total (min)", "0.00")  # Mantido como no código original
-    col2.metric("📌 Maior ofensor", "-")
-    col3.metric("📊 % dos chamados do maior ofensor", "0%")
 
-    # ---------------- TÍTULO DO TOTAL ----------------
+    col1.metric("⏱ Tempo médio total (min)", "0.00")
+
+    # CALCULAR MAIOR OFENSOR
+    coluna_ofensor = "Reclamação" if relatorio_tipo == "enterprise" else "Assunto"
+
+    if not df_filtrado.empty:
+        contagem = df_filtrado[coluna_ofensor].value_counts()
+        maior_ofensor = contagem.index[0]
+        qtd_maior = contagem.iloc[0]
+        pct_maior = (qtd_maior / total_chamados * 100)
+    else:
+        maior_ofensor = "-"
+        pct_maior = 0
+
+    col2.metric("📌 Maior ofensor", maior_ofensor)
+    col3.metric("📊 % dos chamados do maior ofensor", f"{pct_maior:.1f}%")
+
+    # ---------------- TOTAL ----------------
     st.write(f"### 📑 Total de chamados: **{total_chamados}**")
 
-    # ---------------- INFORMAÇÕES EXTRA SOMENTE PARA CONSUMER ----------------
+    # ---------------- EXTRA CONSUMER ----------------
     if relatorio_tipo == "consumer":
         qtd_evento = (df_filtrado["Tipo de registro do caso"] == "Operações - Evento").sum()
         qtd_cm = (df_filtrado["Tipo de registro do caso"] == "Operações - CM").sum()
@@ -140,11 +154,11 @@ else:
         st.write(f"🟦 Operações - Evento: **{qtd_evento}**")
         st.write(f"🟪 Operações - CM: **{qtd_cm}**")
 
-    # ---------------- ABERTOS/FECHADOS ----------------
+    # ---------------- ABERTOS / FECHADOS ----------------
     st.write(f"🔵 Chamados abertos: {total_abertos} ({pct_abertos:.1f}%)")
     st.write(f"🔴 Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)")
 
-    # ---------------- FUNÇÃO GERAL DE GRÁFICO ----------------
+    # ---------------- FUNÇÃO DE GRÁFICOS ----------------
     def grafico_com_tabela(df_graf, coluna, titulo, icone="📁"):
         df_graf = df_graf[df_graf[coluna] != ""]
         if df_graf.empty:
@@ -173,21 +187,20 @@ else:
 
         return fig, tabela
 
-    # ---------------- GRÁFICOS NORMAIS ----------------
+    # ---------------- GRÁFICOS GERAIS ----------------
     fig_abertos, tab_abertos = grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário", icone="🔵")
+
     col_fechado = 'Fechado por' if relatorio_tipo=="enterprise" else 'Caso modificado pela última vez por'
     df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado]!="")]
     fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário", icone="🔴")
 
     col_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
-    titulo_categoria = col_categoria
-    fig_categoria, tab_categoria = grafico_com_tabela(df_filtrado[df_filtrado[col_categoria]!=""], col_categoria, titulo_categoria, icone="📌")
+    fig_categoria, tab_categoria = grafico_com_tabela(df_filtrado[df_filtrado[col_categoria]!=""], col_categoria, col_categoria, icone="📌")
 
     col_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa raiz'
-    titulo_diag = col_diag
-    fig_diag, tab_diag = grafico_com_tabela(df_filtrado[df_filtrado[col_diag]!=""], col_diag, titulo_diag, icone="📌")
+    fig_diag, tab_diag = grafico_com_tabela(df_filtrado[df_filtrado[col_diag]!=""], col_diag, col_diag, icone="📌")
 
-    # ---------------- GRÁFICO ESPECIAL CONSUMER ----------------
+    # ---------------- GRÁFICO EXCLUSIVO CONSUMER ----------------
     if relatorio_tipo == "consumer":
         st.subheader("🔧 Ocorrências de E65 / 63W/T19 / J3")
 
