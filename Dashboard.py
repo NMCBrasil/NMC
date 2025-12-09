@@ -61,6 +61,14 @@ input[type="file"] {
     overflow-y: auto !important;
 }
 
+.mensagem-inicial {
+    font-size: 18px;
+    color: #000080;
+    background-color: #d9e4f5;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid #000080;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -79,7 +87,14 @@ uploaded_file = st.sidebar.file_uploader("Selecione o arquivo", type=["csv"])
 # ---------------- TELA INICIAL ----------------
 if uploaded_file is None:
     st.title("📊 Dashboard Chamados")
-    st.info("Envie um arquivo CSV separado por vírgula para visualizar o dashboard. O sistema detecta automaticamente colunas de datas, usuários, causas e tipos.")
+    st.markdown(
+        '<div class="mensagem-inicial">'
+        '📄 Envie um arquivo CSV separado por vírgula para visualizar o dashboard.<br>'
+        'O sistema detecta automaticamente colunas de datas, usuários, causas e tipos, '
+        'e exibirá gráficos e métricas de forma automática.'
+        '</div>',
+        unsafe_allow_html=True
+    )
 else:
     # ---------------- LEITURA DO CSV ----------------
     df = pd.read_csv(uploaded_file, encoding='latin1', sep=None, engine='python')
@@ -149,6 +164,8 @@ else:
         filtro_categoria = st.sidebar.multiselect("Reclamação", df[col_reclamacao].unique())
     if col_diagnostico:
         filtro_diag = st.sidebar.multiselect("Causa / Diagnóstico", df[col_diagnostico].unique())
+    if relatorio_tipo == "consumer" and col_causa_raiz:
+        filtro_diag = st.sidebar.multiselect("Causa raiz", df[col_causa_raiz].unique())
     if relatorio_tipo == "consumer":
         filtro_satelite = st.sidebar.multiselect("Satélite", df["Satélite"].unique())
 
