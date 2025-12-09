@@ -14,52 +14,18 @@ st.set_page_config(
 st.markdown("""
 <style>
 .stMetricLabel, .stMetricValue { color: #000 !important; }
-div.stDataFrame div.row_widget.stDataFrame {
-    background-color: #f7f7f7 !important;
-    color: #000 !important;
-    font-size: 14px;
-}
+div.stDataFrame div.row_widget.stDataFrame { background-color: #f7f7f7 !important; color: #000 !important; font-size: 14px; }
 .plotly-graph-div { background-color: #f7f7f7 !important; }
-.stDownloadButton button {
-    color: #000 !important;
-    background-color: #d9e4f5 !important;
-    border: 1px solid #000 !important;
-    padding: 6px 12px !important;
-    border-radius: 5px !important;
-    font-weight: bold !important;
-}
-section[data-testid="stSidebar"] {
-    background-color: #e8e8e8 !important;
-    color: #000 !important;
-}
+.stDownloadButton button { color: #000 !important; background-color: #d9e4f5 !important; border: 1px solid #000 !important; padding: 6px 12px !important; border-radius: 5px !important; font-weight: bold !important; }
+section[data-testid="stSidebar"] { background-color: #e8e8e8 !important; color: #000 !important; }
 section[data-testid="stSidebar"] label,
 section[data-testid="stSidebar"] span,
 section[data-testid="stSidebar"] div,
 section[data-testid="stSidebar"] input,
-section[data-testid="stSidebar"] select {
-    color: #000 !important;
-    background-color: #f0f0f0 !important;
-}
-input[type="file"] {
-    background-color: #d9e4f5 !important;
-    color: #000 !important;
-    font-weight: bold !important;
-    border: 1px solid #000;
-    border-radius: 5px;
-    padding: 5px;
-}
-.sidebar-multiselect .stMultiSelect {
-    max-height: 120px !important;
-    overflow-y: auto !important;
-}
-.centered-message {
-    text-align: center;
-    background-color: #e0f7fa;
-    padding: 30px;
-    border-radius: 15px;
-    font-size: 18px;
-    font-weight: bold;
-}
+section[data-testid="stSidebar"] select { color: #000 !important; background-color: #f0f0f0 !important; }
+input[type="file"] { background-color: #d9e4f5 !important; color: #000 !important; font-weight: bold !important; border: 1px solid #000; border-radius: 5px; padding: 5px; }
+.sidebar-multiselect .stMultiSelect { max-height: 120px !important; overflow-y: auto !important; }
+.centered-message { text-align: center; background-color: #e0f7fa; padding: 20px; border-radius: 15px; font-size: 18px; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -69,8 +35,9 @@ uploaded_file = st.sidebar.file_uploader("Selecione o arquivo", type=["csv"])
 
 # ---------------- TELA INICIAL ----------------
 if uploaded_file is None:
+    st.title("📊 Dashboard Chamados")
     st.markdown('<div class="centered-message">'
-                '📊 Envie um arquivo CSV separado por vírgula para visualizar o dashboard.<br>'
+                '📄 Envie um arquivo CSV separado por vírgula para visualizar o dashboard.<br>'
                 'O sistema detecta automaticamente colunas de datas, usuários, causas e tipos.'
                 '</div>', unsafe_allow_html=True)
 else:
@@ -81,18 +48,13 @@ else:
     df = df.applymap(lambda x: str(x).strip())
 
     # ---------------- DETECTAR TIPO ----------------
-    colunas_consumer = [
-        "Situação", "Assunto", "Data/Hora de abertura", "Criado por",
-        "Causa raiz", "Tipo de registro do caso", "Caso modificado pela última vez por"
-    ]
-
+    colunas_consumer = ["Situação", "Assunto", "Data/Hora de abertura", "Criado por", "Causa raiz", "Tipo de registro do caso", "Caso modificado pela última vez por"]
     if all(col in df.columns for col in colunas_consumer):
         relatorio_tipo = "consumer"
         titulo_dashboard = "📊 Chamados Consumer"
     else:
         relatorio_tipo = "enterprise"
         titulo_dashboard = "📊 Chamados Enterprise"
-
     st.title(titulo_dashboard)
 
     # ---------------- NORMALIZAÇÃO CONSUMER ----------------
@@ -115,6 +77,15 @@ else:
         col_modificado_por = "Caso modificado pela última vez por"
         df['Fechado'] = df.get(col_modificado_por, "").apply(lambda x: str(x).strip() != "")
 
+    # ---------------- CONVERSÃO DE DATAS ----------------
+    # Detecta colunas que parecem datas e converte
+    for col in df.columns:
+        if "data" in col.lower() or "hora" in col.lower():
+            try:
+                df[col] = pd.to_datetime(df[col], errors='coerce')
+            except:
+                continue
+
     # ---------------- FILTROS ----------------
     st.sidebar.header("🔎 Filtros")
     if relatorio_tipo == "enterprise":
@@ -130,18 +101,15 @@ else:
 
     # ---------------- APLICAR FILTROS ----------------
     df_filtrado = df.copy()
-    if filtro_aberto:
-        df_filtrado = df_filtrado[df_filtrado['Criado por'].isin(filtro_aberto)]
+    if filtro_aberto: df_filtrado = df_filtrado[df_filtrado['Criado por'].isin(filtro_aberto)]
     if filtro_fechado:
         col_fechado = "Fechado por" if relatorio_tipo == "enterprise" else "Caso modificado pela última vez por"
         df_filtrado = df_filtrado[df_filtrado[col_fechado].isin(filtro_fechado)]
-    if relatorio_tipo == "enterprise" and filtro_categoria:
-        df_filtrado = df_filtrado[df_filtrado["Reclamação"].isin(filtro_categoria)]
+    if relatorio_tipo == "enterprise" and filtro_categoria: df_filtrado = df_filtrado[df_filtrado["Reclamação"].isin(filtro_categoria)]
     if filtro_diag:
         col_diag = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
         df_filtrado = df_filtrado[df_filtrado[col_diag].isin(filtro_diag)]
-    if relatorio_tipo == "consumer" and filtro_satelite:
-        df_filtrado = df_filtrado[df_filtrado["Satélite"].isin(filtro_satelite)]
+    if relatorio_tipo == "consumer" and filtro_satelite: df_filtrado = df_filtrado[df_filtrado["Satélite"].isin(filtro_satelite)]
 
     # ---------------- LIMPEZA ----------------
     df_filtrado = df_filtrado.replace("", "Não informado")
@@ -151,8 +119,22 @@ else:
     total_abertos = len(df_filtrado[~df_filtrado['Fechado']])
     total_fechados = len(df_filtrado[df_filtrado['Fechado']])
 
+    # ---------------- TEMPO MÉDIO ----------------
+    tempo_medio = "0.00"
+    if relatorio_tipo == "enterprise":
+        # Tenta identificar colunas de abertura e fechamento
+        col_abertura = next((c for c in df_filtrado.columns if "data" in c.lower() and "abertura" in c.lower()), None)
+        col_fechamento = next((c for c in df_filtrado.columns if "data" in c.lower() and "fechamento" in c.lower()), None)
+        if col_abertura and col_fechamento:
+            df_filtrado["DURACAO"] = (df_filtrado[col_fechamento] - df_filtrado[col_abertura]).dt.total_seconds()/60
+            tempo_medio = df_filtrado["DURACAO"].mean()
+            if pd.isna(tempo_medio): tempo_medio = 0
+            tempo_medio = f"{tempo_medio:.2f}"
+
     col1, col2, col3 = st.columns(3)
-    col1.metric("⏱ Tempo médio total (min)", "0.00")  # Pode ser ajustado para cálculo real
+    col1.metric("⏱ Tempo médio total (min)", tempo_medio)
+
+    # ---------------- MAIOR OFENSOR ----------------
     coluna_ofensor = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
     df_valid_ofensor = df_filtrado[df_filtrado[coluna_ofensor] != "Não informado"]
     if not df_valid_ofensor.empty:
@@ -176,9 +158,7 @@ else:
     st.write(f"🔴 Chamados fechados: {total_fechados} ({(total_fechados/total_chamados*100):.1f}%)")
 
     # ---------------- FUNÇÃO GRÁFICOS ----------------
-    def tabela_limpa(df):
-        df = df.replace("", "Não informado").dropna(how="all")
-        return df
+    def tabela_limpa(df): return df.replace("", "Não informado").dropna(how="all")
 
     def grafico_com_tabela(df_graf, coluna, titulo, icone="📁"):
         df_graf = df_graf[df_graf[coluna] != "Não informado"]
@@ -203,8 +183,7 @@ else:
     col_fechado = "Fechado por" if relatorio_tipo == "enterprise" else "Caso modificado pela última vez por"
     df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado] != "Não informado")]
     grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário", "🔴")
-    if relatorio_tipo == "enterprise":
-        grafico_com_tabela(df_filtrado, "Reclamação", "Reclamação", "📌")
+    if relatorio_tipo == "enterprise": grafico_com_tabela(df_filtrado, "Reclamação", "Reclamação", "📌")
     col_diag = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
     grafico_com_tabela(df_filtrado, col_diag, col_diag, "📌")
     if relatorio_tipo == "consumer":
@@ -222,16 +201,15 @@ else:
         with col_g: st.plotly_chart(fig_sat, use_container_width=True)
 
     # ---------------- DOWNLOAD HTML ----------------
-    html_dashboard = io.StringIO()
-    html_dashboard.write("<html><head><meta charset='utf-8'><title>{}</title></head><body>".format(titulo_dashboard))
-    # Para cada gráfico + tabela, adiciona visualização
-    html_dashboard.write(df_filtrado.to_html(index=False))
-    html_dashboard.write("</body></html>")
-    html_dashboard = html_dashboard.getvalue().encode("utf-8")
+    html_buffer = io.StringIO()
+    html_buffer.write(f"<html><head><meta charset='utf-8'><title>{titulo_dashboard}</title></head><body>")
+    html_buffer.write(df_filtrado.to_html(index=False))
+    html_buffer.write("</body></html>")
+    html_bytes = html_buffer.getvalue().encode("utf-8")
 
     st.download_button(
         "📥 Baixar Dashboard",
-        data=html_dashboard,
+        data=html_bytes,
         file_name="dashboard_completo.html",
         mime="text/html"
     )
