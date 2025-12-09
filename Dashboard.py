@@ -80,7 +80,7 @@ else:
     # ---------------- NORMALIZAÇÃO CONSUMER ----------------
     if relatorio_tipo == "consumer":
 
-        def normaliza_assunto(valor):
+        def normaliza_satelite(valor):
             texto = str(valor).upper()
 
             if "E65" in texto:
@@ -92,7 +92,7 @@ else:
 
             return "Não informado"
 
-        df["Assunto_Normalizado"] = df["Assunto"].apply(normaliza_assunto)
+        df["Satélite"] = df["Assunto"].apply(normaliza_satelite)
 
     # ---------------- FLAG DE FECHADO ----------------
     if relatorio_tipo == "enterprise":
@@ -114,6 +114,13 @@ else:
         )
         filtro_diag = st.sidebar.multiselect("Causa Raiz", df['Causa raiz'].unique())
 
+        # ---------------- FILTRO DE SATÉLITE ----------------
+        filtro_satelite = st.sidebar.multiselect(
+            "Filtrar por Satélite",
+            df["Satélite"].unique(),
+            default=df["Satélite"].unique()
+        )
+
     # ---------------- APLICAR FILTROS ----------------
     df_filtrado = df.copy()
 
@@ -131,6 +138,13 @@ else:
         col_diag = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
         df_filtrado = df_filtrado[df_filtrado[col_diag].isin(filtro_diag)]
 
+    # filtro satélite
+    if relatorio_tipo == "consumer" and filtro_satelite:
+        df_filtrado = df_filtrado[df_filtrado["Satélite"].isin(filtro_satelite)]
+
+    # ---------------- LIMPEZA DAS TABELAS ----------------
+    df_filtrado = df_filtrado.replace("", "Não informado")
+
     # ---------------- MÉTRICAS ----------------
     total_chamados = len(df_filtrado)
     total_abertos = len(df_filtrado[~df_filtrado['Fechado']])
@@ -146,7 +160,7 @@ else:
     # ---------------- MAIOR OFENSOR ----------------
     coluna_ofensor = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
 
-    df_valid_ofensor = df_filtrado[df_filtrado[coluna_ofensor] != ""]
+    df_valid_ofensor = df_filtrado[df_filtrado[coluna_ofensor] != "Não informado"]
     if len(df_valid_ofensor) > 0:
         contagem = df_valid_ofensor[coluna_ofensor].value_counts()
         maior_ofensor = contagem.index[0]
@@ -176,13 +190,17 @@ else:
 
     # ---------------- FUNÇÃO GRÁFICOS ----------------
     def grafico_com_tabela(df_graf, coluna, titulo, icone="📁"):
-        df_graf = df_graf[df_graf[coluna] != ""]
         df_graf = df_graf[df_graf[coluna] != "Não informado"]
+
         if df_graf.empty:
             return None, None
 
         tabela = df_graf.groupby(coluna).size().reset_index(name="Qtd")
+        tabela = tabela[tabela["Qtd"] > 0]
         tabela["%"] = (tabela["Qtd"] / tabela["Qtd"].sum() * 100).round(2)
+
+        if tabela.empty:
+            return None, None
 
         st.subheader(f"{icone} {titulo}")
         col_t, col_g = st.columns([1.4, 3])
@@ -209,43 +227,40 @@ else:
     grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário", "🔵")
 
     col_fechado = "Fechado por" if relatorio_tipo == "enterprise" else "Caso modificado pela última vez por"
-    df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado] != "")]
+    df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado] != "Não informado")]
     grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário", "🔴")
 
     if relatorio_tipo == "enterprise":
-        grafico_com_tabela(df_filtrado[df_filtrado["Reclamação"] != ""], "Reclamação", "Reclamação", "📌")
+        grafico_com_tabela(df_filtrado, "Reclamação", "Reclamação", "📌")
 
     col_diag = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
-    grafico_com_tabela(df_filtrado[df_filtrado[col_diag] != ""], col_diag, col_diag, "📌")
+    grafico_com_tabela(df_filtrado, col_diag, col_diag, "📌")
 
     # ---------------- SATÉLITE ----------------
     if relatorio_tipo == "consumer":
         st.subheader("🛰 Satélite")
 
-        # CONSIDERA TUDO, INCLUINDO "Não informado"
         df_sat = df_filtrado.copy()
-        df_sat = df_sat[df_sat["Assunto_Normalizado"] != ""]        
 
-        if df_sat.empty:
-            st.info("Nenhum dado encontrado para E65 / 63W/T19 / J3.")
-        else:
-            tabela_sat = df_sat["Assunto_Normalizado"].value_counts().reset_index()
-            tabela_sat.columns = ["Satélite", "Qtd"]
-            tabela_sat["%"] = (tabela_sat["Qtd"] / tabela_sat["Qtd"].sum() * 100).round(2)
+        tabela_sat = df_sat["Satélite"].value_counts().reset_index()
+        tabela_sat.columns = ["Satélite", "Qtd"]
+        tabela_sat["%"] = (tabela_sat["Qtd"] / tabela_sat["Qtd"].sum() * 100).round(2)
 
-            col_t, col_g = st.columns([1.4, 3])
+        tabela_sat = tabela_sat[tabela_sat["Satélite"] != ""]
 
-            with col_t:
-                st.dataframe(tabela_sat, height=350)
+        col_t, col_g = st.columns([1.4, 3])
 
-            fig_sat = px.bar(
-                tabela_sat, x="Satélite", y="Qtd", text="Qtd",
-                color="Qtd", color_continuous_scale="Blues", template="plotly_white"
-            )
-            fig_sat.update_traces(textposition="outside")
+        with col_t:
+            st.dataframe(tabela_sat, height=350)
 
-            with col_g:
-                st.plotly_chart(fig_sat, use_container_width=True)
+        fig_sat = px.bar(
+            tabela_sat, x="Satélite", y="Qtd", text="Qtd",
+            color="Qtd", color_continuous_scale="Blues", template="plotly_white"
+        )
+        fig_sat.update_traces(textposition="outside")
+
+        with col_g:
+            st.plotly_chart(fig_sat, use_container_width=True)
 
     # ---------------- DOWNLOAD HTML ----------------
     def to_html_bonito():
