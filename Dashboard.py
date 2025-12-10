@@ -244,7 +244,7 @@ else:
 
         # ➜ Adiciona E65 / 63W/T19 / J3 ao HTML
         if relatorio_tipo == "consumer":
-            buffer.write("<h2>Ocorrências de E65 / 63W/T19 / J3</h2>")
+            buffer.write("<h2>Satélite</h2>")
             buffer.write("<div style='display:flex; gap:40px; align-items:flex-start;'>")
             buffer.write("<div style='width:45%;'>{}</div>".format(tabela_chaves.to_html(index=False)))
             buffer.write("<div style='width:55%;'>{}</div>".format(fig_chaves.to_html(full_html=False, include_plotlyjs='cdn')))
