@@ -180,9 +180,19 @@ else:
     col_fechado = 'Fechado por' if relatorio_tipo=="enterprise" else 'Caso modificado pela última vez por'
     df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado]!="")]
     fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário", icone="🔴")
-    col_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
-    titulo_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
-    fig_categoria, tab_categoria = grafico_com_tabela(df_filtrado[df_filtrado[col_categoria]!=""], col_categoria, titulo_categoria, icone="📌")
+    if relatorio_tipo == "enterprise":
+    col_categoria = 'Reclamação'
+    titulo_categoria = 'Reclamação'
+    fig_categoria, tab_categoria = grafico_com_tabela(
+        df_filtrado[df_filtrado[col_categoria]!=""], col_categoria, titulo_categoria, icone="📌"
+    )
+else:
+    # Consumer: não mostrar gráfico/tabela de Assunto
+    col_categoria, titulo_categoria = None, None
+    fig_categoria, tab_categoria = None, None
+
+    
+    
     col_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa raiz'
     titulo_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa Raiz'
     fig_diag, tab_diag = grafico_com_tabela(df_filtrado[df_filtrado[col_diag]!=""], col_diag, titulo_diag, icone="📌")
