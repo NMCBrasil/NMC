@@ -3,6 +3,9 @@ import pandas as pd
 import plotly.express as px
 import io
 from datetime import datetime
+import tempfile
+import pdfkit
+import numpy as np
 
 # ---------------- CONFIGURAÇÃO ----------------
 st.set_page_config(
@@ -157,21 +160,29 @@ else:
     total_fechados = len(df_filtrado[df_filtrado['Fechado']])
 
     col1, col2, col3 = st.columns(3)
-    # Tempo médio
+    # Tempo médio corrigido (Enterprise)
     tempo_total = 0
-    if relatorio_tipo == "enterprise" and "Data/Hora de abertura" in df_filtrado.columns and "Data/Hora de fechamento" in df_filtrado.columns:
-        df_filtrado['tempo'] = (df_filtrado['Data/Hora de fechamento'] - df_filtrado['Data/Hora de abertura']).dt.total_seconds() / 60
-        tempo_total = df_filtrado['tempo'].mean()
+    if relatorio_tipo == "enterprise":
+        if "Data/Hora de abertura" in df_filtrado.columns and "Data/Hora de fechamento" in df_filtrado.columns:
+            df_valid = df_filtrado.dropna(subset=["Data/Hora de abertura", "Data/Hora de fechamento"])
+            if not df_valid.empty:
+                # Garantir tipos corretos e valores válidos
+                abertura = pd.to_datetime(df_valid["Data/Hora de abertura"], errors="coerce")
+                fechamento = pd.to_datetime(df_valid["Data/Hora de fechamento"], errors="coerce")
+                delta = (fechamento - abertura).dt.total_seconds() / 60
+                delta = delta.replace([np.inf, -np.inf], np.nan).dropna()
+                if not delta.empty:
+                    tempo_total = delta.mean()
     col1.metric("⏱ Tempo médio total (min)", f"{tempo_total:.2f}" if tempo_total else "0.00")
 
-    # Maior ofensor preciso
+    # Maior ofensor
     coluna_ofensor = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
     df_valid_ofensor = df_filtrado[df_filtrado[coluna_ofensor] != "Não informado"]
     if not df_valid_ofensor.empty:
         contagem = df_valid_ofensor[coluna_ofensor].value_counts()
         maior_ofensor = contagem.index[0]
         qtd_maior = contagem.iloc[0]
-        pct_maior = (qtd_maior / total_chamados * 100)
+        pct_maior = (qtd_maior / total_chamados * 100) if total_chamados else 0
     else:
         maior_ofensor, pct_maior = "-", 0
     col2.metric("📌 Maior ofensor", maior_ofensor)
@@ -180,18 +191,18 @@ else:
     # ---------------- TOTAL ----------------
     st.write(f"### 📑 Total de chamados: **{total_chamados}**")
     if relatorio_tipo == "consumer":
-        qtd_evento = (df_filtrado["Tipo de registro do caso"] == "Operações - Evento").sum()
-        qtd_cm = (df_filtrado["Tipo de registro do caso"] == "Operações - CM").sum()
+        qtd_evento = (df_filtrado.get("Tipo de registro do caso", pd.Series()) == "Operações - Evento").sum()
+        qtd_cm = (df_filtrado.get("Tipo de registro do caso", pd.Series()) == "Operações - CM").sum()
         st.write(f"🟦 Operações - Evento: **{qtd_evento}**")
         st.write(f"🟪 Operações - CM: **{qtd_cm}**")
-    st.write(f"🔵 Chamados abertos: {total_abertos} ({(total_abertos/total_chamados*100):.1f}%)")
-    st.write(f"🔴 Chamados fechados: {total_fechados} ({(total_fechados/total_chamados*100):.1f}%)")
+    st.write(f"🔵 Chamados abertos: {total_abertos} ({(total_abertos/total_chamados*100):.1f}%)" if total_chamados else "🔵 Chamados abertos: 0 (0.0%)")
+    st.write(f"🔴 Chamados fechados: {total_fechados} ({(total_fechados/total_chamados*100):.1f}%)" if total_chamados else "🔴 Chamados fechados: 0 (0.0%)")
 
     # ---------------- FUNÇÕES ----------------
-    def tabela_limpa(df):
-        df = df.replace("", "Não informado")
-        df = df.dropna(how="all")
-        return df
+    def tabela_limpa(df_in):
+        df_out = df_in.replace("", "Não informado")
+        df_out = df_out.dropna(how="all")
+        return df_out
 
     def grafico_com_tabela(df_graf, coluna, titulo, icone="📁"):
         df_graf = df_graf[df_graf[coluna] != "Não informado"]
@@ -218,14 +229,29 @@ else:
         return fig, tabela
 
     # ---------------- GRÁFICOS ----------------
-    grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário", "🔵")
+    figs = []
+
+    # Abertos por usuário
+    fig_abertos, tabela_abertos = grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário", "🔵")
+    figs.append(fig_abertos)
+
+    # Fechados por usuário
     col_fechado = "Fechado por" if relatorio_tipo == "enterprise" else "Caso modificado pela última vez por"
     df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado] != "Não informado")]
-    grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário", "🔴")
+    fig_fechados, tabela_fechados = grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário", "🔴")
+    figs.append(fig_fechados)
+
+    # Reclamação (enterprise)
     if relatorio_tipo == "enterprise":
-        grafico_com_tabela(df_filtrado, "Reclamação", "Reclamação", "📌")
+        fig_reclamacao, tabela_reclamacao = grafico_com_tabela(df_filtrado, "Reclamação", "Reclamação", "📌")
+        figs.append(fig_reclamacao)
+
+    # Diagnóstico / Causa raiz
     col_diag = "Diagnóstico" if relatorio_tipo == "enterprise" else "Causa raiz"
-    grafico_com_tabela(df_filtrado, col_diag, col_diag, "📌")
+    fig_diag, tabela_diag = grafico_com_tabela(df_filtrado, col_diag, col_diag, "📌")
+    figs.append(fig_diag)
+
+    # Satélite (consumer)
     if relatorio_tipo == "consumer":
         st.subheader("🛰 Satélite")
         tabela_sat = df_filtrado["Satélite"].value_counts().reset_index()
@@ -243,11 +269,94 @@ else:
         fig_sat.update_traces(textposition="outside")
         with col_g:
             st.plotly_chart(fig_sat, use_container_width=True)
+        figs.append(fig_sat)
 
-    # ---------------- DOWNLOAD ----------------
+    # ---------------- PDF: GERAÇÃO ----------------
+    def gerar_pdf_dashboard(df_filtrado, titulo_dashboard, figs,
+                            total_chamados, total_abertos, total_fechados,
+                            tempo_total, maior_ofensor, pct_maior,
+                            relatorio_tipo,
+                            tabela_abertos=None, tabela_fechados=None,
+                            tabela_reclamacao=None, tabela_diag=None, tabela_sat=None):
+
+        # Cabeçalho e métricas
+        conteudo = f"""
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>
+                body {{ font-family: Arial, sans-serif; }}
+                h1 {{ margin-bottom: 4px; }}
+                .metricas {{ display: flex; gap: 24px; margin: 12px 0 24px; }}
+                .metrica {{ background: #d9e4f5; padding: 10px 14px; border: 1px solid #000; border-radius: 6px; }}
+                table {{ border-collapse: collapse; width: 100%; margin: 12px 0; }}
+                th, td {{ border: 1px solid #ccc; padding: 6px 8px; font-size: 12px; }}
+                th {{ background: #f0f0f0; }}
+                .secao {{ margin-top: 24px; }}
+            </style>
+        </head>
+        <body>
+            <h1>{titulo_dashboard}</h1>
+            <div class="metricas">
+                <div class="metrica"><b>Total de chamados:</b> {total_chamados}</div>
+                <div class="metrica"><b>Abertos:</b> {total_abertos}</div>
+                <div class="metrica"><b>Fechados:</b> {total_fechados}</div>
+                <div class="metrica"><b>Tempo médio (min):</b> {tempo_total:.2f if tempo_total else 0.00}</div>
+                <div class="metrica"><b>Maior ofensor:</b> {maior_ofensor}</div>
+                <div class="metrica"><b>% maior ofensor:</b> {pct_maior:.2f}%</div>
+            </div>
+        """
+
+        # Tabelas resumidas das seções (iguais às do dashboard)
+        def tabela_html_if_exists(tabela, titulo):
+            if tabela is not None and isinstance(tabela, pd.DataFrame) and not tabela.empty:
+                return f"<div class='secao'><h3>{titulo}</h3>{tabela.to_html(index=False)}</div>"
+            return ""
+
+        conteudo += tabela_html_if_exists(tabela_abertos, "🔵 Chamados abertos por usuário")
+        conteudo += tabela_html_if_exists(tabela_fechados, "🔴 Chamados fechados por usuário")
+        if relatorio_tipo == "enterprise":
+            conteudo += tabela_html_if_exists(tabela_reclamacao, "📌 Reclamação")
+        conteudo += tabela_html_if_exists(tabela_diag, f"📌 {('Diagnóstico' if relatorio_tipo=='enterprise' else 'Causa raiz')}")
+        if relatorio_tipo == "consumer":
+            conteudo += tabela_html_if_exists(tabela_sat, "🛰 Satélite")
+
+        # Gráficos
+        for fig in figs:
+            if fig is not None:
+                conteudo += "<div class='secao'>"
+                conteudo += fig.to_html(full_html=False, include_plotlyjs='cdn')
+                conteudo += "</div>"
+
+        conteudo += "</body></html>"
+
+        # Converter para PDF
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmpfile:
+            pdfkit.from_string(conteudo, tmpfile.name)
+            return tmpfile.read()
+
+    # ---------------- PDF: BOTÃO ----------------
+    pdf_bytes = gerar_pdf_dashboard(
+        df_filtrado=df_filtrado,
+        titulo_dashboard=titulo_dashboard,
+        figs=[f for f in figs if f is not None],
+        total_chamados=total_chamados,
+        total_abertos=total_abertos,
+        total_fechados=total_fechados,
+        tempo_total=tempo_total if tempo_total else 0.0,
+        maior_ofensor=maior_ofensor,
+        pct_maior=pct_maior,
+        relatorio_tipo=relatorio_tipo,
+        tabela_abertos=tabela_abertos,
+        tabela_fechados=tabela_fechados,
+        tabela_reclamacao=(tabela_reclamacao if relatorio_tipo == "enterprise" else None),
+        tabela_diag=tabela_diag,
+        tabela_sat=(tabela_sat if relatorio_tipo == "consumer" else None)
+    )
+
     st.download_button(
-        "📥 Baixar Dashboard",
-        data=df_filtrado.to_csv(index=False).encode("utf-8"),
-        file_name="dashboard.csv",
-        mime="text/csv"
+        "📥 Baixar Dashboard em PDF",
+        data=pdf_bytes,
+        file_name="dashboard.pdf",
+        mime="application/pdf"
     )
