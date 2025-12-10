@@ -142,7 +142,7 @@ else:
         cont_ofensor = df_valid_ofensor[campo_ofensor].value_counts()
         maior_ofensor = cont_ofensor.idxmax()
         qtd_ofensor = cont_ofensor.max()
-        pct_ofensor = round(qtd_ofensor / len(df_filtrado) * 100, 2)
+        pct_ofensor = round(qtd_ofensor / len(df_valid_ofensor) * 100, 2)
     else:
         maior_ofensor, qtd_ofensor, pct_ofensor = "-",0,0.0
 
