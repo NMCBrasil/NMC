@@ -189,7 +189,7 @@ else:
 
     # ---------------- GRÁFICO ESPECIAL CONSUMER: E65 / 63W/T19 / J3 ----------------
     if relatorio_tipo == "consumer":
-        st.subheader("🔧 Ocorrências de E65 / 63W/T19 / J3")
+        st.subheader("🛰️ Satélite")
 
         df_chaves = df_filtrado.copy()
         df_chaves["Assunto_Normalizado"] = df_chaves["Assunto"].apply(normaliza_assunto)
