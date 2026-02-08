@@ -1,3 +1,6 @@
+
+
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -123,6 +126,18 @@ else:
     pct_abertos = (total_abertos/total_chamados*100) if total_chamados else 0
     pct_fechados = (total_fechados/total_chamados*100) if total_chamados else 0
 
+    if relatorio_tipo == "enterprise" and 'Data de abertura' in df_filtrado.columns and 'Hora de abertura' in df_filtrado.columns:
+        df_enc = df_filtrado[df_filtrado['Fechado']].copy()
+        if not df_enc.empty:
+            df_enc['DataHoraAbertura'] = pd.to_datetime(df_enc['Data de abertura'] + ' ' + df_enc['Hora de abertura'], errors='coerce')
+            df_enc['DataHoraFechamento'] = pd.to_datetime(df_enc['Data de fechamento'] + ' ' + df_enc['Hora de fechamento'], errors='coerce')
+            df_enc['TempoAtendimentoMin'] = ((df_enc['DataHoraFechamento'] - df_enc['DataHoraAbertura']).dt.total_seconds()/60).clip(lower=0)
+            tempo_medio = round(df_enc['TempoAtendimentoMin'].mean(),2)
+        else:
+            tempo_medio = 0.0
+    else:
+        tempo_medio = 0.0
+
     campo_ofensor = 'Causa raiz' if relatorio_tipo=="consumer" else 'Diagnóstico'
     df_valid_ofensor = df_filtrado[df_filtrado[campo_ofensor]!=""]
     if not df_valid_ofensor.empty:
@@ -132,35 +147,6 @@ else:
         pct_ofensor = round(qtd_ofensor / len(df_valid_ofensor) * 100, 2)
     else:
         maior_ofensor, qtd_ofensor, pct_ofensor = "-",0,0.0
-
-    # ---------------- TEMPO MÉDIO (SÓ ENTERPRISE) ----------------
-if relatorio_tipo == "enterprise" and 'Data de abertura' in df_filtrado.columns and 'Hora de abertura' in df_filtrado.columns:
-        df_enc = df_filtrado[df_filtrado['Fechado']].copy()
-
-        if not df_enc.empty:
-            df_enc['DataHoraAbertura'] = pd.to_datetime(
-                df_enc['Data de abertura'].astype(str) + ' ' + df_enc['Hora de abertura'].astype(str),
-                errors='coerce',
-                dayfirst=True
-            )
-
-            df_enc['DataHoraFechamento'] = pd.to_datetime(
-                df_enc['Data de fechamento'].astype(str) + ' ' + df_enc['Hora de fechamento'].astype(str),
-                errors='coerce',
-                dayfirst=True
-            )
-
-            df_enc['TempoAtendimentoMin'] = (
-                df_enc['DataHoraFechamento'] - df_enc['DataHoraAbertura']
-            ).dt.total_seconds().div(60).clip(lower=0)
-
-            tempo_medio = round(df_enc['TempoAtendimentoMin'].dropna().mean(), 2)
-
-        else:
-            tempo_medio = 0.0
-    else:
-        tempo_medio = 0.0
-
 
     # ---------------- MÉTRICAS NA TELA ----------------
     col1, col2, col3 = st.columns(3)
@@ -178,49 +164,32 @@ if relatorio_tipo == "enterprise" and 'Data de abertura' in df_filtrado.columns 
         if df_graf.empty:
             st.info(f"Nenhum dado para {titulo}")
             return None,None
-
         tabela = df_graf.groupby(coluna).size().reset_index(name="Qtd de Chamados")
-
-        # ⭐⭐⭐ ÚNICA ALTERAÇÃO REAL ⭐⭐⭐
-        tabela = tabela.sort_values("Qtd de Chamados", ascending=False)
-
         tabela['% do Total'] = (tabela['Qtd de Chamados']/tabela['Qtd de Chamados'].sum()*100).round(2)
-
         st.subheader(f"{icone} {titulo}")
         col_table, col_graph = st.columns([1.4,3])
         with col_table:
             st.dataframe(tabela, height=550)
-
-        fig = px.bar(
-            tabela, x=coluna, y="Qtd de Chamados",
-            text="Qtd de Chamados",
-            color="Qtd de Chamados",
-            color_continuous_scale="Blues",
-            template="plotly_white"
-        )
+        fig = px.bar(tabela, x=coluna, y="Qtd de Chamados", text="Qtd de Chamados",
+                     color="Qtd de Chamados", color_continuous_scale="Blues", template="plotly_white")
         fig.update_traces(textposition="outside", marker_line_color="black", marker_line_width=1)
-
         with col_graph:
             st.plotly_chart(fig, use_container_width=True)
-
         return fig, tabela
 
-    # ---------------- GRÁFICOS ----------------
+    # ---------------- GRÁFICOS NORMAIS ----------------
     fig_abertos, tab_abertos = grafico_com_tabela(df_filtrado, "Criado por", "Chamados abertos por usuário", icone="🔵")
-
     col_fechado = 'Fechado por' if relatorio_tipo=="enterprise" else 'Caso modificado pela última vez por'
     df_fechados = df_filtrado[df_filtrado['Fechado'] & (df_filtrado[col_fechado]!="")]
     fig_fechados, tab_fechados = grafico_com_tabela(df_fechados, col_fechado, "Chamados fechados por usuário", icone="🔴")
-
     col_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
     titulo_categoria = 'Reclamação' if relatorio_tipo=="enterprise" else 'Assunto'
     fig_categoria, tab_categoria = grafico_com_tabela(df_filtrado[df_filtrado[col_categoria]!=""], col_categoria, titulo_categoria, icone="📌")
-
     col_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa raiz'
     titulo_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa Raiz'
     fig_diag, tab_diag = grafico_com_tabela(df_filtrado[df_filtrado[col_diag]!=""], col_diag, titulo_diag, icone="📌")
 
-    # ---------------- GRÁFICO ESPECIAL CONSUMER ----------------
+    # ---------------- GRÁFICO ESPECIAL CONSUMER: E65 / 63W/T19 / J3 ----------------
     if relatorio_tipo == "consumer":
         st.subheader("🛰️ Satélite")
 
@@ -228,10 +197,6 @@ if relatorio_tipo == "enterprise" and 'Data de abertura' in df_filtrado.columns 
         df_chaves["Assunto_Normalizado"] = df_chaves["Assunto"].apply(normaliza_assunto)
 
         tabela_chaves = df_chaves["Assunto_Normalizado"].value_counts().reset_index()
-
-        # ⭐ ORDEM MAIOR → MENOR
-        tabela_chaves = tabela_chaves.sort_values("count", ascending=False)
-
         tabela_chaves.columns = ["Assunto", "Qtd"]
         tabela_chaves["% do Total"] = (tabela_chaves["Qtd"] / tabela_chaves["Qtd"].sum() * 100).round(2)
 
@@ -248,7 +213,6 @@ if relatorio_tipo == "enterprise" and 'Data de abertura' in df_filtrado.columns 
             color_continuous_scale="Blues",
             template="plotly_white"
         )
-
         fig_chaves.update_traces(textposition="outside", marker_line_color="black", marker_line_width=1)
 
         with col_g:
@@ -266,6 +230,7 @@ if relatorio_tipo == "enterprise" and 'Data de abertura' in df_filtrado.columns 
         buffer.write(f"<div class='metric'>Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)</div>")
         buffer.write(f"<div class='metric'>Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
 
+        # Tabelas normais + gráficos
         for titulo, tabela, fig in [
             ("Chamados abertos por usuário", tab_abertos, fig_abertos),
             ("Chamados fechados por usuário", tab_fechados, fig_fechados),
@@ -279,6 +244,7 @@ if relatorio_tipo == "enterprise" and 'Data de abertura' in df_filtrado.columns 
                 buffer.write("<div style='width:55%;'>{}</div>".format(fig.to_html(full_html=False, include_plotlyjs='cdn')))
                 buffer.write("</div>")
 
+        # ➜ Adiciona E65 / 63W/T19 / J3 ao HTML
         if relatorio_tipo == "consumer":
             buffer.write("<h2>Satélite</h2>")
             buffer.write("<div style='display:flex; gap:40px; align-items:flex-start;'>")
@@ -286,6 +252,7 @@ if relatorio_tipo == "enterprise" and 'Data de abertura' in df_filtrado.columns 
             buffer.write("<div style='width:55%;'>{}</div>".format(fig_chaves.to_html(full_html=False, include_plotlyjs='cdn')))
             buffer.write("</div>")
 
+        # Tabela completa
         buffer.write("<h2>Tabela completa filtrada</h2>")
         buffer.write(df_filtrado.to_html(index=False))
         buffer.write("</body></html>")
