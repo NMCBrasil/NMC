@@ -135,36 +135,38 @@ else:
 
     # ---------------- TEMPO MÉDIO (SÓ ENTERPRISE) ----------------
 if relatorio_tipo == "enterprise" and 'Data de abertura' in df_filtrado.columns and 'Hora de abertura' in df_filtrado.columns:
-    df_enc = df_filtrado[df_filtrado['Fechado']].copy()
+        df_enc = df_filtrado[df_filtrado['Fechado']].copy()
 
-    if not df_enc.empty:
-        df_enc['DataHoraAbertura'] = pd.to_datetime(
-            df_enc['Data de abertura'] + ' ' + df_enc['Hora de abertura'],
-            errors='coerce'
-        )
+        if not df_enc.empty:
+            df_enc['DataHoraAbertura'] = pd.to_datetime(
+                df_enc['Data de abertura'].astype(str) + ' ' + df_enc['Hora de abertura'].astype(str),
+                errors='coerce',
+                dayfirst=True
+            )
 
-        df_enc['DataHoraFechamento'] = pd.to_datetime(
-            df_enc['Data de fechamento'] + ' ' + df_enc['Hora de fechamento'],
-            errors='coerce'
-        )
+            df_enc['DataHoraFechamento'] = pd.to_datetime(
+                df_enc['Data de fechamento'].astype(str) + ' ' + df_enc['Hora de fechamento'].astype(str),
+                errors='coerce',
+                dayfirst=True
+            )
 
-        df_enc['TempoAtendimentoMin'] = (
-            (df_enc['DataHoraFechamento'] - df_enc['DataHoraAbertura'])
-            .dt.total_seconds() / 60
-        ).clip(lower=0)
+            df_enc['TempoAtendimentoMin'] = (
+                df_enc['DataHoraFechamento'] - df_enc['DataHoraAbertura']
+            ).dt.total_seconds().div(60).clip(lower=0)
 
-        tempo_medio = round(df_enc['TempoAtendimentoMin'].mean(), 2)
+            tempo_medio = round(df_enc['TempoAtendimentoMin'].dropna().mean(), 2)
+
+        else:
+            tempo_medio = 0.0
     else:
         tempo_medio = 0.0
-else:
-    tempo_medio = 0.0
 
 
-# ---------------- MÉTRICAS NA TELA ----------------
-col1, col2, col3 = st.columns(3)
-col1.metric("⏱ Tempo médio total (min)", f"{tempo_medio:.2f}")
-col2.metric("📌 Maior ofensor", f"{maior_ofensor}")
-col3.metric("📊 % dos chamados do maior ofensor", f"{pct_ofensor}%  ({qtd_ofensor})")
+    # ---------------- MÉTRICAS NA TELA ----------------
+    col1, col2, col3 = st.columns(3)
+    col1.metric("⏱ Tempo médio total (min)", f"{tempo_medio:.2f}")
+    col2.metric("📌 Maior ofensor", f"{maior_ofensor}")
+    col3.metric("📊 % dos chamados do maior ofensor", f"{pct_ofensor}%  ({qtd_ofensor})")
 
     st.write(f"### 📑 Total de chamados: **{total_chamados}**")
     st.write(f"🔵 Chamados abertos: {total_abertos} ({pct_abertos:.1f}%)")
