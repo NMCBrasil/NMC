@@ -1,7 +1,3 @@
-
-
-
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -71,8 +67,8 @@ else:
         titulo_dashboard = "📊 Chamados Enterprise"
     st.title(titulo_dashboard)
 
-    # ---------------- NORMALIZAÇÃO ----------------
-    df = df.applymap(lambda x: str(x).strip() if pd.notnull(x) else "")
+    # ---------------- NORMALIZAÇÃO (CORRIGIDO) ----------------
+    df = df.astype(str).apply(lambda col: col.str.strip())
 
     # ---------------- NORMALIZAÇÃO ESPECIAL ONLY CONSUMER ----------------
     if relatorio_tipo == "consumer":
@@ -190,7 +186,7 @@ else:
     titulo_diag = 'Diagnóstico' if relatorio_tipo=="enterprise" else 'Causa Raiz'
     fig_diag, tab_diag = grafico_com_tabela(df_filtrado[df_filtrado[col_diag]!=""], col_diag, titulo_diag, icone="📌")
 
-    # ---------------- GRÁFICO ESPECIAL CONSUMER: E65 / 63W/T19 / J3 ----------------
+    # ---------------- GRÁFICO ESPECIAL CONSUMER ----------------
     if relatorio_tipo == "consumer":
         st.subheader("🛰️ Satélite")
 
@@ -231,7 +227,6 @@ else:
         buffer.write(f"<div class='metric'>Chamados fechados: {total_fechados} ({pct_fechados:.1f}%)</div>")
         buffer.write(f"<div class='metric'>Maior ofensor: {maior_ofensor} ({pct_ofensor}%)</div>")
 
-        # Tabelas normais + gráficos
         for titulo, tabela, fig in [
             ("Chamados abertos por usuário", tab_abertos, fig_abertos),
             ("Chamados fechados por usuário", tab_fechados, fig_fechados),
@@ -245,7 +240,6 @@ else:
                 buffer.write("<div style='width:55%;'>{}</div>".format(fig.to_html(full_html=False, include_plotlyjs='cdn')))
                 buffer.write("</div>")
 
-        # ➜ Adiciona E65 / 63W/T19 / J3 ao HTML
         if relatorio_tipo == "consumer":
             buffer.write("<h2>Satélite</h2>")
             buffer.write("<div style='display:flex; gap:40px; align-items:flex-start;'>")
@@ -253,7 +247,6 @@ else:
             buffer.write("<div style='width:55%;'>{}</div>".format(fig_chaves.to_html(full_html=False, include_plotlyjs='cdn')))
             buffer.write("</div>")
 
-        # Tabela completa
         buffer.write("<h2>Tabela completa filtrada</h2>")
         buffer.write(df_filtrado.to_html(index=False))
         buffer.write("</body></html>")
