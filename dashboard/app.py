@@ -19,7 +19,7 @@ key = "sb_publishable_iU9EdbgP5pxbjxzTtxwmAg_6Vqw03uW"
 supabase = create_client(url, key)
 
 # ======================
-# FUNÇÕES
+# LOAD DATA
 # ======================
 def load_data():
     res = supabase.table("registros").select("*").execute()
@@ -38,23 +38,41 @@ def load_data():
 
     return df
 
-
+# ======================
+# INSERT (BEM PROTEGIDO)
+# ======================
 def insert_row(mes, operadora, circuit, desconto):
-    supabase.table("registros").insert({
-        "mes": mes,
-        "operadora": operadora,
-        "circuit": circuit,
-        "desconto": desconto
-    }).execute()
+    try:
+        if not mes or not operadora or not circuit:
+            st.error("Preencha todos os campos")
+            return
 
+        data = {
+            "mes": str(mes).strip(),
+            "operadora": str(operadora).strip(),
+            "circuit": str(circuit).strip(),
+            "desconto": float(desconto) if desconto else 0
+        }
+
+        supabase.table("registros").insert(data).execute()
+        st.success("Registro salvo com sucesso!")
+        st.rerun()
+
+    except Exception as e:
+        st.error("Erro ao inserir no banco")
+        st.exception(e)
 
 # ======================
 # DELETE
 # ======================
 def delete_row(row_id):
-    supabase.table("registros").delete().eq("id", row_id).execute()
-    st.toast("Registro excluído com sucesso")
-
+    try:
+        supabase.table("registros").delete().eq("id", row_id).execute()
+        st.toast("Registro excluído")
+        st.rerun()
+    except Exception as e:
+        st.error("Erro ao excluir")
+        st.exception(e)
 
 # ======================
 # FORM
@@ -72,15 +90,10 @@ with st.form("form"):
     submit = st.form_submit_button("Salvar")
 
     if submit:
-        if mes and operadora and circuit:
-            insert_row(mes, operadora, circuit, float(desconto))
-            st.success("Registro salvo!")
-            st.rerun()
-        else:
-            st.error("Preencha todos os campos")
+        insert_row(mes, operadora, circuit, desconto)
 
 # ======================
-# LOAD DATA
+# DATA
 # ======================
 df = load_data()
 
@@ -89,7 +102,7 @@ if df.empty:
     st.stop()
 
 # ======================
-# FILTROS
+# FILTERS
 # ======================
 st.sidebar.header("🔎 Filtros")
 
@@ -130,7 +143,7 @@ c2.line_chart(filtered.groupby("mes")["desconto"].sum())
 st.divider()
 
 # ======================
-# TABELA (BOTÃO NO FINAL)
+# TABELA FINAL (DELETE NO FINAL)
 # ======================
 st.subheader("📋 Dados cadastrados")
 
@@ -149,7 +162,5 @@ for _, row in filtered.iterrows():
     c4.write(f"🔌 {row.get('circuit', row.get('circuito','N/A'))}")
     c5.write(f"💰 {row.get('desconto',0)}")
 
-    # BOTÃO NO FINAL
     if c5.button("🗑️ Excluir", key=f"del_{row_id}"):
         delete_row(row_id)
-        st.rerun()
