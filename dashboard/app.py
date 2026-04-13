@@ -7,7 +7,6 @@ from io import BytesIO
 # CONFIG
 # ======================
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
-
 st.title("📊 Dashboard Operadoras")
 
 # ======================
@@ -19,21 +18,26 @@ key = "sb_publishable_iU9EdbgP5pxbjxzTtxwmAg_6Vqw03uW"
 supabase = create_client(url, key)
 
 # ======================
-# FUNÇÕES
+# DADOS
 # ======================
 def get_data():
     response = supabase.table("registros").select("*").execute()
+
     if response.data:
         df = pd.DataFrame(response.data)
 
-        # padroniza visual
-        df.columns = [c.lower() for c in df.columns]
+        # remove created_at se existir
+        if "created_at" in df.columns:
+            df = df.drop(columns=["created_at"])
 
         return df
 
     return pd.DataFrame(columns=["id", "mes", "operadora", "circuit", "desconto"])
 
 
+# ======================
+# INSERT
+# ======================
 def insert_data(mes, operadora, circuit, desconto):
     supabase.table("registros").insert({
         "mes": mes,
@@ -43,14 +47,17 @@ def insert_data(mes, operadora, circuit, desconto):
     }).execute()
 
 
+# ======================
+# DELETE
+# ======================
 def delete_data(row_id):
     supabase.table("registros").delete().eq("id", row_id).execute()
 
 
 # ======================
-# INSERÇÃO
+# FORM
 # ======================
-st.subheader("➕ Novo Registro")
+st.subheader("➕ Adicionar Registro")
 
 with st.form("form"):
     col1, col2, col3, col4 = st.columns(4)
@@ -60,25 +67,25 @@ with st.form("form"):
     circuit = col3.text_input("Circuito")
     desconto = col4.number_input("Desconto", step=1.0)
 
-    enviar = st.form_submit_button("Adicionar")
+    submit = st.form_submit_button("Adicionar")
 
-if enviar:
+if submit:
     if mes and operadora and circuit:
         insert_data(mes, operadora, circuit, float(desconto))
-        st.success("Registro salvo!")
+        st.success("Registro adicionado!")
         st.rerun()
     else:
         st.error("Preencha todos os campos!")
 
 # ======================
-# CARREGA DADOS
+# LOAD
 # ======================
 df = get_data()
 
 if not df.empty:
 
     # ======================
-    # FILTRO LIMPO
+    # FILTROS
     # ======================
     st.sidebar.header("🔎 Filtros")
 
@@ -119,22 +126,20 @@ if not df.empty:
     st.divider()
 
     # ======================
-    # TABELA BONITA (SEM created_at)
+    # TABELA + DELETE
     # ======================
     st.subheader("📋 Dados")
 
-    view = filtrado[["id", "mes", "operadora", "circuit", "desconto"]]
+    for i, row in filtrado.iterrows():
+        c1, c2, c3, c4, c5, c6 = st.columns([1,2,2,2,2,1])
 
-    for i, row in view.iterrows():
-        col1, col2, col3, col4, col5, col6 = st.columns([1,2,2,2,2,1])
+        c1.write(row["id"])
+        c2.write(row["mes"])
+        c3.write(row["operadora"])
+        c4.write(row["circuit"])
+        c5.write(row["desconto"])
 
-        col1.write(row["id"])
-        col2.write(row["mes"])
-        col3.write(row["operadora"])
-        col4.write(row["circuit"])
-        col5.write(row["desconto"])
-
-        if col6.button("🗑️", key=f"del_{row['id']}"):
+        if c6.button("🗑️", key=f"del_{row['id']}"):
             delete_data(row["id"])
             st.rerun()
 
