@@ -3,30 +3,26 @@ import pandas as pd
 
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
-st.title("Dashboard Operadoras 🚀")
+st.title("📊 Dashboard Operadoras")
 
 # ======================
-# DADOS (sessão)
+# ESTADO
 # ======================
 if "dados" not in st.session_state:
     st.session_state.dados = []
 
 # ======================
-# ADICIONAR REGISTRO
+# FORMULÁRIO
 # ======================
-st.header("Adicionar Registro")
+st.header("➕ Adicionar Registro")
 
 with st.form("form"):
     col1, col2, col3, col4 = st.columns(4)
 
-    with col1:
-        mes = st.text_input("Mês")
-    with col2:
-        operadora = st.text_input("Operadora")
-    with col3:
-        circuito = st.text_input("Circuito")
-    with col4:
-        desconto = st.number_input("Desconto", step=1.0)
+    mes = col1.text_input("Mês")
+    operadora = col2.text_input("Operadora")
+    circuito = col3.text_input("Circuito")
+    desconto = col4.number_input("Desconto", step=1.0)
 
     enviar = st.form_submit_button("Adicionar")
 
@@ -42,19 +38,16 @@ if enviar:
     else:
         st.error("Preencha todos os campos!")
 
-# ======================
-# DATAFRAME
-# ======================
 df = pd.DataFrame(st.session_state.dados)
 
 # ======================
 # FILTROS
 # ======================
 if not df.empty:
-    st.sidebar.header("Filtros")
+    st.sidebar.header("🔎 Filtros")
 
-    mes_f = st.sidebar.selectbox("Mês", ["Todos"] + sorted(df["mes"].unique().tolist()))
-    op_f = st.sidebar.selectbox("Operadora", ["Todas"] + sorted(df["operadora"].unique().tolist()))
+    mes_f = st.sidebar.selectbox("Mês", ["Todos"] + sorted(df["mes"].unique()))
+    op_f = st.sidebar.selectbox("Operadora", ["Todas"] + sorted(df["operadora"].unique()))
 
     filtrado = df.copy()
 
@@ -65,31 +58,51 @@ if not df.empty:
         filtrado = filtrado[filtrado["operadora"] == op_f]
 
     # ======================
-    # KPIs
+    # KPIs (BONITO)
     # ======================
-    st.subheader("Resumo")
+    st.subheader("📌 Resumo")
 
-    col1, col2, col3 = st.columns(3)
+    c1, c2, c3 = st.columns(3)
 
-    col1.metric("Total Desconto", f"R$ {filtrado['desconto'].sum():,.2f}")
-    col2.metric("Circuitos", len(filtrado))
-    col3.metric("Operadoras", filtrado["operadora"].nunique())
+    c1.metric("💰 Total Desconto", f"R$ {filtrado['desconto'].sum():,.2f}")
+    c2.metric("📡 Circuitos", len(filtrado))
+    c3.metric("🏢 Operadoras", filtrado["operadora"].nunique())
 
-    # ======================
-    # TABELA
-    # ======================
-    st.subheader("Tabela")
-
-    st.dataframe(filtrado, use_container_width=True)
+    st.divider()
 
     # ======================
-    # GRÁFICOS
+    # TABELA COM DELETE
     # ======================
-    st.subheader("Gráficos")
+    st.subheader("📋 Dados")
 
-    st.bar_chart(filtrado.groupby("operadora")["desconto"].sum())
+    for i, row in filtrado.reset_index().iterrows():
+        col1, col2, col3, col4, col5 = st.columns([2,2,2,2,1])
 
-    st.line_chart(filtrado.groupby("mes")["desconto"].sum())
+        col1.write(row["mes"])
+        col2.write(row["operadora"])
+        col3.write(row["circuito"])
+        col4.write(f"R$ {row['desconto']:.2f}")
+
+        if col5.button("🗑️", key=f"del_{i}"):
+            st.session_state.dados.pop(row["index"])
+            st.rerun()
+
+    st.divider()
+
+    # ======================
+    # GRÁFICOS MELHORADOS
+    # ======================
+    st.subheader("📈 Gráficos")
+
+    g1, g2 = st.columns(2)
+
+    with g1:
+        st.markdown("### Desconto por Operadora")
+        st.bar_chart(filtrado.groupby("operadora")["desconto"].sum())
+
+    with g2:
+        st.markdown("### Desconto por Mês")
+        st.line_chart(filtrado.groupby("mes")["desconto"].sum())
 
 else:
     st.info("Nenhum dado cadastrado ainda.")
