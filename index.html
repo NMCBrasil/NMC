@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard - Operadoras</title>
+  <title>Dashboard NMC - Operadoras</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { margin:0; font-family: 'Segoe UI', Arial, sans-serif; background:#e5e7eb; color:#1f2937; }
@@ -24,7 +24,7 @@
 </head>
 <body>
 
-<header>Dashboard Operadoras</header>
+<header>Dashboard NMC - Descontos</header>
 
 <div class="container">
 
@@ -82,8 +82,9 @@ function addData(){
   const operadora = operadoraInput.value;
   const circuito = circuitoInput.value;
   const desconto = parseFloat(descontoInput.value);
-  if(!mes||!operadora||!circuito||!desconto) return alert('Preencha tudo');
+  if(!mes || !operadora || !circuito || isNaN(desconto)) return alert('Preencha tudo corretamente');
   dados.push({mes,operadora,circuito,desconto});
+  mesInput.value=''; operadoraInput.value=''; circuitoInput.value=''; descontoInput.value='';
   salvar(); atualizarFiltros(); render();
 }
 
@@ -148,4 +149,34 @@ function renderCharts(lista){
 
 function atualizarFiltros(){
   filtroMes.innerHTML='<option value="">Todos Meses</option>';
-  filtroOperadora.innerHTML='<option value=
+  filtroOperadora.innerHTML='<option value="">Todas Operadoras</option>';
+  [...new Set(dados.map(d=>d.mes))].forEach(m=>filtroMes.innerHTML+=`<option>${m}</option>`);
+  [...new Set(dados.map(d=>d.operadora))].forEach(o=>filtroOperadora.innerHTML+=`<option>${o}</option>`);
+}
+
+function render(){
+  const lista = filtrar();
+  renderKPIs(lista);
+  renderTabela([...lista]);
+  renderCharts(lista);
+}
+
+const mesInput=document.getElementById('mes');
+const operadoraInput=document.getElementById('operadora');
+const circuitoInput=document.getElementById('circuito');
+const descontoInput=document.getElementById('desconto');
+const tabela=document.getElementById('tabela');
+const totalDesconto=document.getElementById('totalDesconto');
+const totalCircuitos=document.getElementById('totalCircuitos');
+const totalOperadoras=document.getElementById('totalOperadoras');
+const chartOperadora=document.getElementById('chartOperadora');
+const chartMes=document.getElementById('chartMes');
+const chartCircuito=document.getElementById('chartCircuito');
+const filtroMes=document.getElementById('filtroMes');
+const filtroOperadora=document.getElementById('filtroOperadora');
+
+atualizarFiltros(); render();
+</script>
+
+</body>
+</html>
