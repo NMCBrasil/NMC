@@ -6,18 +6,20 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { margin:0; font-family: 'Segoe UI', Arial, sans-serif; background:#e5e7eb; color:#1f2937; }
-    header { padding:20px; text-align:center; font-size:22px; font-weight:600; background:#f9fafb; border-bottom:1px solid #d1d5db; }
+    header { position:sticky; top:0; z-index:10; padding:16px; text-align:center; font-size:22px; font-weight:600; background:#f9fafb; border-bottom:1px solid #d1d5db; }
     .container { padding:20px; }
     .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:20px; margin-bottom:20px; }
-    .card { background:#ffffff; border:1px solid #d1d5db; border-radius:12px; padding:20px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
-    .kpi { font-size:24px; font-weight:600; color:#111827; }
-    h3 { margin-top:0; font-size:15px; color:#6b7280; }
+    .card { background:#ffffff; border:1px solid #d1d5db; border-radius:12px; padding:16px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
+    .kpi { font-size:24px; font-weight:700; color:#111827; }
+    h3 { margin-top:0; font-size:14px; color:#6b7280; }
+    .toolbar { position:sticky; top:64px; z-index:9; }
     input, select, button { padding:8px; margin:5px 5px 5px 0; border-radius:6px; border:1px solid #d1d5db; }
     button { background:#2563eb; color:white; cursor:pointer; border:none; }
     .delete { background:#dc2626; }
     table { width:100%; border-collapse: collapse; }
     th, td { padding:10px; border-bottom:1px solid #e5e7eb; font-size:13px; }
-    th { color:#6b7280; text-align:left; }
+    th { color:#6b7280; text-align:left; cursor:pointer; }
+    tr.highlight td { background:#ecfdf5; }
   </style>
 </head>
 <body>
@@ -26,16 +28,14 @@
 
 <div class="container">
 
-  <div class="card">
+  <div class="card toolbar">
     <h3>Adicionar Registro</h3>
     <input id="mes" placeholder="Mês">
     <input id="operadora" placeholder="Operadora">
     <input id="circuito" placeholder="Circuito">
     <input id="desconto" type="number" placeholder="Desconto">
     <button onclick="addData()">Adicionar</button>
-  </div>
 
-  <div class="card">
     <h3>Filtros</h3>
     <select id="filtroMes" onchange="render()"><option value="">Todos Meses</option></select>
     <select id="filtroOperadora" onchange="render()"><option value="">Todas Operadoras</option></select>
@@ -54,11 +54,15 @@
   </div>
 
   <div class="card">
-    <h3>Dados (com exclusão)</h3>
+    <h3>Dados (clique no cabeçalho para ordenar)</h3>
     <table>
       <thead>
         <tr>
-          <th>Mês</th><th>Operadora</th><th>Circuito</th><th>Desconto</th><th>Ação</th>
+          <th onclick="ordenar('mes')">Mês</th>
+          <th onclick="ordenar('operadora')">Operadora</th>
+          <th onclick="ordenar('circuito')">Circuito</th>
+          <th onclick="ordenar('desconto')">Desconto</th>
+          <th>Ação</th>
         </tr>
       </thead>
       <tbody id="tabela"></tbody>
@@ -69,114 +73,79 @@
 
 <script>
 let dados = JSON.parse(localStorage.getItem('dados')) || [];
+let ordem = { campo:null, asc:true };
 
-function salvar() { localStorage.setItem('dados', JSON.stringify(dados)); }
+function salvar(){ localStorage.setItem('dados', JSON.stringify(dados)); }
 
-function addData() {
+function addData(){
   const mes = mesInput.value;
   const operadora = operadoraInput.value;
   const circuito = circuitoInput.value;
   const desconto = parseFloat(descontoInput.value);
-  if (!mes || !operadora || !circuito || !desconto) return alert('Preencha tudo');
-  dados.push({ mes, operadora, circuito, desconto });
-  salvar();
-  atualizarFiltros();
+  if(!mes||!operadora||!circuito||!desconto) return alert('Preencha tudo');
+  dados.push({mes,operadora,circuito,desconto});
+  salvar(); atualizarFiltros(); render();
+}
+
+function remover(i){ dados.splice(i,1); salvar(); render(); }
+
+function filtrar(){
+  return dados.filter(d => (!filtroMes.value||d.mes===filtroMes.value) && (!filtroOperadora.value||d.operadora===filtroOperadora.value));
+}
+
+function agrupar(lista,campo){
+  const m={}; lista.forEach(d=>m[d[campo]]=(m[d[campo]]||0)+d.desconto); return m;
+}
+
+function ordenar(campo){
+  ordem.asc = ordem.campo===campo ? !ordem.asc : true;
+  ordem.campo = campo;
   render();
 }
 
-function remover(index) {
-  dados.splice(index,1);
-  salvar();
-  render();
-}
-
-function filtrarDados() {
-  const mes = filtroMes.value;
-  const op = filtroOperadora.value;
-  return dados.filter(d => (!mes || d.mes===mes) && (!op || d.operadora===op));
-}
-
-function agrupar(lista, campo) {
-  const mapa = {};
-  lista.forEach(d => { mapa[d[campo]] = (mapa[d[campo]]||0)+d.desconto; });
-  return mapa;
-}
-
-function renderKPIs(lista) {
+function renderKPIs(lista){
   const total = lista.reduce((a,b)=>a+b.desconto,0);
-  totalDesconto.innerText = 'R$ '+total.toFixed(2);
+  totalDesconto.innerText = 'R$ '+total.toLocaleString('pt-BR',{minimumFractionDigits:2});
   totalCircuitos.innerText = lista.length;
   totalOperadoras.innerText = [...new Set(lista.map(d=>d.operadora))].length;
 }
 
-function renderTabela(lista) {
+function renderTabela(lista){
+  if(ordem.campo){
+    lista.sort((a,b)=> ordem.asc ? (a[ordem.campo]>b[ordem.campo]?1:-1) : (a[ordem.campo]<b[ordem.campo]?1:-1));
+  }
   tabela.innerHTML='';
+  const max = Math.max(...lista.map(d=>d.desconto),0);
   lista.forEach((d,i)=>{
-    tabela.innerHTML += `<tr>
+    const highlight = d.desconto===max ? 'highlight' : '';
+    tabela.innerHTML += `<tr class='${highlight}'>
       <td>${d.mes}</td>
       <td>${d.operadora}</td>
       <td>${d.circuito}</td>
-      <td>R$ ${d.desconto}</td>
+      <td>R$ ${d.desconto.toLocaleString('pt-BR')}</td>
       <td><button class='delete' onclick='remover(${i})'>Excluir</button></td>
     </tr>`;
   });
 }
 
-let chartOp, chartMes, chartCircuito;
-
-function renderGraficoOperadora(lista) {
-  const data = agrupar(lista,'operadora');
-  if(chartOp) chartOp.destroy();
-  chartOp = new Chart(chartOperadora,{type:'bar',data:{labels:Object.keys(data),datasets:[{data:Object.values(data)}]}});
+function makeChart(ctx,type,labels,data){
+  return new Chart(ctx,{ type,
+    data:{ labels, datasets:[{ data, backgroundColor: labels.map((_,i)=>`hsl(${i*40},70%,60%)`) }]},
+    options:{ plugins:{ tooltip:{ callbacks:{ label:(c)=>'R$ '+c.raw.toLocaleString('pt-BR') } } } }
+  });
 }
 
-function renderGraficoMes(lista) {
-  const data = agrupar(lista,'mes');
-  if(chartMes) chartMes.destroy();
-  chartMes = new Chart(chartMesCanvas,{type:'line',data:{labels:Object.keys(data),datasets:[{data:Object.values(data)}]}});
-}
-
-function renderGraficoCircuito(lista) {
-  const data = agrupar(lista,'circuito');
-  if(chartCircuito) chartCircuito.destroy();
-  chartCircuito = new Chart(chartCircuitoCanvas,{type:'bar',data:{labels:Object.keys(data),datasets:[{data:Object.values(data)}]}});
+let c1,c2,c3;
+function renderCharts(lista){
+  const op=agrupar(lista,'operadora');
+  const mes=agrupar(lista,'mes');
+  const cir=agrupar(lista,'circuito');
+  if(c1) c1.destroy(); if(c2) c2.destroy(); if(c3) c3.destroy();
+  c1=makeChart(chartOperadora,'bar',Object.keys(op),Object.values(op));
+  c2=makeChart(chartMes,'line',Object.keys(mes),Object.values(mes));
+  c3=makeChart(chartCircuito,'bar',Object.keys(cir),Object.values(cir));
 }
 
 function atualizarFiltros(){
-  const meses=[...new Set(dados.map(d=>d.mes))];
-  const ops=[...new Set(dados.map(d=>d.operadora))];
   filtroMes.innerHTML='<option value="">Todos Meses</option>';
-  filtroOperadora.innerHTML='<option value="">Todas Operadoras</option>';
-  meses.forEach(m=>filtroMes.innerHTML+=`<option>${m}</option>`);
-  ops.forEach(o=>filtroOperadora.innerHTML+=`<option>${o}</option>`);
-}
-
-function render(){
-  const lista = filtrarDados();
-  renderKPIs(lista);
-  renderTabela(lista);
-  renderGraficoOperadora(lista);
-  renderGraficoMes(lista);
-  renderGraficoCircuito(lista);
-}
-
-const mesInput=document.getElementById('mes');
-const operadoraInput=document.getElementById('operadora');
-const circuitoInput=document.getElementById('circuito');
-const descontoInput=document.getElementById('desconto');
-const tabela=document.getElementById('tabela');
-const totalDesconto=document.getElementById('totalDesconto');
-const totalCircuitos=document.getElementById('totalCircuitos');
-const totalOperadoras=document.getElementById('totalOperadoras');
-const chartOperadora=document.getElementById('chartOperadora');
-const chartMesCanvas=document.getElementById('chartMes');
-const chartCircuitoCanvas=document.getElementById('chartCircuito');
-const filtroMes=document.getElementById('filtroMes');
-const filtroOperadora=document.getElementById('filtroOperadora');
-
-atualizarFiltros();
-render();
-</script>
-
-</body>
-</html>
+  filtroOperadora.innerHTML='<option value=
