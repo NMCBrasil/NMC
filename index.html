@@ -5,18 +5,19 @@
   <title>Dashboard NMC - Operadoras</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { margin:0; font-family: 'Segoe UI', sans-serif; background:#0f172a; color:#e2e8f0; }
-    header { padding:20px; text-align:center; font-size:22px; font-weight:bold; background:#020617; border-bottom:1px solid #1e293b; }
+    body { margin:0; font-family: 'Segoe UI', Arial, sans-serif; background:#e5e7eb; color:#1f2937; }
+    header { padding:20px; text-align:center; font-size:22px; font-weight:600; background:#f9fafb; border-bottom:1px solid #d1d5db; }
     .container { padding:20px; }
     .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:20px; margin-bottom:20px; }
-    .card { background:#020617; border:1px solid #1e293b; border-radius:12px; padding:20px; }
-    .kpi { font-size:24px; font-weight:bold; }
-    input, select, button { padding:8px; margin:5px 5px 5px 0; border-radius:6px; border:none; }
-    button { background:#2563eb; color:white; cursor:pointer; }
-    table { width:100%; border-collapse: collapse; }
-    th, td { padding:10px; border-bottom:1px solid #1e293b; font-size:13px; }
-    th { color:#94a3b8; text-align:left; }
+    .card { background:#ffffff; border:1px solid #d1d5db; border-radius:12px; padding:20px; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
+    .kpi { font-size:24px; font-weight:600; color:#111827; }
+    h3 { margin-top:0; font-size:15px; color:#6b7280; }
+    input, select, button { padding:8px; margin:5px 5px 5px 0; border-radius:6px; border:1px solid #d1d5db; }
+    button { background:#2563eb; color:white; cursor:pointer; border:none; }
     .delete { background:#dc2626; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding:10px; border-bottom:1px solid #e5e7eb; font-size:13px; }
+    th { color:#6b7280; text-align:left; }
   </style>
 </head>
 <body>
