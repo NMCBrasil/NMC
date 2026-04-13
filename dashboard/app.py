@@ -2,7 +2,11 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
-st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
+st.set_page_config(
+    page_title="Dashboard Operadoras",
+    layout="wide",
+    initial_sidebar_state="collapsed"  # 👈 sidebar já inicia minimizada
+)
 
 st.title("📊 Dashboard Operadoras")
 
@@ -40,7 +44,7 @@ if enviar:
         st.error("Preencha todos os campos!")
 
 # ======================
-# DATAFRAME (CORRIGIDO)
+# DATAFRAME
 # ======================
 df = pd.DataFrame(
     st.session_state.dados,
@@ -48,22 +52,28 @@ df = pd.DataFrame(
 )
 
 # ======================
-# FILTROS + DASHBOARD
+# SIDEBAR (COLAPSÁVEL)
 # ======================
 if not df.empty:
 
-    st.sidebar.header("🔎 Filtros")
+    with st.sidebar:
+        st.header("🔎 Filtros")
 
-    mes_f = st.sidebar.selectbox(
-        "Mês",
-        ["Todos"] + sorted(df["Mês"].dropna().unique().tolist())
-    )
+        mes_f = st.selectbox(
+            "Mês",
+            ["Todos"] + sorted(df["Mês"].dropna().unique().tolist())
+        )
 
-    op_f = st.sidebar.selectbox(
-        "Operadora",
-        ["Todas"] + sorted(df["Operadora"].dropna().unique().tolist())
-    )
+        op_f = st.selectbox(
+            "Operadora",
+            ["Todas"] + sorted(df["Operadora"].dropna().unique().tolist())
+        )
 
+        st.caption("💡 Clique na seta para recolher/expandir")
+
+    # ======================
+    # FILTRO
+    # ======================
     filtrado = df.copy()
 
     if mes_f != "Todos":
@@ -121,7 +131,7 @@ if not df.empty:
     st.divider()
 
     # ======================
-    # TABELA (ABAIXO DOS GRÁFICOS)
+    # TABELA
     # ======================
     st.subheader("📋 Dados Detalhados")
 
