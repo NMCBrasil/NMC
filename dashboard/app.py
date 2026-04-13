@@ -19,7 +19,7 @@ key = "sb_publishable_iU9EdbgP5pxbjxzTtxwmAg_6Vqw03uW"
 supabase = create_client(url, key)
 
 # ======================
-# LOAD DATA
+# FUNÇÕES
 # ======================
 def load_data():
     res = supabase.table("registros").select("*").execute()
@@ -39,9 +39,6 @@ def load_data():
     return df
 
 
-# ======================
-# INSERT
-# ======================
 def insert_row(mes, operadora, circuit, desconto):
     supabase.table("registros").insert({
         "mes": mes,
@@ -52,14 +49,11 @@ def insert_row(mes, operadora, circuit, desconto):
 
 
 # ======================
-# DELETE (CORRIGIDO)
+# DELETE
 # ======================
 def delete_row(row_id):
-    try:
-        supabase.table("registros").delete().eq("id", row_id).execute()
-        st.toast("Registro excluído com sucesso")
-    except Exception as e:
-        st.error(f"Erro ao excluir: {e}")
+    supabase.table("registros").delete().eq("id", row_id).execute()
+    st.toast("Registro excluído com sucesso")
 
 
 # ======================
@@ -86,7 +80,7 @@ with st.form("form"):
             st.error("Preencha todos os campos")
 
 # ======================
-# DATA
+# LOAD DATA
 # ======================
 df = load_data()
 
@@ -95,7 +89,7 @@ if df.empty:
     st.stop()
 
 # ======================
-# FILTERS
+# FILTROS
 # ======================
 st.sidebar.header("🔎 Filtros")
 
@@ -136,7 +130,7 @@ c2.line_chart(filtered.groupby("mes")["desconto"].sum())
 st.divider()
 
 # ======================
-# TABELA COM DELETE NA FRENTE
+# TABELA (BOTÃO NO FINAL)
 # ======================
 st.subheader("📋 Dados cadastrados")
 
@@ -147,14 +141,15 @@ for _, row in filtered.iterrows():
     if pd.isna(row_id):
         continue
 
-    c_del, c1, c2, c3, c4 = st.columns([0.6, 1.5, 2, 2, 2])
-
-    # BOTÃO PRIMEIRO (FRENTE)
-    if c_del.button("🗑️", key=f"del_{row_id}"):
-        delete_row(row_id)
-        st.rerun()
+    c1, c2, c3, c4, c5 = st.columns([1.5, 2, 2, 2, 1])
 
     c1.write(f"🆔 {row_id}")
     c2.write(f"📅 {row.get('mes','')}")
     c3.write(f"📡 {row.get('operadora','')}")
     c4.write(f"🔌 {row.get('circuit', row.get('circuito','N/A'))}")
+    c5.write(f"💰 {row.get('desconto',0)}")
+
+    # BOTÃO NO FINAL
+    if c5.button("🗑️ Excluir", key=f"del_{row_id}"):
+        delete_row(row_id)
+        st.rerun()
