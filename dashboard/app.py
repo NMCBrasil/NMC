@@ -7,6 +7,15 @@ from io import BytesIO
 # CONFIG
 # ======================
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
+
+st.markdown("""
+<style>
+.block-container {
+    padding-top: 2rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.title("📊 Dashboard Operadoras")
 
 # ======================
@@ -25,11 +34,8 @@ def get_data():
 
     if res.data:
         df = pd.DataFrame(res.data)
-
-        # padroniza tudo
         df.columns = df.columns.str.lower()
 
-        # remove created_at se existir
         if "created_at" in df.columns:
             df = df.drop(columns=["created_at"])
 
@@ -52,7 +58,7 @@ def delete_data(row_id):
 
 
 # ======================
-# FORMULÁRIO
+# FORM
 # ======================
 st.subheader("➕ Adicionar Registro")
 
@@ -69,14 +75,14 @@ with st.form("form"):
 if submit:
     if mes and operadora and circuit:
         insert_data(mes, operadora, circuit, float(desconto))
-        st.success("Salvo com sucesso!")
+        st.success("Registro adicionado!")
         st.rerun()
     else:
-        st.error("Preencha todos os campos")
+        st.error("Preencha todos os campos!")
 
 
 # ======================
-# CARREGAR DADOS
+# DADOS
 # ======================
 df = get_data()
 
@@ -116,37 +122,52 @@ if not df.empty:
     # ======================
     st.subheader("📈 Gráficos")
 
-    col1, col2 = st.columns(2)
+    c1, c2 = st.columns(2)
 
-    col1.bar_chart(filtrado.groupby("operadora")["desconto"].sum())
-    col2.line_chart(filtrado.groupby("mes")["desconto"].sum())
+    c1.bar_chart(filtrado.groupby("operadora")["desconto"].sum())
+    c2.line_chart(filtrado.groupby("mes")["desconto"].sum())
 
     st.divider()
 
     # ======================
-    # TABELA + DELETE (BLINDADA)
+    # TABELA PROFISSIONAL
     # ======================
     st.subheader("📋 Dados")
 
-    cols = ["id", "mes", "operadora", "circuit", "desconto"]
-    view = filtrado[[c for c in cols if c in filtrado.columns]]
+    view = filtrado[["id", "mes", "operadora", "circuit", "desconto"]]
 
-    for i, row in view.iterrows():
+    st.dataframe(
+        view,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.markdown("### 🗑️ Deletar registros")
+
+    header = st.columns([1,2,2,2,2,1])
+    header[0].write("ID")
+    header[1].write("Mês")
+    header[2].write("Operadora")
+    header[3].write("Circuito")
+    header[4].write("Desconto")
+    header[5].write("Ação")
+
+    for _, row in view.iterrows():
 
         c1, c2, c3, c4, c5, c6 = st.columns([1,2,2,2,2,1])
 
-        c1.write(row.get("id", ""))
-        c2.write(row.get("mes", ""))
-        c3.write(row.get("operadora", ""))
-        c4.write(row.get("circuit", ""))
-        c5.write(row.get("desconto", ""))
+        c1.write(row["id"])
+        c2.write(row["mes"])
+        c3.write(row["operadora"])
+        c4.write(row["circuit"])
+        c5.write(row["desconto"])
 
-        if c6.button("🗑️", key=f"del_{row.get('id')}"):
-            delete_data(row.get("id"))
+        if c6.button("🗑️", key=f"del_{row['id']}"):
+            delete_data(row["id"])
             st.rerun()
 
     # ======================
-    # EXPORT EXCEL
+    # EXPORT
     # ======================
     def to_excel(dataframe):
         output = BytesIO()
