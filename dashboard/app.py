@@ -38,41 +38,29 @@ def load_data():
 
     return df
 
+
 # ======================
-# INSERT (BEM PROTEGIDO)
+# INSERT
 # ======================
 def insert_row(mes, operadora, circuit, desconto):
-    try:
-        if not mes or not operadora or not circuit:
-            st.error("Preencha todos os campos")
-            return
+    supabase.table("registros").insert({
+        "mes": mes,
+        "operadora": operadora,
+        "circuit": circuit,
+        "desconto": desconto
+    }).execute()
 
-        data = {
-            "mes": str(mes).strip(),
-            "operadora": str(operadora).strip(),
-            "circuit": str(circuit).strip(),
-            "desconto": float(desconto) if desconto else 0
-        }
-
-        supabase.table("registros").insert(data).execute()
-        st.success("Registro salvo com sucesso!")
-        st.rerun()
-
-    except Exception as e:
-        st.error("Erro ao inserir no banco")
-        st.exception(e)
 
 # ======================
-# DELETE
+# DELETE (CORRIGIDO)
 # ======================
 def delete_row(row_id):
     try:
         supabase.table("registros").delete().eq("id", row_id).execute()
-        st.toast("Registro excluído")
-        st.rerun()
+        st.toast("Registro excluído com sucesso")
     except Exception as e:
-        st.error("Erro ao excluir")
-        st.exception(e)
+        st.error(f"Erro ao excluir: {e}")
+
 
 # ======================
 # FORM
@@ -90,7 +78,12 @@ with st.form("form"):
     submit = st.form_submit_button("Salvar")
 
     if submit:
-        insert_row(mes, operadora, circuit, desconto)
+        if mes and operadora and circuit:
+            insert_row(mes, operadora, circuit, float(desconto))
+            st.success("Registro salvo!")
+            st.rerun()
+        else:
+            st.error("Preencha todos os campos")
 
 # ======================
 # DATA
@@ -143,7 +136,7 @@ c2.line_chart(filtered.groupby("mes")["desconto"].sum())
 st.divider()
 
 # ======================
-# TABELA FINAL (DELETE NO FINAL)
+# TABELA COM DELETE NA FRENTE
 # ======================
 st.subheader("📋 Dados cadastrados")
 
@@ -154,13 +147,14 @@ for _, row in filtered.iterrows():
     if pd.isna(row_id):
         continue
 
-    c1, c2, c3, c4, c5 = st.columns([1.5, 2, 2, 2, 1])
+    c_del, c1, c2, c3, c4 = st.columns([0.6, 1.5, 2, 2, 2])
+
+    # BOTÃO PRIMEIRO (FRENTE)
+    if c_del.button("🗑️", key=f"del_{row_id}"):
+        delete_row(row_id)
+        st.rerun()
 
     c1.write(f"🆔 {row_id}")
     c2.write(f"📅 {row.get('mes','')}")
     c3.write(f"📡 {row.get('operadora','')}")
     c4.write(f"🔌 {row.get('circuit', row.get('circuito','N/A'))}")
-    c5.write(f"💰 {row.get('desconto',0)}")
-
-    if c5.button("🗑️ Excluir", key=f"del_{row_id}"):
-        delete_row(row_id)
