@@ -18,13 +18,16 @@ key = "sb_publishable_iU9EdbgP5pxbjxzTtxwmAg_6Vqw03uW"
 supabase = create_client(url, key)
 
 # ======================
-# DADOS
+# FUNÇÕES
 # ======================
 def get_data():
-    response = supabase.table("registros").select("*").execute()
+    res = supabase.table("registros").select("*").execute()
 
-    if response.data:
-        df = pd.DataFrame(response.data)
+    if res.data:
+        df = pd.DataFrame(res.data)
+
+        # padroniza tudo
+        df.columns = df.columns.str.lower()
 
         # remove created_at se existir
         if "created_at" in df.columns:
@@ -35,9 +38,6 @@ def get_data():
     return pd.DataFrame(columns=["id", "mes", "operadora", "circuit", "desconto"])
 
 
-# ======================
-# INSERT
-# ======================
 def insert_data(mes, operadora, circuit, desconto):
     supabase.table("registros").insert({
         "mes": mes,
@@ -47,38 +47,36 @@ def insert_data(mes, operadora, circuit, desconto):
     }).execute()
 
 
-# ======================
-# DELETE
-# ======================
 def delete_data(row_id):
     supabase.table("registros").delete().eq("id", row_id).execute()
 
 
 # ======================
-# FORM
+# FORMULÁRIO
 # ======================
 st.subheader("➕ Adicionar Registro")
 
 with st.form("form"):
-    col1, col2, col3, col4 = st.columns(4)
+    c1, c2, c3, c4 = st.columns(4)
 
-    mes = col1.text_input("Mês")
-    operadora = col2.text_input("Operadora")
-    circuit = col3.text_input("Circuito")
-    desconto = col4.number_input("Desconto", step=1.0)
+    mes = c1.text_input("Mês")
+    operadora = c2.text_input("Operadora")
+    circuit = c3.text_input("Circuito")
+    desconto = c4.number_input("Desconto", step=1.0)
 
     submit = st.form_submit_button("Adicionar")
 
 if submit:
     if mes and operadora and circuit:
         insert_data(mes, operadora, circuit, float(desconto))
-        st.success("Registro adicionado!")
+        st.success("Salvo com sucesso!")
         st.rerun()
     else:
-        st.error("Preencha todos os campos!")
+        st.error("Preencha todos os campos")
+
 
 # ======================
-# LOAD
+# CARREGAR DADOS
 # ======================
 df = get_data()
 
@@ -89,8 +87,8 @@ if not df.empty:
     # ======================
     st.sidebar.header("🔎 Filtros")
 
-    mes_f = st.sidebar.selectbox("Mês", ["Todos"] + sorted(df["mes"].dropna().unique()))
-    op_f = st.sidebar.selectbox("Operadora", ["Todas"] + sorted(df["operadora"].dropna().unique()))
+    mes_f = st.sidebar.selectbox("Mês", ["Todos"] + sorted(df["mes"].dropna().unique().tolist()))
+    op_f = st.sidebar.selectbox("Operadora", ["Todas"] + sorted(df["operadora"].dropna().unique().tolist()))
 
     filtrado = df.copy()
 
@@ -126,21 +124,25 @@ if not df.empty:
     st.divider()
 
     # ======================
-    # TABELA + DELETE
+    # TABELA + DELETE (BLINDADA)
     # ======================
     st.subheader("📋 Dados")
 
-    for i, row in filtrado.iterrows():
+    cols = ["id", "mes", "operadora", "circuit", "desconto"]
+    view = filtrado[[c for c in cols if c in filtrado.columns]]
+
+    for i, row in view.iterrows():
+
         c1, c2, c3, c4, c5, c6 = st.columns([1,2,2,2,2,1])
 
-        c1.write(row["id"])
-        c2.write(row["mes"])
-        c3.write(row["operadora"])
-        c4.write(row["circuit"])
-        c5.write(row["desconto"])
+        c1.write(row.get("id", ""))
+        c2.write(row.get("mes", ""))
+        c3.write(row.get("operadora", ""))
+        c4.write(row.get("circuit", ""))
+        c5.write(row.get("desconto", ""))
 
-        if c6.button("🗑️", key=f"del_{row['id']}"):
-            delete_data(row["id"])
+        if c6.button("🗑️", key=f"del_{row.get('id')}"):
+            delete_data(row.get("id"))
             st.rerun()
 
     # ======================
