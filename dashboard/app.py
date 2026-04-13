@@ -1,30 +1,47 @@
 import streamlit as st
 import pandas as pd
-import os
+from supabase import create_client
 from io import BytesIO
 
-st.set_page_config(
-    page_title="Dashboard Operadoras",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# ======================
+# CONFIG
+# ======================
+st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 st.title("📊 Dashboard Operadoras")
 
-ARQUIVO = "dados.csv"
+# ======================
+# SUPABASE CONEXÃO
+# ======================
+url = "https://whbwdmmgrylwehdarupk.supabase.co"
+key = "sb_publishable_iU9EdbgP5pxbjxzTtxwmAg_6Vqw03uW"
+
+supabase = create_client(url, key)
 
 # ======================
-# CARREGAR DADOS
+# BUSCAR DADOS
 # ======================
-def carregar():
-    if os.path.exists(ARQUIVO):
-        return pd.read_csv(ARQUIVO)
-    return pd.DataFrame(columns=["Mês", "Operadora", "Circuito", "Desconto"])
+def get_data():
+    response = supabase.table("registros").select("*").execute()
+    if response.data:
+        return pd.DataFrame(response.data)
+    return pd.DataFrame(columns=["id", "mes", "operadora", "circuito", "desconto"])
 
-def salvar(df):
-    df.to_csv(ARQUIVO, index=False)
+# ======================
+# INSERIR DADOS
+# ======================
+def insert_data(mes, operadora, circuito, desconto):
+    supabase.table("registros").insert({
+        "mes": mes,
+        "operadora": operadora,
+        "circuito": circuito,
+        "desconto": desconto
+    }).execute()
 
-df = carregar()
+# ======================
+# CARREGAR DF
+# ======================
+df = get_data()
 
 # ======================
 # FORMULÁRIO
@@ -43,46 +60,36 @@ with st.form("form"):
 
 if enviar:
     if mes and operadora and circuito:
-        novo = pd.DataFrame([{
-            "Mês": mes,
-            "Operadora": operadora,
-            "Circuito": circuito,
-            "Desconto": float(desconto)
-        }])
-
-        df = pd.concat([df, novo], ignore_index=True)
-        salvar(df)
-
-        st.success("Registro salvo com sucesso!")
+        insert_data(mes, operadora, circuito, float(desconto))
+        st.success("Salvo no banco com sucesso!")
         st.rerun()
     else:
         st.error("Preencha todos os campos!")
 
 # ======================
-# SIDEBAR
+# FILTROS + DASHBOARD
 # ======================
 if not df.empty:
 
-    with st.sidebar:
-        st.header("🔎 Filtros")
+    st.sidebar.header("🔎 Filtros")
 
-        mes_f = st.selectbox(
-            "Mês",
-            ["Todos"] + sorted(df["Mês"].dropna().unique().tolist())
-        )
+    mes_f = st.sidebar.selectbox(
+        "Mês",
+        ["Todos"] + sorted(df["mes"].dropna().unique().tolist())
+    )
 
-        op_f = st.selectbox(
-            "Operadora",
-            ["Todas"] + sorted(df["Operadora"].dropna().unique().tolist())
-        )
+    op_f = st.sidebar.selectbox(
+        "Operadora",
+        ["Todas"] + sorted(df["operadora"].dropna().unique().tolist())
+    )
 
     filtrado = df.copy()
 
     if mes_f != "Todos":
-        filtrado = filtrado[filtrado["Mês"] == mes_f]
+        filtrado = filtrado[filtrado["mes"] == mes_f]
 
     if op_f != "Todas":
-        filtrado = filtrado[filtrado["Operadora"] == op_f]
+        filtrado = filtrado[filtrado["operadora"] == op_f]
 
     # ======================
     # KPIs
@@ -91,9 +98,9 @@ if not df.empty:
 
     c1, c2, c3 = st.columns(3)
 
-    c1.metric("💰 Total", f"R$ {filtrado['Desconto'].sum():,.2f}")
+    c1.metric("💰 Total Desconto", f"R$ {filtrado['desconto'].sum():,.2f}")
     c2.metric("📡 Circuitos", len(filtrado))
-    c3.metric("🏢 Operadoras", filtrado["Operadora"].nunique())
+    c3.metric("🏢 Operadoras", filtrado["operadora"].nunique())
 
     st.divider()
 
@@ -104,8 +111,8 @@ if not df.empty:
 
     col1, col2 = st.columns(2)
 
-    col1.bar_chart(filtrado.groupby("Operadora")["Desconto"].sum())
-    col2.line_chart(filtrado.groupby("Mês")["Desconto"].sum())
+    col1.bar_chart(filtrado.groupby("operadora")["desconto"].sum())
+    col2.line_chart(filtrado.groupby("mes")["desconto"].sum())
 
     st.divider()
 
@@ -115,13 +122,13 @@ if not df.empty:
     def to_excel(dataframe):
         output = BytesIO()
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
-            dataframe.to_excel(writer, index=False)
+            dataframe.to_excel(writer, index=False, sheet_name="dados")
         return output.getvalue()
 
     st.download_button(
         "📥 Exportar Excel",
         data=to_excel(filtrado),
-        file_name="dashboard.xlsx",
+        file_name="dashboard_operadoras.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
@@ -135,4 +142,4 @@ if not df.empty:
     st.dataframe(filtrado, use_container_width=True, hide_index=True)
 
 else:
-    st.info("Nenhum dado cadastrado ainda.")
+    st.info("Nenhum dado ainda cadastrado.")
