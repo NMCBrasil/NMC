@@ -32,6 +32,10 @@ def get_data():
     if "created_at" in df.columns:
         df = df.drop(columns=["created_at"])
 
+    # GARANTE COMPATIBILIDADE
+    if "circuito" in df.columns and "circuit" not in df.columns:
+        df["circuit"] = df["circuito"]
+
     return df
 
 
@@ -51,7 +55,7 @@ def insert_data(mes, operadora, circuit, desconto):
 # ======================
 # FORM
 # ======================
-with st.expander("➕ Adicionar novo registro"):
+with st.expander("➕ Adicionar registro"):
     c1, c2, c3, c4 = st.columns(4)
 
     mes = c1.text_input("Mês")
@@ -65,7 +69,7 @@ with st.expander("➕ Adicionar novo registro"):
 
 
 # ======================
-# DATA LOAD
+# LOAD DATA
 # ======================
 df = get_data()
 
@@ -111,7 +115,7 @@ c2.line_chart(filtered.groupby("mes")["desconto"].sum())
 st.divider()
 
 # ======================
-# TABELA ÚNICA (BONITA)
+# TABELA LIMPA (SEM ERRO)
 # ======================
 st.subheader("📋 Dados")
 
@@ -119,12 +123,15 @@ for _, row in filtered.iterrows():
 
     c1, c2, c3, c4, c5 = st.columns([1.5,2,2,2,1])
 
-    c1.write(row["id"])
-    c2.write(row["mes"])
-    c3.write(row["operadora"])
-    c4.write(row["circuit"])
-    c5.write(f"R$ {row['desconto']}")
+    c1.write(row.get("id", ""))
+    c2.write(row.get("mes", ""))
+    c3.write(row.get("operadora", ""))
 
-    if c5.button("🗑️", key=f"del_{row['id']}"):
+    # 🔥 AQUI ESTÁ O FIX REAL
+    c4.write(row.get("circuit", row.get("circuito", "N/A")))
+
+    c5.write(f"R$ {row.get('desconto', 0)}")
+
+    if c5.button("🗑️", key=f"del_{row.get('id')}"):
         delete_data(row["id"])
         st.rerun()
