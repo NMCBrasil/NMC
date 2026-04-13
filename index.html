@@ -2,24 +2,97 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard NMC - Operadoras</title>
+  <title>Dashboard Operadoras</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
-    body { margin:0; font-family: 'Segoe UI', Arial, sans-serif; background:#e5e7eb; color:#1f2937; }
-    header { position:sticky; top:0; z-index:10; padding:16px; text-align:center; font-size:22px; font-weight:600; background:#f9fafb; border-bottom:1px solid #d1d5db; }
+    body {
+      margin:0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background:#e5e7eb;
+      color:#1f2937;
+    }
+
+    header {
+      position:sticky;
+      top:0;
+      z-index:10;
+      padding:16px;
+      text-align:center;
+      font-size:22px;
+      font-weight:600;
+      background:#f9fafb;
+      border-bottom:1px solid #d1d5db;
+    }
+
     .container { padding:20px; }
-    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:20px; margin-bottom:20px; }
-    .card { background:#ffffff; border:1px solid #d1d5db; border-radius:12px; padding:16px; }
-    .kpi { font-size:24px; font-weight:700; }
-    h3 { margin-top:0; font-size:14px; color:#6b7280; }
-    input, select, button { padding:8px; margin:5px; border-radius:6px; border:1px solid #d1d5db; }
-    button { background:#2563eb; color:white; cursor:pointer; border:none; }
+
+    .grid {
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap:20px;
+      margin-bottom:20px;
+    }
+
+    .card {
+      background:#ffffff;
+      border:1px solid #d1d5db;
+      border-radius:12px;
+      padding:16px;
+    }
+
+    .kpi {
+      font-size:24px;
+      font-weight:700;
+    }
+
+    h3 {
+      margin-top:0;
+      font-size:14px;
+      color:#6b7280;
+    }
+
+    input, select, button {
+      padding:8px;
+      margin:5px;
+      border-radius:6px;
+      border:1px solid #d1d5db;
+    }
+
+    button {
+      background:#2563eb;
+      color:white;
+      cursor:pointer;
+      border:none;
+    }
+
     .delete { background:#dc2626; }
+
+    table {
+      width:100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding:10px;
+      border-bottom:1px solid #e5e7eb;
+      font-size:13px;
+    }
+
+    th {
+      color:#6b7280;
+      cursor:pointer;
+    }
+
+    tr.highlight td {
+      background:#ecfdf5;
+    }
   </style>
 </head>
+
 <body>
 
-<header>Dashboard NMC - Descontos</header>
+<header>Dashboard Operadoras</header>
 
 <div class="container">
 
@@ -31,34 +104,129 @@
     <input id="desconto" type="number" placeholder="Desconto">
     <button onclick="addData()">Adicionar</button>
 
-    <h3>Backup de Dados</h3>
+    <h3>Backup</h3>
     <button onclick="exportar()">Exportar Dados</button>
     <input type="file" onchange="importar(event)">
+  </div>
+
+  <div class="card">
+    <h3>Filtros</h3>
+    <select id="filtroMes" onchange="render()">
+      <option value="">Todos Meses</option>
+    </select>
+
+    <select id="filtroOperadora" onchange="render()">
+      <option value="">Todas Operadoras</option>
+    </select>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Total Desconto</h3>
+      <div id="totalDesconto" class="kpi">R$ 0</div>
+    </div>
+
+    <div class="card">
+      <h3>Total Circuitos</h3>
+      <div id="totalCircuitos" class="kpi">0</div>
+    </div>
+
+    <div class="card">
+      <h3>Operadoras</h3>
+      <div id="totalOperadoras" class="kpi">0</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Por Operadora</h3>
+      <canvas id="chartOperadora"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>Por Mês</h3>
+      <canvas id="chartMes"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>Por Circuito</h3>
+      <canvas id="chartCircuito"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Dados</h3>
+    <table>
+      <thead>
+        <tr>
+          <th onclick="ordenar('mes')">Mês</th>
+          <th onclick="ordenar('operadora')">Operadora</th>
+          <th onclick="ordenar('circuito')">Circuito</th>
+          <th onclick="ordenar('desconto')">Desconto</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody id="tabela"></tbody>
+    </table>
   </div>
 
 </div>
 
 <script>
-let dados = JSON.parse(localStorage.getItem('dados')) || [];
 
-function salvar(){ localStorage.setItem('dados', JSON.stringify(dados)); }
+// 🔒 Carregamento seguro + fallback
+let dados = JSON.parse(localStorage.getItem('dados') || '[]');
 
+// 🔒 Recuperação automática (backup)
+window.onload = () => {
+  const backup = localStorage.getItem('dados_backup');
+  if (backup && dados.length === 0) {
+    dados = JSON.parse(backup);
+    salvar();
+  }
+  atualizarFiltros();
+  render();
+};
+
+// 💾 Salvar com backup automático
+function salvar(){
+  localStorage.setItem('dados', JSON.stringify(dados));
+  localStorage.setItem('dados_backup', JSON.stringify(dados));
+}
+
+// ➕ Adicionar
 function addData(){
   const mes = mesInput.value;
   const operadora = operadoraInput.value;
   const circuito = circuitoInput.value;
   const desconto = parseFloat(descontoInput.value);
 
-  if(!mes || !operadora || !circuito || isNaN(desconto)) return alert('Preencha tudo corretamente');
+  if(!mes || !operadora || !circuito || isNaN(desconto)){
+    return alert('Preencha tudo corretamente');
+  }
 
-  dados.push({mes,operadora,circuito,desconto});
+  dados.push({mes, operadora, circuito, desconto});
   salvar();
 
-  mesInput.value=''; operadoraInput.value=''; circuitoInput.value=''; descontoInput.value='';
+  mesInput.value='';
+  operadoraInput.value='';
+  circuitoInput.value='';
+  descontoInput.value='';
+
+  atualizarFiltros();
+  render();
 }
 
+// 🗑️ Remover
+function remover(i){
+  dados.splice(i,1);
+  salvar();
+  render();
+}
+
+// 📥 Exportar
 function exportar(){
-  const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(dados, null, 2)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -66,6 +234,7 @@ function exportar(){
   a.click();
 }
 
+// 📤 Importar
 function importar(event){
   const file = event.target.files[0];
   if(!file) return;
@@ -75,18 +244,106 @@ function importar(event){
     try{
       dados = JSON.parse(e.target.result);
       salvar();
-      alert('Dados importados com sucesso!');
+      atualizarFiltros();
+      render();
+      alert('Importado com sucesso!');
     }catch{
-      alert('Erro ao importar arquivo');
+      alert('Erro ao importar');
     }
   };
   reader.readAsText(file);
 }
 
-const mesInput=document.getElementById('mes');
-const operadoraInput=document.getElementById('operadora');
-const circuitoInput=document.getElementById('circuito');
-const descontoInput=document.getElementById('desconto');
+// 🔍 Filtro
+function filtrar(){
+  return dados.filter(d =>
+    (!filtroMes.value || d.mes === filtroMes.value) &&
+    (!filtroOperadora.value || d.operadora === filtroOperadora.value)
+  );
+}
+
+// 📊 Agrupar
+function agrupar(lista, campo){
+  const m = {};
+  lista.forEach(d => m[d[campo]] = (m[d[campo]]||0)+d.desconto);
+  return m;
+}
+
+// 📊 KPIs
+function renderKPIs(lista){
+  const total = lista.reduce((a,b)=>a+b.desconto,0);
+  totalDesconto.innerText = 'R$ ' + total.toLocaleString('pt-BR',{minimumFractionDigits:2});
+  totalCircuitos.innerText = lista.length;
+  totalOperadoras.innerText = [...new Set(lista.map(d=>d.operadora))].length;
+}
+
+// 📋 Tabela
+function renderTabela(lista){
+  tabela.innerHTML = '';
+  const max = Math.max(...lista.map(d=>d.desconto),0);
+
+  lista.forEach((d,i)=>{
+    const highlight = d.desconto === max ? 'highlight' : '';
+    tabela.innerHTML += `
+      <tr class="${highlight}">
+        <td>${d.mes}</td>
+        <td>${d.operadora}</td>
+        <td>${d.circuito}</td>
+        <td>R$ ${d.desconto.toLocaleString('pt-BR')}</td>
+        <td><button class="delete" onclick="remover(${i})">Excluir</button></td>
+      </tr>`;
+  });
+}
+
+// 📊 Gráficos
+let c1,c2,c3;
+
+function renderCharts(lista){
+  const op = agrupar(lista,'operadora');
+  const mes = agrupar(lista,'mes');
+  const cir = agrupar(lista,'circuito');
+
+  if(c1) c1.destroy();
+  if(c2) c2.destroy();
+  if(c3) c3.destroy();
+
+  c1 = new Chart(chartOperadora,{type:'bar',data:{labels:Object.keys(op),datasets:[{data:Object.values(op)}]}});
+  c2 = new Chart(chartMes,{type:'line',data:{labels:Object.keys(mes),datasets:[{data:Object.values(mes)}]}});
+  c3 = new Chart(chartCircuito,{type:'bar',data:{labels:Object.keys(cir),datasets:[{data:Object.values(cir)}]}});
+}
+
+// 🎛️ Filtros
+function atualizarFiltros(){
+  filtroMes.innerHTML = '<option value=\"\">Todos Meses</option>';
+  filtroOperadora.innerHTML = '<option value=\"\">Todas Operadoras</option>';
+
+  [...new Set(dados.map(d=>d.mes))].forEach(m => filtroMes.innerHTML += `<option>${m}</option>`);
+  [...new Set(dados.map(d=>d.operadora))].forEach(o => filtroOperadora.innerHTML += `<option>${o}</option>`);
+}
+
+// 🔄 Render geral
+function render(){
+  const lista = filtrar();
+  renderKPIs(lista);
+  renderTabela(lista);
+  renderCharts(lista);
+}
+
+// 📌 Inputs
+const mesInput = document.getElementById('mes');
+const operadoraInput = document.getElementById('operadora');
+const circuitoInput = document.getElementById('circuito');
+const descontoInput = document.getElementById('desconto');
+const tabela = document.getElementById('tabela');
+const totalDesconto = document.getElementById('totalDesconto');
+const totalCircuitos = document.getElementById('totalCircuitos');
+const totalOperadoras = document.getElementById('totalOperadoras');
+const chartOperadora = document.getElementById('chartOperadora');
+const chartMes = document.getElementById('chartMes');
+const chartCircuito = document.getElementById('chartCircuito');
+const filtroMes = document.getElementById('filtroMes');
+const filtroOperadora = document.getElementById('filtroOperadora');
+
 </script>
 
 </body>
