@@ -27,23 +27,33 @@ key = "sb_publishable_iU9EdbgP5pxbjxzTtxwmAg_6Vqw03uW"
 supabase = create_client(url, key)
 
 # ======================
-# FUNÇÕES
+# DADOS
 # ======================
 def get_data():
     res = supabase.table("registros").select("*").execute()
 
-    if res.data:
-        df = pd.DataFrame(res.data)
-        df.columns = df.columns.str.lower()
+    if not res.data:
+        return pd.DataFrame(columns=["id", "mes", "operadora", "circuit", "desconto"])
 
-        if "created_at" in df.columns:
-            df = df.drop(columns=["created_at"])
+    df = pd.DataFrame(res.data)
 
-        return df
+    # normaliza colunas
+    df.columns = df.columns.str.lower()
 
-    return pd.DataFrame(columns=["id", "mes", "operadora", "circuit", "desconto"])
+    # remove created_at se existir
+    if "created_at" in df.columns:
+        df = df.drop(columns=["created_at"])
+
+    # garante compatibilidade circuito/circuit
+    if "circuito" in df.columns and "circuit" not in df.columns:
+        df["circuit"] = df["circuito"]
+
+    return df
 
 
+# ======================
+# INSERT
+# ======================
 def insert_data(mes, operadora, circuit, desconto):
     supabase.table("registros").insert({
         "mes": mes,
@@ -53,6 +63,9 @@ def insert_data(mes, operadora, circuit, desconto):
     }).execute()
 
 
+# ======================
+# DELETE
+# ======================
 def delete_data(row_id):
     supabase.table("registros").delete().eq("id", row_id).execute()
 
@@ -78,11 +91,11 @@ if submit:
         st.success("Registro adicionado!")
         st.rerun()
     else:
-        st.error("Preencha todos os campos!")
+        st.error("Preencha todos os campos")
 
 
 # ======================
-# DADOS
+# CARREGAR DADOS
 # ======================
 df = get_data()
 
@@ -93,8 +106,15 @@ if not df.empty:
     # ======================
     st.sidebar.header("🔎 Filtros")
 
-    mes_f = st.sidebar.selectbox("Mês", ["Todos"] + sorted(df["mes"].dropna().unique().tolist()))
-    op_f = st.sidebar.selectbox("Operadora", ["Todas"] + sorted(df["operadora"].dropna().unique().tolist()))
+    mes_f = st.sidebar.selectbox(
+        "Mês",
+        ["Todos"] + sorted(df["mes"].dropna().unique().tolist())
+    )
+
+    op_f = st.sidebar.selectbox(
+        "Operadora",
+        ["Todas"] + sorted(df["operadora"].dropna().unique().tolist())
+    )
 
     filtrado = df.copy()
 
@@ -130,19 +150,26 @@ if not df.empty:
     st.divider()
 
     # ======================
-    # TABELA PROFISSIONAL
+    # TABELA SEGURA (SEM QUEBRAR NUNCA)
     # ======================
     st.subheader("📋 Dados")
 
-    view = filtrado[["id", "mes", "operadora", "circuit", "desconto"]]
+    df_safe = filtrado.copy()
+
+    # garante circuit
+    if "circuit" not in df_safe.columns:
+        df_safe["circuit"] = "N/A"
+
+    cols = ["id", "mes", "operadora", "circuit", "desconto"]
+    df_safe = df_safe[[c for c in cols if c in df_safe.columns]]
 
     st.dataframe(
-        view,
+        df_safe,
         use_container_width=True,
         hide_index=True
     )
 
-    st.markdown("### 🗑️ Deletar registros")
+    st.markdown("### 🗑️ Remover registros")
 
     header = st.columns([1,2,2,2,2,1])
     header[0].write("ID")
@@ -152,22 +179,22 @@ if not df.empty:
     header[4].write("Desconto")
     header[5].write("Ação")
 
-    for _, row in view.iterrows():
+    for _, row in df_safe.iterrows():
 
         c1, c2, c3, c4, c5, c6 = st.columns([1,2,2,2,2,1])
 
-        c1.write(row["id"])
-        c2.write(row["mes"])
-        c3.write(row["operadora"])
-        c4.write(row["circuit"])
-        c5.write(row["desconto"])
+        c1.write(row.get("id", ""))
+        c2.write(row.get("mes", ""))
+        c3.write(row.get("operadora", ""))
+        c4.write(row.get("circuit", ""))
+        c5.write(row.get("desconto", ""))
 
-        if c6.button("🗑️", key=f"del_{row['id']}"):
+        if c6.button("🗑️", key=f"del_{row.get('id')}"):
             delete_data(row["id"])
             st.rerun()
 
     # ======================
-    # EXPORT
+    # EXPORT EXCEL
     # ======================
     def to_excel(dataframe):
         output = BytesIO()
@@ -177,7 +204,7 @@ if not df.empty:
 
     st.download_button(
         "📥 Exportar Excel",
-        data=to_excel(filtrado),
+        data=to_excel(df_safe),
         file_name="dashboard.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
