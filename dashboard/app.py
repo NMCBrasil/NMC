@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from io import BytesIO
 
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
@@ -29,10 +30,10 @@ with st.form("form"):
 if enviar:
     if mes and operadora and circuito:
         st.session_state.dados.append({
-            "mes": mes,
-            "operadora": operadora,
-            "circuito": circuito,
-            "desconto": float(desconto)
+            "Mês": mes,
+            "Operadora": operadora,
+            "Circuito": circuito,
+            "Desconto": float(desconto)
         })
         st.success("Registro adicionado!")
     else:
@@ -46,51 +47,32 @@ df = pd.DataFrame(st.session_state.dados)
 if not df.empty:
     st.sidebar.header("🔎 Filtros")
 
-    mes_f = st.sidebar.selectbox("Mês", ["Todos"] + sorted(df["mes"].unique()))
-    op_f = st.sidebar.selectbox("Operadora", ["Todas"] + sorted(df["operadora"].unique()))
+    mes_f = st.sidebar.selectbox("Mês", ["Todos"] + sorted(df["Mês"].unique()))
+    op_f = st.sidebar.selectbox("Operadora", ["Todas"] + sorted(df["Operadora"].unique()))
 
     filtrado = df.copy()
 
     if mes_f != "Todos":
-        filtrado = filtrado[filtrado["mes"] == mes_f]
+        filtrado = filtrado[filtrado["Mês"] == mes_f]
 
     if op_f != "Todas":
-        filtrado = filtrado[filtrado["operadora"] == op_f]
+        filtrado = filtrado[filtrado["Operadora"] == op_f]
 
     # ======================
-    # KPIs (BONITO)
+    # KPIs
     # ======================
     st.subheader("📌 Resumo")
 
     c1, c2, c3 = st.columns(3)
 
-    c1.metric("💰 Total Desconto", f"R$ {filtrado['desconto'].sum():,.2f}")
+    c1.metric("💰 Total Desconto", f"R$ {filtrado['Desconto'].sum():,.2f}")
     c2.metric("📡 Circuitos", len(filtrado))
-    c3.metric("🏢 Operadoras", filtrado["operadora"].nunique())
+    c3.metric("🏢 Operadoras", filtrado["Operadora"].nunique())
 
     st.divider()
 
     # ======================
-    # TABELA COM DELETE
-    # ======================
-    st.subheader("📋 Dados")
-
-    for i, row in filtrado.reset_index().iterrows():
-        col1, col2, col3, col4, col5 = st.columns([2,2,2,2,1])
-
-        col1.write(row["mes"])
-        col2.write(row["operadora"])
-        col3.write(row["circuito"])
-        col4.write(f"R$ {row['desconto']:.2f}")
-
-        if col5.button("🗑️", key=f"del_{i}"):
-            st.session_state.dados.pop(row["index"])
-            st.rerun()
-
-    st.divider()
-
-    # ======================
-    # GRÁFICOS MELHORADOS
+    # GRÁFICOS
     # ======================
     st.subheader("📈 Gráficos")
 
@@ -98,11 +80,47 @@ if not df.empty:
 
     with g1:
         st.markdown("### Desconto por Operadora")
-        st.bar_chart(filtrado.groupby("operadora")["desconto"].sum())
+        st.bar_chart(filtrado.groupby("Operadora")["Desconto"].sum())
 
     with g2:
         st.markdown("### Desconto por Mês")
-        st.line_chart(filtrado.groupby("mes")["desconto"].sum())
+        st.line_chart(filtrado.groupby("Mês")["Desconto"].sum())
+
+    st.divider()
+
+    # ======================
+    # EXPORTAR EXCEL
+    # ======================
+    def to_excel(df):
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="dados")
+        return output.getvalue()
+
+    st.download_button(
+        label="📥 Exportar para Excel",
+        data=to_excel(filtrado),
+        file_name="dashboard_operadoras.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+    st.divider()
+
+    # ======================
+    # TABELA (ABAIXO DOS GRÁFICOS + LINHAS)
+    # ======================
+    st.subheader("📋 Dados Detalhados")
+
+    styled = filtrado.style.set_properties(**{
+        'border': '1px solid #ccc',
+        'text-align': 'left'
+    })
+
+    st.dataframe(
+        styled,
+        use_container_width=True,
+        hide_index=True
+    )
 
 else:
     st.info("Nenhum dado cadastrado ainda.")
