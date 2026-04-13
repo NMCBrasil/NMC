@@ -3,11 +3,15 @@ import pandas as pd
 from supabase import create_client
 
 # ======================
-# CONFIG
+# CONFIG GERAL
 # ======================
-st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
+st.set_page_config(
+    page_title="Dashboard Operadoras",
+    layout="wide"
+)
 
-st.title("📊 Dashboard Operadoras")
+st.title("📊 Dashboard de Operadoras")
+st.caption("Visualização de circuitos, descontos e operadoras cadastradas no sistema.")
 
 # ======================
 # SUPABASE
@@ -18,9 +22,9 @@ key = "sb_publishable_iU9EdbgP5pxbjxzTtxwmAg_6Vqw03uW"
 supabase = create_client(url, key)
 
 # ======================
-# DATA
+# FUNÇÕES
 # ======================
-def get_data():
+def load_data():
     res = supabase.table("registros").select("*").execute()
 
     if not res.data:
@@ -32,18 +36,17 @@ def get_data():
     if "created_at" in df.columns:
         df = df.drop(columns=["created_at"])
 
-    # GARANTE COMPATIBILIDADE
     if "circuito" in df.columns and "circuit" not in df.columns:
         df["circuit"] = df["circuito"]
 
     return df
 
 
-def delete_data(row_id):
+def delete_row(row_id):
     supabase.table("registros").delete().eq("id", row_id).execute()
 
 
-def insert_data(mes, operadora, circuit, desconto):
+def insert_row(mes, operadora, circuit, desconto):
     supabase.table("registros").insert({
         "mes": mes,
         "operadora": operadora,
@@ -51,39 +54,47 @@ def insert_data(mes, operadora, circuit, desconto):
         "desconto": desconto
     }).execute()
 
+# ======================
+# CADASTRO
+# ======================
+st.header("➕ Cadastro de novos registros")
+st.write("Preencha os campos abaixo para adicionar um novo circuito ao sistema.")
 
-# ======================
-# FORM
-# ======================
-with st.expander("➕ Adicionar registro"):
+with st.container():
     c1, c2, c3, c4 = st.columns(4)
 
-    mes = c1.text_input("Mês")
-    operadora = c2.text_input("Operadora")
-    circuit = c3.text_input("Circuito")
-    desconto = c4.number_input("Desconto", step=1.0)
+    mes = c1.text_input("📅 Mês (ex: Janeiro)")
+    operadora = c2.text_input("📡 Operadora")
+    circuit = c3.text_input("🔌 Circuito")
+    desconto = c4.number_input("💰 Desconto", step=1.0)
 
-    if st.button("Salvar"):
-        insert_data(mes, operadora, circuit, float(desconto))
-        st.rerun()
+    if st.button("Salvar registro"):
+        if mes and operadora and circuit:
+            insert_row(mes, operadora, circuit, float(desconto))
+            st.success("Registro salvo com sucesso!")
+            st.rerun()
+        else:
+            st.error("Preencha todos os campos")
 
+st.divider()
 
 # ======================
-# LOAD DATA
+# DADOS
 # ======================
-df = get_data()
+df = load_data()
 
 if df.empty:
-    st.warning("Sem dados cadastrados.")
+    st.warning("Nenhum dado cadastrado ainda.")
     st.stop()
 
 # ======================
 # FILTROS
 # ======================
-st.sidebar.header("🔎 Filtros")
+st.sidebar.header("🔎 Filtros do Dashboard")
+st.sidebar.write("Use os filtros abaixo para refinar a visualização.")
 
-mes_f = st.sidebar.selectbox("Mês", ["Todos"] + sorted(df["mes"].dropna().unique()))
-op_f = st.sidebar.selectbox("Operadora", ["Todas"] + sorted(df["operadora"].dropna().unique()))
+mes_f = st.sidebar.selectbox("Filtrar por mês", ["Todos"] + sorted(df["mes"].dropna().unique()))
+op_f = st.sidebar.selectbox("Filtrar por operadora", ["Todas"] + sorted(df["operadora"].dropna().unique()))
 
 filtered = df.copy()
 
@@ -96,42 +107,51 @@ if op_f != "Todas":
 # ======================
 # KPIs
 # ======================
+st.header("📌 Indicadores gerais")
+
 c1, c2, c3 = st.columns(3)
 
-c1.metric("💰 Total", f"R$ {filtered['desconto'].sum():,.2f}")
-c2.metric("📄 Registros", len(filtered))
-c3.metric("🏢 Operadoras", filtered["operadora"].nunique())
+c1.metric("💰 Total em descontos", f"R$ {filtered['desconto'].sum():,.2f}")
+c2.metric("📄 Total de registros", len(filtered))
+c3.metric("🏢 Operadoras ativas", filtered["operadora"].nunique())
+
+st.caption("Esses indicadores mostram o resumo geral dos dados filtrados.")
 
 st.divider()
 
 # ======================
 # GRÁFICOS
 # ======================
+st.header("📊 Análise visual")
+
 c1, c2 = st.columns(2)
 
-c1.bar_chart(filtered.groupby("operadora")["desconto"].sum())
-c2.line_chart(filtered.groupby("mes")["desconto"].sum())
+with c1:
+    st.subheader("Desconto por operadora")
+    st.bar_chart(filtered.groupby("operadora")["desconto"].sum())
+
+with c2:
+    st.subheader("Desconto por mês")
+    st.line_chart(filtered.groupby("mes")["desconto"].sum())
 
 st.divider()
 
 # ======================
-# TABELA LIMPA (SEM ERRO)
+# TABELA
 # ======================
-st.subheader("📋 Dados")
+st.header("📋 Dados detalhados")
+st.write("Lista completa dos registros filtrados. Você pode excluir qualquer item.")
 
 for _, row in filtered.iterrows():
 
-    c1, c2, c3, c4, c5 = st.columns([1.5,2,2,2,1])
+    c1, c2, c3, c4, c5 = st.columns([1,2,2,2,1])
 
-    c1.write(row.get("id", ""))
-    c2.write(row.get("mes", ""))
-    c3.write(row.get("operadora", ""))
-
-    # 🔥 AQUI ESTÁ O FIX REAL
-    c4.write(row.get("circuit", row.get("circuito", "N/A")))
-
-    c5.write(f"R$ {row.get('desconto', 0)}")
+    c1.write(f"🆔 {row.get('id','')}")
+    c2.write(f"📅 {row.get('mes','')}")
+    c3.write(f"📡 {row.get('operadora','')}")
+    c4.write(f"🔌 {row.get('circuit', row.get('circuito','N/A'))}")
+    c5.write(f"💰 {row.get('desconto',0)}")
 
     if c5.button("🗑️", key=f"del_{row.get('id')}"):
-        delete_data(row["id"])
+        delete_row(row["id"])
         st.rerun()
