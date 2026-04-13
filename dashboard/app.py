@@ -19,7 +19,7 @@ key = "sb_publishable_iU9EdbgP5pxbjxzTtxwmAg_6Vqw03uW"
 supabase = create_client(url, key)
 
 # ======================
-# FUNÇÕES
+# LOAD DATA
 # ======================
 def load_data():
     res = supabase.table("registros").select("*").execute()
@@ -39,11 +39,9 @@ def load_data():
     return df
 
 
-def delete_row(row_id):
-    supabase.table("registros").delete().eq("id", int(row_id)).execute()
-    st.toast("Registro excluído com sucesso!")
-
-
+# ======================
+# INSERT
+# ======================
 def insert_row(mes, operadora, circuit, desconto):
     supabase.table("registros").insert({
         "mes": mes,
@@ -52,8 +50,20 @@ def insert_row(mes, operadora, circuit, desconto):
         "desconto": desconto
     }).execute()
 
+
 # ======================
-# FORMULÁRIO
+# DELETE (CORRIGIDO)
+# ======================
+def delete_row(row_id):
+    try:
+        supabase.table("registros").delete().eq("id", row_id).execute()
+        st.toast("Registro excluído com sucesso")
+    except Exception as e:
+        st.error(f"Erro ao excluir: {e}")
+
+
+# ======================
+# FORM
 # ======================
 st.header("➕ Adicionar registro")
 
@@ -76,16 +86,16 @@ with st.form("form"):
             st.error("Preencha todos os campos")
 
 # ======================
-# CARREGAR DADOS
+# DATA
 # ======================
 df = load_data()
 
 if df.empty:
-    st.warning("Nenhum dado cadastrado ainda.")
+    st.warning("Nenhum dado cadastrado.")
     st.stop()
 
 # ======================
-# FILTROS
+# FILTERS
 # ======================
 st.sidebar.header("🔎 Filtros")
 
@@ -107,7 +117,7 @@ st.subheader("📌 Resumo")
 
 c1, c2, c3 = st.columns(3)
 
-c1.metric("💰 Total descontos", f"R$ {filtered['desconto'].sum():,.2f}")
+c1.metric("💰 Total", f"R$ {filtered['desconto'].sum():,.2f}")
 c2.metric("📄 Registros", len(filtered))
 c3.metric("🏢 Operadoras", filtered["operadora"].nunique())
 
@@ -126,9 +136,9 @@ c2.line_chart(filtered.groupby("mes")["desconto"].sum())
 st.divider()
 
 # ======================
-# TABELA + DELETE
+# TABELA COM DELETE NA FRENTE
 # ======================
-st.subheader("📋 Dados")
+st.subheader("📋 Dados cadastrados")
 
 for _, row in filtered.iterrows():
 
@@ -137,14 +147,14 @@ for _, row in filtered.iterrows():
     if pd.isna(row_id):
         continue
 
-    c1, c2, c3, c4, c5 = st.columns([1.5,2,2,2,1])
+    c_del, c1, c2, c3, c4 = st.columns([0.6, 1.5, 2, 2, 2])
+
+    # BOTÃO PRIMEIRO (FRENTE)
+    if c_del.button("🗑️", key=f"del_{row_id}"):
+        delete_row(row_id)
+        st.rerun()
 
     c1.write(f"🆔 {row_id}")
     c2.write(f"📅 {row.get('mes','')}")
     c3.write(f"📡 {row.get('operadora','')}")
     c4.write(f"🔌 {row.get('circuit', row.get('circuito','N/A'))}")
-    c5.write(f"💰 {row.get('desconto',0)}")
-
-    if st.button("🗑️ Excluir", key=f"del_{row_id}"):
-        delete_row(row_id)
-        st.rerun()
