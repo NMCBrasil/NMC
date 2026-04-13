@@ -1,20 +1,30 @@
 import streamlit as st
 import pandas as pd
+import os
 from io import BytesIO
 
 st.set_page_config(
     page_title="Dashboard Operadoras",
     layout="wide",
-    initial_sidebar_state="collapsed"  # 👈 sidebar já inicia minimizada
+    initial_sidebar_state="collapsed"
 )
 
 st.title("📊 Dashboard Operadoras")
 
+ARQUIVO = "dados.csv"
+
 # ======================
-# ESTADO
+# CARREGAR DADOS
 # ======================
-if "dados" not in st.session_state:
-    st.session_state.dados = []
+def carregar():
+    if os.path.exists(ARQUIVO):
+        return pd.read_csv(ARQUIVO)
+    return pd.DataFrame(columns=["Mês", "Operadora", "Circuito", "Desconto"])
+
+def salvar(df):
+    df.to_csv(ARQUIVO, index=False)
+
+df = carregar()
 
 # ======================
 # FORMULÁRIO
@@ -33,26 +43,23 @@ with st.form("form"):
 
 if enviar:
     if mes and operadora and circuito:
-        st.session_state.dados.append({
+        novo = pd.DataFrame([{
             "Mês": mes,
             "Operadora": operadora,
             "Circuito": circuito,
             "Desconto": float(desconto)
-        })
-        st.success("Registro adicionado!")
+        }])
+
+        df = pd.concat([df, novo], ignore_index=True)
+        salvar(df)
+
+        st.success("Registro salvo com sucesso!")
+        st.rerun()
     else:
         st.error("Preencha todos os campos!")
 
 # ======================
-# DATAFRAME
-# ======================
-df = pd.DataFrame(
-    st.session_state.dados,
-    columns=["Mês", "Operadora", "Circuito", "Desconto"]
-)
-
-# ======================
-# SIDEBAR (COLAPSÁVEL)
+# SIDEBAR
 # ======================
 if not df.empty:
 
@@ -69,11 +76,6 @@ if not df.empty:
             ["Todas"] + sorted(df["Operadora"].dropna().unique().tolist())
         )
 
-        st.caption("💡 Clique na seta para recolher/expandir")
-
-    # ======================
-    # FILTRO
-    # ======================
     filtrado = df.copy()
 
     if mes_f != "Todos":
@@ -89,7 +91,7 @@ if not df.empty:
 
     c1, c2, c3 = st.columns(3)
 
-    c1.metric("💰 Total Desconto", f"R$ {filtrado['Desconto'].sum():,.2f}")
+    c1.metric("💰 Total", f"R$ {filtrado['Desconto'].sum():,.2f}")
     c2.metric("📡 Circuitos", len(filtrado))
     c3.metric("🏢 Operadoras", filtrado["Operadora"].nunique())
 
@@ -100,15 +102,10 @@ if not df.empty:
     # ======================
     st.subheader("📈 Gráficos")
 
-    g1, g2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
-    with g1:
-        st.markdown("### Desconto por Operadora")
-        st.bar_chart(filtrado.groupby("Operadora")["Desconto"].sum())
-
-    with g2:
-        st.markdown("### Desconto por Mês")
-        st.line_chart(filtrado.groupby("Mês")["Desconto"].sum())
+    col1.bar_chart(filtrado.groupby("Operadora")["Desconto"].sum())
+    col2.line_chart(filtrado.groupby("Mês")["Desconto"].sum())
 
     st.divider()
 
@@ -118,13 +115,13 @@ if not df.empty:
     def to_excel(dataframe):
         output = BytesIO()
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
-            dataframe.to_excel(writer, index=False, sheet_name="dados")
+            dataframe.to_excel(writer, index=False)
         return output.getvalue()
 
     st.download_button(
         "📥 Exportar Excel",
         data=to_excel(filtrado),
-        file_name="dashboard_operadoras.xlsx",
+        file_name="dashboard.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
@@ -133,13 +130,9 @@ if not df.empty:
     # ======================
     # TABELA
     # ======================
-    st.subheader("📋 Dados Detalhados")
+    st.subheader("📋 Dados")
 
-    st.dataframe(
-        filtrado,
-        use_container_width=True,
-        hide_index=True
-    )
+    st.dataframe(filtrado, use_container_width=True, hide_index=True)
 
 else:
     st.info("Nenhum dado cadastrado ainda.")
