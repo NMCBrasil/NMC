@@ -25,7 +25,7 @@ def load_data():
     res = supabase.table("registros").select("*").execute()
 
     if not res.data:
-        return pd.DataFrame(columns=["id", "mes", "operadora", "circuit", "desconto"])
+        return pd.DataFrame(columns=["id", "mes", "operadora", "circuito", "desconto"])
 
     df = pd.DataFrame(res.data)
     df.columns = df.columns.str.lower()
@@ -33,26 +33,27 @@ def load_data():
     if "created_at" in df.columns:
         df = df.drop(columns=["created_at"])
 
-    if "circuito" in df.columns and "circuit" not in df.columns:
-        df["circuit"] = df["circuito"]
-
     return df
 
 
 # ======================
 # INSERT
 # ======================
-def insert_row(mes, operadora, circuit, desconto):
-    supabase.table("registros").insert({
-        "mes": mes,
-        "operadora": operadora,
-        "circuit": circuit,
-        "desconto": desconto
-    }).execute()
+def insert_row(mes, operadora, circuito, desconto):
+    try:
+        supabase.table("registros").insert({
+            "mes": mes,
+            "operadora": operadora,
+            "circuito": circuito,  # ✅ CORRETO
+            "desconto": desconto
+        }).execute()
+
+    except Exception as e:
+        st.error(f"Erro ao inserir: {e}")
 
 
 # ======================
-# DELETE (CORRIGIDO)
+# DELETE
 # ======================
 def delete_row(row_id):
     try:
@@ -72,18 +73,19 @@ with st.form("form"):
 
     mes = c1.text_input("Mês")
     operadora = c2.text_input("Operadora")
-    circuit = c3.text_input("Circuito")
-    desconto = c4.number_input("Desconto", step=1.0)
+    circuito = c3.text_input("Circuito")  # nome alinhado com banco
+    desconto = c4.number_input("Desconto", step=1.0, value=0.0)
 
     submit = st.form_submit_button("Salvar")
 
     if submit:
-        if mes and operadora and circuit:
-            insert_row(mes, operadora, circuit, float(desconto))
+        if mes and operadora and circuito:
+            insert_row(mes, operadora, circuito, float(desconto))
             st.success("Registro salvo!")
             st.rerun()
         else:
-            st.error("Preencha todos os campos")
+            st.error("Preencha todos os campos obrigatórios")
+
 
 # ======================
 # DATA
@@ -131,12 +133,14 @@ st.subheader("📊 Visualização")
 c1, c2 = st.columns(2)
 
 c1.bar_chart(filtered.groupby("operadora")["desconto"].sum())
-c2.line_chart(filtered.groupby("mes")["desconto"].sum())
+
+chart_data = filtered.groupby("mes", as_index=False)["desconto"].sum()
+c2.line_chart(chart_data.set_index("mes"))
 
 st.divider()
 
 # ======================
-# TABELA COM DELETE NA FRENTE
+# TABELA COM DELETE
 # ======================
 st.subheader("📋 Dados cadastrados")
 
@@ -149,7 +153,6 @@ for _, row in filtered.iterrows():
 
     c_del, c1, c2, c3, c4 = st.columns([0.6, 1.5, 2, 2, 2])
 
-    # BOTÃO PRIMEIRO (FRENTE)
     if c_del.button("🗑️", key=f"del_{row_id}"):
         delete_row(row_id)
         st.rerun()
@@ -157,4 +160,4 @@ for _, row in filtered.iterrows():
     c1.write(f"🆔 {row_id}")
     c2.write(f"📅 {row.get('mes','')}")
     c3.write(f"📡 {row.get('operadora','')}")
-    c4.write(f"🔌 {row.get('circuit', row.get('circuito','N/A'))}")
+    c4.write(f"🔌 {row.get('circuito','N/A')}")
