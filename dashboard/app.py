@@ -39,16 +39,30 @@ if enviar:
     else:
         st.error("Preencha todos os campos!")
 
-df = pd.DataFrame(st.session_state.dados)
+# ======================
+# DATAFRAME (CORRIGIDO)
+# ======================
+df = pd.DataFrame(
+    st.session_state.dados,
+    columns=["Mês", "Operadora", "Circuito", "Desconto"]
+)
 
 # ======================
-# FILTROS
+# FILTROS + DASHBOARD
 # ======================
 if not df.empty:
+
     st.sidebar.header("🔎 Filtros")
 
-    mes_f = st.sidebar.selectbox("Mês", ["Todos"] + sorted(df["Mês"].unique()))
-    op_f = st.sidebar.selectbox("Operadora", ["Todas"] + sorted(df["Operadora"].unique()))
+    mes_f = st.sidebar.selectbox(
+        "Mês",
+        ["Todos"] + sorted(df["Mês"].dropna().unique().tolist())
+    )
+
+    op_f = st.sidebar.selectbox(
+        "Operadora",
+        ["Todas"] + sorted(df["Operadora"].dropna().unique().tolist())
+    )
 
     filtrado = df.copy()
 
@@ -89,16 +103,16 @@ if not df.empty:
     st.divider()
 
     # ======================
-    # EXPORTAR EXCEL
+    # EXPORT EXCEL
     # ======================
-    def to_excel(df):
+    def to_excel(dataframe):
         output = BytesIO()
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
-            df.to_excel(writer, index=False, sheet_name="dados")
+            dataframe.to_excel(writer, index=False, sheet_name="dados")
         return output.getvalue()
 
     st.download_button(
-        label="📥 Exportar para Excel",
+        "📥 Exportar Excel",
         data=to_excel(filtrado),
         file_name="dashboard_operadoras.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -107,17 +121,12 @@ if not df.empty:
     st.divider()
 
     # ======================
-    # TABELA (ABAIXO DOS GRÁFICOS + LINHAS)
+    # TABELA (ABAIXO DOS GRÁFICOS)
     # ======================
     st.subheader("📋 Dados Detalhados")
 
-    styled = filtrado.style.set_properties(**{
-        'border': '1px solid #ccc',
-        'text-align': 'left'
-    })
-
     st.dataframe(
-        styled,
+        filtrado,
         use_container_width=True,
         hide_index=True
     )
