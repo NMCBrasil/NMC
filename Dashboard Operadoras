@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - Operadoras</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial; background:#f4f6f9; margin:20px; }
+    h1 { text-align:center; }
+    .container { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .card { background:#fff; padding:20px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding:8px; border-bottom:1px solid #ddd; text-align:left; }
+    button { padding:8px 12px; margin-top:10px; }
+    input { margin:5px; padding:5px; }
+  </style>
+</head>
+<body>
+
+<h1>Dashboard de Descontos</h1>
+
+<div class="card">
+  <h3>Adicionar Dados</h3>
+  <input id="mes" placeholder="Mês">
+  <input id="operadora" placeholder="Operadora">
+  <input id="circuito" placeholder="Circuito">
+  <input id="desconto" type="number" placeholder="Desconto">
+  <button onclick="addData()">Adicionar</button>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h3>Desconto por Operadora</h3>
+    <canvas id="chartOperadora"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>Desconto por Mês</h3>
+    <canvas id="chartMes"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Tabela de Dados</h3>
+  <table id="tabela">
+    <thead>
+      <tr>
+        <th>Mês</th>
+        <th>Operadora</th>
+        <th>Circuito</th>
+        <th>Desconto</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+let dados = [];
+
+function addData() {
+  const mes = document.getElementById('mes').value;
+  const operadora = document.getElementById('operadora').value;
+  const circuito = document.getElementById('circuito').value;
+  const desconto = parseFloat(document.getElementById('desconto').value);
+
+  if (!mes || !operadora || !circuito || !desconto) {
+    alert('Preencha todos os campos');
+    return;
+  }
+
+  dados.push({ mes, operadora, circuito, desconto });
+  render();
+}
+
+function render() {
+  renderTabela();
+  renderGraficoOperadora();
+  renderGraficoMes();
+}
+
+function renderTabela() {
+  const tbody = document.querySelector('#tabela tbody');
+  tbody.innerHTML = '';
+
+  dados.forEach(d => {
+    const row = `<tr>
+      <td>${d.mes}</td>
+      <td>${d.operadora}</td>
+      <td>${d.circuito}</td>
+      <td>${d.desconto}</td>
+    </tr>`;
+    tbody.innerHTML += row;
+  });
+}
+
+function agrupar(campo) {
+  const mapa = {};
+  dados.forEach(d => {
+    mapa[d[campo]] = (mapa[d[campo]] || 0) + d.desconto;
+  });
+  return mapa;
+}
+
+let chartOp, chartMes;
+
+function renderGraficoOperadora() {
+  const data = agrupar('operadora');
+  if (chartOp) chartOp.destroy();
+
+  chartOp = new Chart(document.getElementById('chartOperadora'), {
+    type: 'bar',
+    data: {
+      labels: Object.keys(data),
+      datasets: [{ label: 'Desconto', data: Object.values(data) }]
+    }
+  });
+}
+
+function renderGraficoMes() {
+  const data = agrupar('mes');
+  if (chartMes) chartMes.destroy();
+
+  chartMes = new Chart(document.getElementById('chartMes'), {
+    type: 'line',
+    data: {
+      labels: Object.keys(data),
+      datasets: [{ label: 'Desconto', data: Object.values(data) }]
+    }
+  });
+}
+</script>
+
+</body>
+</html>
