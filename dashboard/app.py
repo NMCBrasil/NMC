@@ -1,253 +1,95 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-  <meta charset="UTF-8">
-  <title>Dashboard Operadoras</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+import streamlit as st
+import pandas as pd
 
-  <style>
-    body { margin:0; font-family: 'Segoe UI', Arial; background:#e5e7eb; color:#1f2937; }
-    header { position:sticky; top:0; padding:16px; text-align:center; font-size:22px; background:#f9fafb; border-bottom:1px solid #ccc; }
-    .container { padding:20px; }
-    .card { background:#fff; padding:15px; border-radius:10px; margin-bottom:15px; }
-    .grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(250px,1fr)); gap:15px; }
-    input, select, button { padding:8px; margin:5px; }
-    button { background:#2563eb; color:white; border:none; cursor:pointer; }
-    .delete { background:red; }
-    table { width:100%; border-collapse:collapse; }
-    th, td { padding:8px; border-bottom:1px solid #ddd; }
-  </style>
-</head>
+st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
-<body>
+st.title("Dashboard Operadoras 🚀")
 
-<header>Dashboard Operadoras</header>
+# ======================
+# DADOS (sessão)
+# ======================
+if "dados" not in st.session_state:
+    st.session_state.dados = []
 
-<div class="container">
+# ======================
+# ADICIONAR REGISTRO
+# ======================
+st.header("Adicionar Registro")
 
-<div class="card">
-<h3>Adicionar Registro</h3>
-<input id="mes" placeholder="Mês">
-<input id="operadora" placeholder="Operadora">
-<input id="circuito" placeholder="Circuito">
-<input id="desconto" type="number" placeholder="Desconto">
-<button onclick="addData()">Adicionar</button>
+with st.form("form"):
+    col1, col2, col3, col4 = st.columns(4)
 
-<h3>Backup</h3>
-<button onclick="exportar()">Exportar Excel</button>
-<input type="file" onchange="importar(event)">
-</div>
+    with col1:
+        mes = st.text_input("Mês")
+    with col2:
+        operadora = st.text_input("Operadora")
+    with col3:
+        circuito = st.text_input("Circuito")
+    with col4:
+        desconto = st.number_input("Desconto", step=1.0)
 
-<div class="card">
-<h3>Filtros</h3>
-<select id="filtroMes" onchange="render()"></select>
-<select id="filtroOperadora" onchange="render()"></select>
-</div>
+    enviar = st.form_submit_button("Adicionar")
 
-<div class="grid">
-<div class="card"><h3>Total</h3><div id="total"></div></div>
-<div class="card"><h3>Circuitos</h3><div id="qtd"></div></div>
-<div class="card"><h3>Operadoras</h3><div id="ops"></div></div>
-</div>
+if enviar:
+    if mes and operadora and circuito:
+        st.session_state.dados.append({
+            "mes": mes,
+            "operadora": operadora,
+            "circuito": circuito,
+            "desconto": float(desconto)
+        })
+        st.success("Registro adicionado!")
+    else:
+        st.error("Preencha todos os campos!")
 
-<div class="grid">
-<div class="card"><canvas id="chart1"></canvas></div>
-<div class="card"><canvas id="chart2"></canvas></div>
-<div class="card"><canvas id="chart3"></canvas></div>
-</div>
+# ======================
+# DATAFRAME
+# ======================
+df = pd.DataFrame(st.session_state.dados)
 
-<div class="card">
-<table>
-<thead>
-<tr>
-<th>Mês</th>
-<th>Operadora</th>
-<th>Circuito</th>
-<th>Desconto</th>
-<th>Ação</th>
-</tr>
-</thead>
-<tbody id="tabela"></tbody>
-</table>
-</div>
+# ======================
+# FILTROS
+# ======================
+if not df.empty:
+    st.sidebar.header("Filtros")
 
-</div>
+    mes_f = st.sidebar.selectbox("Mês", ["Todos"] + sorted(df["mes"].unique().tolist()))
+    op_f = st.sidebar.selectbox("Operadora", ["Todas"] + sorted(df["operadora"].unique().tolist()))
 
-<script>
+    filtrado = df.copy()
 
-// ===== DADOS =====
-let dados = JSON.parse(localStorage.getItem('dados') || '[]');
+    if mes_f != "Todos":
+        filtrado = filtrado[filtrado["mes"] == mes_f]
 
-window.onload = () => {
-  const backup = localStorage.getItem('dados_backup');
-  if (backup && dados.length === 0) {
-    dados = JSON.parse(backup);
-  }
-  atualizarFiltros();
-  render();
-};
+    if op_f != "Todas":
+        filtrado = filtrado[filtrado["operadora"] == op_f]
 
-function salvar(){
-  localStorage.setItem('dados', JSON.stringify(dados));
-  localStorage.setItem('dados_backup', JSON.stringify(dados));
-}
+    # ======================
+    # KPIs
+    # ======================
+    st.subheader("Resumo")
 
-// ===== ADD =====
-function addData(){
-  const mes = mesInput.value;
-  const op = operadoraInput.value;
-  const cir = circuitoInput.value;
-  const desc = parseFloat(descontoInput.value);
+    col1, col2, col3 = st.columns(3)
 
-  if(!mes || !op || !cir || isNaN(desc)){
-    alert("Preencha tudo");
-    return;
-  }
+    col1.metric("Total Desconto", f"R$ {filtrado['desconto'].sum():,.2f}")
+    col2.metric("Circuitos", len(filtrado))
+    col3.metric("Operadoras", filtrado["operadora"].nunique())
 
-  dados.push({mes, operadora:op, circuito:cir, desconto:desc});
-  salvar();
+    # ======================
+    # TABELA
+    # ======================
+    st.subheader("Tabela")
 
-  mesInput.value='';
-  operadoraInput.value='';
-  circuitoInput.value='';
-  descontoInput.value='';
+    st.dataframe(filtrado, use_container_width=True)
 
-  atualizarFiltros();
-  render();
-}
+    # ======================
+    # GRÁFICOS
+    # ======================
+    st.subheader("Gráficos")
 
-// ===== REMOVER =====
-function remover(i){
-  dados.splice(i,1);
-  salvar();
-  render();
-}
+    st.bar_chart(filtrado.groupby("operadora")["desconto"].sum())
 
-// ===== EXPORTAR CSV =====
-function exportar(){
-  if(dados.length===0){
-    alert("Sem dados");
-    return;
-  }
+    st.line_chart(filtrado.groupby("mes")["desconto"].sum())
 
-  let csv = "Mes,Operadora,Circuito,Desconto\n";
-  dados.forEach(d=>{
-    csv += `${d.mes},${d.operadora},${d.circuito},${d.desconto}\n`;
-  });
-
-  const blob = new Blob([csv], {type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href=url;
-  a.download="dados.csv";
-  a.click();
-}
-
-// ===== IMPORTAR =====
-function importar(e){
-  const file = e.target.files[0];
-  const reader = new FileReader();
-
-  reader.onload = function(ev){
-    dados = JSON.parse(ev.target.result);
-    salvar();
-    atualizarFiltros();
-    render();
-  };
-
-  reader.readAsText(file);
-}
-
-// ===== FILTRO =====
-function filtrar(){
-  return dados.filter(d=>
-    (!filtroMes.value || d.mes==filtroMes.value) &&
-    (!filtroOperadora.value || d.operadora==filtroOperadora.value)
-  );
-}
-
-// ===== AGRUPAR =====
-function agrupar(lista,campo){
-  let m={};
-  lista.forEach(d=>m[d[campo]]=(m[d[campo]]||0)+d.desconto);
-  return m;
-}
-
-// ===== KPIs =====
-function renderKPIs(lista){
-  total.innerText = "R$ "+lista.reduce((a,b)=>a+b.desconto,0);
-  qtd.innerText = lista.length;
-  ops.innerText = [...new Set(lista.map(d=>d.operadora))].length;
-}
-
-// ===== TABELA =====
-function renderTabela(lista){
-  tabela.innerHTML='';
-  lista.forEach((d,i)=>{
-    tabela.innerHTML+=`
-    <tr>
-      <td>${d.mes}</td>
-      <td>${d.operadora}</td>
-      <td>${d.circuito}</td>
-      <td>${d.desconto}</td>
-      <td><button class="delete" onclick="remover(${i})">X</button></td>
-    </tr>`;
-  });
-}
-
-// ===== GRÁFICOS =====
-let c1,c2,c3;
-
-function renderCharts(lista){
-  const op = agrupar(lista,'operadora');
-  const mes = agrupar(lista,'mes');
-  const cir = agrupar(lista,'circuito');
-
-  if(c1) c1.destroy();
-  if(c2) c2.destroy();
-  if(c3) c3.destroy();
-
-  c1 = new Chart(chart1,{type:'bar',data:{labels:Object.keys(op),datasets:[{data:Object.values(op)}]}});
-  c2 = new Chart(chart2,{type:'line',data:{labels:Object.keys(mes),datasets:[{data:Object.values(mes)}]}});
-  c3 = new Chart(chart3,{type:'bar',data:{labels:Object.keys(cir),datasets:[{data:Object.values(cir)}]}});
-}
-
-// ===== FILTROS =====
-function atualizarFiltros(){
-  filtroMes.innerHTML='<option value="">Todos</option>';
-  filtroOperadora.innerHTML='<option value="">Todas</option>';
-
-  [...new Set(dados.map(d=>d.mes))].forEach(m=>filtroMes.innerHTML+=`<option>${m}</option>`);
-  [...new Set(dados.map(d=>d.operadora))].forEach(o=>filtroOperadora.innerHTML+=`<option>${o}</option>`);
-}
-
-// ===== RENDER =====
-function render(){
-  const lista = filtrar();
-  renderKPIs(lista);
-  renderTabela(lista);
-  renderCharts(lista);
-}
-
-// ===== ELEMENTOS =====
-const mesInput = document.getElementById('mes');
-const operadoraInput = document.getElementById('operadora');
-const circuitoInput = document.getElementById('circuito');
-const descontoInput = document.getElementById('desconto');
-
-const tabela = document.getElementById('tabela');
-const total = document.getElementById('total');
-const qtd = document.getElementById('qtd');
-const ops = document.getElementById('ops');
-
-const chart1 = document.getElementById('chart1');
-const chart2 = document.getElementById('chart2');
-const chart3 = document.getElementById('chart3');
-
-const filtroMes = document.getElementById('filtroMes');
-const filtroOperadora = document.getElementById('filtroOperadora');
-
-</script>
-
-</body>
-</html>
+else:
+    st.info("Nenhum dado cadastrado ainda.")
