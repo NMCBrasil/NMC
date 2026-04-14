@@ -10,12 +10,12 @@ from pathlib import Path
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 # ======================
-# 🎨 TEMA (AZUL MAIS CLARO)
+# 🎨 TEMA HUGHES (AZUL MAIS CLARO)
 # ======================
 st.markdown("""
     <style>
         .stApp {
-            background-color: #1f4e79;
+            background-color: #2f6fb3;
             color: white;
         }
 
@@ -24,7 +24,7 @@ st.markdown("""
         }
 
         section[data-testid="stSidebar"] {
-            background-color: #173a5e;
+            background-color: #255a94;
         }
 
         .stButton > button {
@@ -39,19 +39,25 @@ st.markdown("""
         }
 
         .stTextInput input, .stNumberInput input {
-            background-color: #2b5d8a;
+            background-color: #3b7cc4;
             color: white;
         }
 
         div[data-baseweb="select"] {
-            background-color: #2b5d8a;
+            background-color: #3b7cc4;
             color: white;
+        }
+
+        div[data-testid="metric-container"] {
+            background-color: #3b7cc4;
+            border-radius: 10px;
+            padding: 10px;
         }
     </style>
 """, unsafe_allow_html=True)
 
 # ======================
-# 🖼️ LOGO + TÍTULO (CORRIGIDO)
+# 🖼️ LOGO + TÍTULO
 # ======================
 col_logo, col_title = st.columns([1,5])
 
@@ -120,7 +126,6 @@ with st.form("form", clear_on_submit=True):
     c1, c2 = st.columns(2)
     c3, c4 = st.columns(2)
 
-    # 📅 Mês + Ano obrigatório
     col_mes, col_ano = c1.columns(2)
 
     today = date.today()
@@ -186,12 +191,10 @@ st.subheader("📊 Análise")
 
 col1, col2 = st.columns(2)
 
-# Operadora
 col1.markdown("**Descontos por Operadora**")
 operadora_data = df.groupby("operadora")["desconto"].sum().sort_values(ascending=False)
 col1.bar_chart(operadora_data)
 
-# Evolução
 col2.markdown("**Evolução por Mês**")
 evolucao_data = (
     df.dropna(subset=["mes_dt"])
@@ -210,7 +213,6 @@ st.subheader("📋 Registros")
 
 df = df.sort_values("mes_dt", ascending=False)
 
-# Cabeçalho
 col1, col2, col3, col4, col5 = st.columns([2,2,3,2,1])
 
 col1.markdown("**Mês/Ano**")
@@ -221,7 +223,6 @@ col5.markdown("")
 
 st.divider()
 
-# Linhas
 for i, row in df.iterrows():
     col1, col2, col3, col4, col5 = st.columns([2,2,3,2,1])
 
