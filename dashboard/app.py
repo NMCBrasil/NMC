@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from supabase import create_client
 from datetime import date
+from pathlib import Path
 
 # ======================
 # CONFIG
@@ -50,12 +51,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ======================
-# 🖼️ LOGO + TÍTULO
+# 🖼️ LOGO + TÍTULO (CORRIGIDO)
 # ======================
 col_logo, col_title = st.columns([1,5])
 
 with col_logo:
-    st.image("logo.png", width=140)
+    logo_path = Path(__file__).parent / "logo.png"
+    st.image(str(logo_path), width=140)
 
 with col_title:
     st.title("📊 Dashboard de Operadoras")
@@ -178,7 +180,7 @@ c3.metric("🏢 Operadoras", df["operadora"].nunique())
 st.divider()
 
 # ======================
-# 📊 GRÁFICOS (CORRIGIDOS)
+# 📊 GRÁFICOS
 # ======================
 st.subheader("📊 Análise")
 
