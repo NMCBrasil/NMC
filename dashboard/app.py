@@ -10,21 +10,21 @@ from pathlib import Path
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 # ======================
-# 🎨 TEMA
+# 🎨 TEMA (AZUL MAIS CLARO)
 # ======================
 st.markdown("""
     <style>
         .stApp {
-            background-color: #2f6fb3;
-            color: white;
+            background-color: #cfe3ff;
+            color: #000000;
         }
 
         h1, h2, h3 {
-            color: #ffffff;
+            color: #000000;
         }
 
         section[data-testid="stSidebar"] {
-            background-color: #255a94;
+            background-color: #b7d4ff;
         }
 
         .stButton > button {
@@ -38,24 +38,23 @@ st.markdown("""
             background-color: #e65c00;
         }
 
+        /* INPUTS */
         .stTextInput input, .stNumberInput input {
-            background-color: #3b7cc4;
-            color: white;
+            background-color: #ffffff;
+            color: black;
         }
 
+        /* SELECT (MÊS/ANO) */
         div[data-baseweb="select"] {
-            background-color: #3b7cc4;
-            color: white;
+            background-color: #ffffff;
+            color: black;
         }
 
+        /* KPI */
         div[data-testid="metric-container"] {
-            background-color: #3b7cc4;
-            border-radius: 12px;
-            padding: 15px;
-        }
-
-        hr {
-            border: 1px solid #ffffff33;
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 10px;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -71,7 +70,7 @@ with col_logo:
 
 with col_title:
     st.title("Dashboard de Operadoras")
-    st.caption("Controle de descontos por circuito")
+    st.markdown("<h3>Controle de descontos por circuito</h3>", unsafe_allow_html=True)
 
 st.divider()
 
@@ -119,35 +118,34 @@ def delete_row(row_id):
 # ======================
 st.subheader("➕ Novo Registro")
 
-with st.container():
-    with st.form("form", clear_on_submit=True):
+with st.form("form", clear_on_submit=True):
 
-        c1, c2 = st.columns(2)
-        c3, c4 = st.columns(2)
+    c1, c2 = st.columns(2)
+    c3, c4 = st.columns(2)
 
-        col_mes, col_ano = c1.columns(2)
+    col_mes, col_ano = c1.columns(2)
 
-        today = date.today()
+    today = date.today()
 
-        mes_num = col_mes.selectbox("Mês", list(range(1, 13)), index=today.month - 1, format_func=lambda x: f"{x:02d}")
-        anos = list(range(2024, 2031))
-        ano = col_ano.selectbox("Ano", anos, index=anos.index(today.year))
+    mes_num = col_mes.selectbox("Mês", list(range(1, 13)), index=today.month - 1, format_func=lambda x: f"{x:02d}")
+    anos = list(range(2024, 2031))
+    ano = col_ano.selectbox("Ano", anos, index=anos.index(today.year))
 
-        mes = f"{ano}-{mes_num:02d}"
+    mes = f"{ano}-{mes_num:02d}"
 
-        operadora = c2.text_input("Operadora")
-        circuito = c3.text_input("Circuito")
-        desconto = c4.number_input("Desconto (R$)", min_value=0.0)
+    operadora = c2.text_input("Operadora")
+    circuito = c3.text_input("Circuito")
+    desconto = c4.number_input("Desconto (R$)", min_value=0.0)
 
-        submit = st.form_submit_button("Salvar")
+    submit = st.form_submit_button("Salvar")
 
-        if submit:
-            if operadora and circuito:
-                if insert_row(mes, operadora, circuito, float(desconto)):
-                    st.success("Registro salvo")
-                    st.rerun()
-            else:
-                st.error("Preencha todos os campos")
+    if submit:
+        if operadora and circuito:
+            if insert_row(mes, operadora, circuito, float(desconto)):
+                st.success("Registro salvo")
+                st.rerun()
+        else:
+            st.error("Preencha todos os campos")
 
 st.divider()
 
@@ -161,15 +159,32 @@ if df.empty:
     st.stop()
 
 # ======================
+# 🔎 FILTRO (RESTAURADO)
+# ======================
+with st.sidebar:
+    st.markdown("### 🔎 Filtros")
+
+    mes_f = st.selectbox("Mês", ["Todos"] + sorted(df["mes"].dropna().unique()))
+    op_f = st.selectbox("Operadora", ["Todas"] + sorted(df["operadora"].dropna().unique()))
+
+filtered = df.copy()
+
+if mes_f != "Todos":
+    filtered = filtered[filtered["mes"] == mes_f]
+
+if op_f != "Todas":
+    filtered = filtered[filtered["operadora"] == op_f]
+
+# ======================
 # KPIs
 # ======================
 st.subheader("📊 Indicadores")
 
 c1, c2, c3 = st.columns(3)
 
-c1.metric("Total (R$)", f"{df['desconto'].sum():,.2f}")
-c2.metric("Registros", len(df))
-c3.metric("Operadoras", df["operadora"].nunique())
+c1.metric("Total (R$)", f"{filtered['desconto'].sum():,.2f}")
+c2.metric("Registros", len(filtered))
+c3.metric("Operadoras", filtered["operadora"].nunique())
 
 st.divider()
 
@@ -182,12 +197,12 @@ g1, g2 = st.columns(2)
 
 with g1:
     st.markdown("**Por Operadora**")
-    st.bar_chart(df.groupby("operadora")["desconto"].sum())
+    st.bar_chart(filtered.groupby("operadora")["desconto"].sum())
 
 with g2:
     st.markdown("**Evolução Mensal**")
     evolucao = (
-        df.dropna(subset=["mes_dt"])
+        filtered.dropna(subset=["mes_dt"])
         .groupby("mes_dt")["desconto"]
         .sum()
         .sort_index()
@@ -201,7 +216,7 @@ st.divider()
 # ======================
 st.subheader("📋 Registros")
 
-df = df.sort_values("mes_dt", ascending=False)
+filtered = filtered.sort_values("mes_dt", ascending=False)
 
 h1, h2, h3, h4, h5 = st.columns([2,2,3,2,1])
 
@@ -213,7 +228,7 @@ h5.markdown("")
 
 st.divider()
 
-for _, row in df.iterrows():
+for _, row in filtered.iterrows():
     c1, c2, c3, c4, c5 = st.columns([2,2,3,2,1])
 
     mes_formatado = row["mes_dt"].strftime("%m/%Y") if pd.notna(row["mes_dt"]) else row["mes"]
