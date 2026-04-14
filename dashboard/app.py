@@ -11,7 +11,7 @@ import altair as alt
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 # ======================
-# 🎨 TEMA (COM CORREÇÃO DE FUNDOS PRETOS)
+# 🎨 TEMA
 # ======================
 st.markdown("""
     <style>
@@ -45,17 +45,6 @@ st.markdown("""
             background-color: #ffffff;
             border-radius: 8px;
             padding: 10px;
-        }
-
-        /* 🔥 REMOVE FUNDOS PRETOS */
-        .stApp, 
-        .block-container,
-        div[data-testid="stHorizontalBlock"],
-        div[data-testid="stVerticalBlock"],
-        div[data-testid="stChart"],
-        div[data-testid="stDataFrame"],
-        div[data-testid="stForm"] {
-            background-color: #6fa8f2 !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -192,7 +181,7 @@ c3.metric("Operadoras", filtered["operadora"].nunique())
 st.divider()
 
 # ======================
-# GRÁFICOS
+# GRÁFICOS (FUNDO CORRETO)
 # ======================
 st.subheader("📈 Análise")
 
@@ -210,6 +199,10 @@ with g1:
     bar = alt.Chart(chart1).mark_bar(color="white").encode(
         x="operadora",
         y="desconto"
+    ).configure_view(
+        fill='#6fa8f2'
+    ).configure(
+        background='#6fa8f2'
     )
 
     st.altair_chart(bar, use_container_width=True)
@@ -227,6 +220,10 @@ with g2:
     line = alt.Chart(evolucao).mark_line(color="white").encode(
         x="mes_dt:T",
         y="desconto"
+    ).configure_view(
+        fill='#6fa8f2'
+    ).configure(
+        background='#6fa8f2'
     )
 
     st.altair_chart(line, use_container_width=True)
@@ -234,7 +231,7 @@ with g2:
 st.divider()
 
 # ======================
-# REGISTROS
+# RESTANTE IGUAL
 # ======================
 st.subheader("📋 Registros")
 
