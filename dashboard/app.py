@@ -10,28 +10,32 @@ from pathlib import Path
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 # ======================
-# 🎨 TEMA (AJUSTADO FINAL)
+# 🎨 TEMA CORRIGIDO
 # ======================
 st.markdown("""
     <style>
+        /* Fundo geral */
         .stApp {
             background-color: #9fc5f8;
             color: black;
         }
 
-        * {
-            color: black !important;
+        /* Remove fundo preto do topo */
+        header, .stToolbar {
+            background-color: #9fc5f8 !important;
         }
 
-        h1, h2, h3 {
-            color: black !important;
-        }
-
+        /* Sidebar */
         section[data-testid="stSidebar"] {
             background-color: #8dbaf5;
         }
 
-        /* BOTÕES */
+        /* Texto sempre preto */
+        * {
+            color: black !important;
+        }
+
+        /* BOTÕES PADRÃO */
         .stButton > button {
             background-color: #ff6a00 !important;
             color: white !important;
@@ -39,8 +43,10 @@ st.markdown("""
             border: none;
         }
 
-        .stButton > button:hover {
-            background-color: #e65c00 !important;
+        /* BOTÃO EXCLUIR (vermelho) */
+        button[key^="del_"] {
+            background-color: #ff0000 !important;
+            color: white !important;
         }
 
         /* INPUTS */
@@ -55,7 +61,7 @@ st.markdown("""
             color: black !important;
         }
 
-        /* SETAS DO NUMBER INPUT */
+        /* BOTÕES + e - */
         button[title="Increment"], 
         button[title="Decrement"] {
             background-color: #9fc5f8 !important;
@@ -63,7 +69,7 @@ st.markdown("""
         }
 
         /* GRÁFICOS */
-        canvas {
+        canvas, svg {
             background-color: #9fc5f8 !important;
         }
 
