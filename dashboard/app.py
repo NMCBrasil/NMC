@@ -10,12 +10,12 @@ from pathlib import Path
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 # ======================
-# 🎨 TEMA (AZUL MAIS CLARO)
+# 🎨 TEMA (AZUL AJUSTADO)
 # ======================
 st.markdown("""
     <style>
         .stApp {
-            background-color: #cfe3ff;
+            background-color: #9fc5ff;
             color: #000000;
         }
 
@@ -24,7 +24,7 @@ st.markdown("""
         }
 
         section[data-testid="stSidebar"] {
-            background-color: #b7d4ff;
+            background-color: #8bb8ff;
         }
 
         .stButton > button {
@@ -39,20 +39,27 @@ st.markdown("""
         }
 
         /* INPUTS */
-        .stTextInput input, .stNumberInput input {
-            background-color: #ffffff;
-            color: black;
+        .stTextInput input, 
+        .stNumberInput input {
+            background-color: #9fc5ff !important;
+            color: black !important;
         }
 
-        /* SELECT (MÊS/ANO) */
-        div[data-baseweb="select"] {
-            background-color: #ffffff;
-            color: black;
+        /* SELECTBOX (corrigido) */
+        div[data-baseweb="select"] > div {
+            background-color: #9fc5ff !important;
+            color: black !important;
+        }
+
+        /* Dropdown aberto */
+        ul[role="listbox"] {
+            background-color: #9fc5ff !important;
+            color: black !important;
         }
 
         /* KPI */
         div[data-testid="metric-container"] {
-            background-color: #ffffff;
+            background-color: #9fc5ff;
             border-radius: 10px;
             padding: 10px;
         }
@@ -127,7 +134,13 @@ with st.form("form", clear_on_submit=True):
 
     today = date.today()
 
-    mes_num = col_mes.selectbox("Mês", list(range(1, 13)), index=today.month - 1, format_func=lambda x: f"{x:02d}")
+    mes_num = col_mes.selectbox(
+        "Mês",
+        list(range(1, 13)),
+        index=today.month - 1,
+        format_func=lambda x: f"{x:02d}"
+    )
+
     anos = list(range(2024, 2031))
     ano = col_ano.selectbox("Ano", anos, index=anos.index(today.year))
 
@@ -159,7 +172,7 @@ if df.empty:
     st.stop()
 
 # ======================
-# 🔎 FILTRO (RESTAURADO)
+# FILTRO
 # ======================
 with st.sidebar:
     st.markdown("### 🔎 Filtros")
