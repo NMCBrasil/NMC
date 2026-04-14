@@ -10,19 +10,12 @@ from pathlib import Path
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 # ======================
-# 🎨 TEMA CORRIGIDO
+# 🎨 TEMA LIMPO (CORRIGIDO)
 # ======================
 st.markdown("""
     <style>
-        /* Fundo geral */
         .stApp {
             background-color: #9fc5f8;
-            color: black;
-        }
-
-        /* Remove fundo preto do topo */
-        header, .stToolbar {
-            background-color: #9fc5f8 !important;
         }
 
         /* Sidebar */
@@ -30,52 +23,45 @@ st.markdown("""
             background-color: #8dbaf5;
         }
 
-        /* Texto sempre preto */
-        * {
+        /* Títulos */
+        h1, h2, h3 {
+            color: black;
+        }
+
+        /* Texto comum */
+        label, span, p {
             color: black !important;
         }
 
-        /* BOTÕES PADRÃO */
+        /* Botões */
         .stButton > button {
-            background-color: #ff6a00 !important;
-            color: white !important;
+            background-color: #ff6a00;
+            color: white;
             border-radius: 8px;
             border: none;
         }
 
-        /* BOTÃO EXCLUIR (vermelho) */
-        button[key^="del_"] {
-            background-color: #ff0000 !important;
+        /* Botão excluir */
+        button[kind="secondary"] {
+            background-color: red !important;
             color: white !important;
         }
 
-        /* INPUTS */
+        /* Inputs */
         .stTextInput input, .stNumberInput input {
-            background-color: #9fc5f8 !important;
-            color: black !important;
+            background-color: #9fc5f8;
+            color: black;
         }
 
-        /* SELECT */
+        /* Select */
         div[data-baseweb="select"] > div {
-            background-color: #9fc5f8 !important;
-            color: black !important;
-        }
-
-        /* BOTÕES + e - */
-        button[title="Increment"], 
-        button[title="Decrement"] {
-            background-color: #9fc5f8 !important;
-            color: black !important;
-        }
-
-        /* GRÁFICOS */
-        canvas, svg {
-            background-color: #9fc5f8 !important;
+            background-color: #9fc5f8;
+            color: black;
         }
 
         /* KPI */
         div[data-testid="metric-container"] {
-            background-color: #9fc5f8;
+            background-color: #ffffff;
             border-radius: 10px;
             padding: 10px;
         }
@@ -93,7 +79,7 @@ with col_logo:
 
 with col_title:
     st.title("Dashboard de Operadoras")
-    st.markdown("<h3>Controle de descontos por circuito</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='font-size:22px;'>Controle de descontos por circuito</h3>", unsafe_allow_html=True)
 
 st.divider()
 
