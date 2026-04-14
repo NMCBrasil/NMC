@@ -10,17 +10,17 @@ from pathlib import Path
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 # ======================
-# 🎨 TEMA LIMPO (CORRIGIDO)
+# 🎨 TEMA (SEM QUEBRAR STREAMLIT)
 # ======================
 st.markdown("""
     <style>
         .stApp {
-            background-color: #9fc5f8;
+            background-color: #a9c9f7;
         }
 
         /* Sidebar */
         section[data-testid="stSidebar"] {
-            background-color: #8dbaf5;
+            background-color: #9bbdf0;
         }
 
         /* Títulos */
@@ -28,41 +28,27 @@ st.markdown("""
             color: black;
         }
 
-        /* Texto comum */
-        label, span, p {
+        /* Labels */
+        label {
             color: black !important;
-        }
-
-        /* Botões */
-        .stButton > button {
-            background-color: #ff6a00;
-            color: white;
-            border-radius: 8px;
-            border: none;
-        }
-
-        /* Botão excluir */
-        button[kind="secondary"] {
-            background-color: red !important;
-            color: white !important;
         }
 
         /* Inputs */
         .stTextInput input, .stNumberInput input {
-            background-color: #9fc5f8;
+            background-color: #ffffff;
             color: black;
         }
 
         /* Select */
         div[data-baseweb="select"] > div {
-            background-color: #9fc5f8;
+            background-color: #ffffff;
             color: black;
         }
 
         /* KPI */
         div[data-testid="metric-container"] {
             background-color: #ffffff;
-            border-radius: 10px;
+            border-radius: 8px;
             padding: 10px;
         }
     </style>
@@ -204,19 +190,16 @@ st.subheader("📈 Análise")
 
 g1, g2 = st.columns(2)
 
-with g1:
-    st.markdown("**Por Operadora**")
-    st.bar_chart(filtered.groupby("operadora")["desconto"].sum())
+g1.bar_chart(filtered.groupby("operadora")["desconto"].sum())
 
-with g2:
-    st.markdown("**Evolução Mensal**")
-    evolucao = (
-        filtered.dropna(subset=["mes_dt"])
-        .groupby("mes_dt")["desconto"]
-        .sum()
-        .sort_index()
-    )
-    st.line_chart(evolucao)
+evolucao = (
+    filtered.dropna(subset=["mes_dt"])
+    .groupby("mes_dt")["desconto"]
+    .sum()
+    .sort_index()
+)
+
+g2.line_chart(evolucao)
 
 st.divider()
 
@@ -226,16 +209,6 @@ st.divider()
 st.subheader("📋 Registros")
 
 filtered = filtered.sort_values("mes_dt", ascending=False)
-
-h1, h2, h3, h4, h5 = st.columns([2,2,3,2,1])
-
-h1.markdown("**Mês/Ano**")
-h2.markdown("**Operadora**")
-h3.markdown("**Circuito**")
-h4.markdown("**Valor (R$)**")
-h5.markdown("")
-
-st.divider()
 
 for _, row in filtered.iterrows():
     c1, c2, c3, c4, c5 = st.columns([2,2,3,2,1])
