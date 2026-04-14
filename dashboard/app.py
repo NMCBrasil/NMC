@@ -3,6 +3,7 @@ import pandas as pd
 from supabase import create_client
 from datetime import date
 from pathlib import Path
+import altair as alt
 
 # ======================
 # CONFIG
@@ -180,7 +181,7 @@ c3.metric("Operadoras", filtered["operadora"].nunique())
 st.divider()
 
 # ======================
-# GRÁFICOS (COR AJUSTADA)
+# GRÁFICOS (FUNDO BRANCO)
 # ======================
 st.subheader("📈 Análise")
 
@@ -188,18 +189,36 @@ g1, g2 = st.columns(2)
 
 with g1:
     st.markdown("**Descontos por Operadora**")
-    chart1 = filtered.groupby("operadora")["desconto"].sum()
-    st.bar_chart(chart1, color="#1f77b4")
+
+    chart1 = (
+        filtered.groupby("operadora")["desconto"]
+        .sum()
+        .reset_index()
+    )
+
+    bar = alt.Chart(chart1).mark_bar(color="#1f77b4").encode(
+        x="operadora",
+        y="desconto"
+    ).properties(background="white")
+
+    st.altair_chart(bar, use_container_width=True)
 
 with g2:
     st.markdown("**Evolução Mensal**")
+
     evolucao = (
         filtered.dropna(subset=["mes_dt"])
         .groupby("mes_dt")["desconto"]
         .sum()
-        .sort_index()
+        .reset_index()
     )
-    st.line_chart(evolucao, color="#003f8c")
+
+    line = alt.Chart(evolucao).mark_line(color="#003f8c").encode(
+        x="mes_dt:T",
+        y="desconto"
+    ).properties(background="white")
+
+    st.altair_chart(line, use_container_width=True)
 
 st.divider()
 
