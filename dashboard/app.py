@@ -11,7 +11,7 @@ import altair as alt
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 # ======================
-# 🎨 TEMA
+# 🎨 TEMA (COM CORREÇÃO DE FUNDOS PRETOS)
 # ======================
 st.markdown("""
     <style>
@@ -46,6 +46,17 @@ st.markdown("""
             border-radius: 8px;
             padding: 10px;
         }
+
+        /* 🔥 REMOVE FUNDOS PRETOS */
+        .stApp, 
+        .block-container,
+        div[data-testid="stHorizontalBlock"],
+        div[data-testid="stVerticalBlock"],
+        div[data-testid="stChart"],
+        div[data-testid="stDataFrame"],
+        div[data-testid="stForm"] {
+            background-color: #6fa8f2 !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -56,7 +67,7 @@ col_logo, col_title = st.columns([1,6])
 
 with col_logo:
     logo_path = Path(__file__).parent / "logo.png"
-    st.image(str(logo_path), width=400)
+    st.image(str(logo_path), width=160)
 
 with col_title:
     st.markdown("<h1 style='text-align:center;'>Dashboard de Operadoras</h1>", unsafe_allow_html=True)
@@ -181,7 +192,7 @@ c3.metric("Operadoras", filtered["operadora"].nunique())
 st.divider()
 
 # ======================
-# GRÁFICOS (LINHA E BARRA BRANCAS)
+# GRÁFICOS
 # ======================
 st.subheader("📈 Análise")
 
