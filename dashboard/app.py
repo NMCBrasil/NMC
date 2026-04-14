@@ -10,16 +10,16 @@ from pathlib import Path
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 # ======================
-# 🎨 TEMA
+# 🎨 TEMA (AZUL AJUSTADO)
 # ======================
 st.markdown("""
     <style>
         .stApp {
-            background-color: #7fb3f5;
+            background-color: #6fa8f2;
         }
 
         section[data-testid="stSidebar"] {
-            background-color: #6fa8f2;
+            background-color: #5e9df0;
         }
 
         h1, h2, h3 {
@@ -49,17 +49,17 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ======================
-# HEADER
+# HEADER (CENTRALIZADO + LOGO MAIOR)
 # ======================
 col_logo, col_title = st.columns([1,6])
 
 with col_logo:
     logo_path = Path(__file__).parent / "logo.png"
-    st.image(str(logo_path), width=120)
+    st.image(str(logo_path), width=160)
 
 with col_title:
-    st.title("Dashboard de Operadoras")
-    st.markdown("<h3 style='font-size:22px;'>Controle de descontos por circuito</h3>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center;'>Dashboard de Operadoras</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align:center;'>Controle de descontos por circuito</h3>", unsafe_allow_html=True)
 
 st.divider()
 
@@ -178,7 +178,7 @@ c3.metric("Operadoras", filtered["operadora"].nunique())
 st.divider()
 
 # ======================
-# GRÁFICOS (TÍTULOS VOLTARAM)
+# GRÁFICOS
 # ======================
 st.subheader("📈 Análise")
 
@@ -201,7 +201,7 @@ with g2:
 st.divider()
 
 # ======================
-# REGISTROS (CABEÇALHO VOLTOU)
+# REGISTROS
 # ======================
 st.subheader("📋 Registros")
 
