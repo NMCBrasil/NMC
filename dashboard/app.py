@@ -181,7 +181,7 @@ c3.metric("Operadoras", filtered["operadora"].nunique())
 st.divider()
 
 # ======================
-# GRÁFICOS (FUNDO BRANCO)
+# GRÁFICOS (LINHA E BARRA BRANCAS)
 # ======================
 st.subheader("📈 Análise")
 
@@ -196,10 +196,10 @@ with g1:
         .reset_index()
     )
 
-    bar = alt.Chart(chart1).mark_bar(color="#1f77b4").encode(
+    bar = alt.Chart(chart1).mark_bar(color="white").encode(
         x="operadora",
         y="desconto"
-    ).properties(background="white")
+    )
 
     st.altair_chart(bar, use_container_width=True)
 
@@ -213,10 +213,10 @@ with g2:
         .reset_index()
     )
 
-    line = alt.Chart(evolucao).mark_line(color="#003f8c").encode(
+    line = alt.Chart(evolucao).mark_line(color="white").encode(
         x="mes_dt:T",
         y="desconto"
-    ).properties(background="white")
+    )
 
     st.altair_chart(line, use_container_width=True)
 
