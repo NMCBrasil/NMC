@@ -10,7 +10,7 @@ from pathlib import Path
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 # ======================
-# 🎨 TEMA (AZUL AJUSTADO)
+# 🎨 TEMA
 # ======================
 st.markdown("""
     <style>
@@ -49,7 +49,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ======================
-# HEADER (CENTRALIZADO + LOGO MAIOR)
+# HEADER
 # ======================
 col_logo, col_title = st.columns([1,6])
 
@@ -59,7 +59,7 @@ with col_logo:
 
 with col_title:
     st.markdown("<h1 style='text-align:center;'>Dashboard de Operadoras</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align:center;'>Controle de descontos</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align:center;'>Controle de descontos por circuito</h3>", unsafe_allow_html=True)
 
 st.divider()
 
@@ -103,38 +103,40 @@ def delete_row(row_id):
     supabase.table("registros").delete().eq("id", row_id).execute()
 
 # ======================
-# FORM
+# FORM (AGORA MINIMIZADO)
 # ======================
 st.subheader("➕ Novo Registro")
 
-with st.form("form", clear_on_submit=True):
+with st.expander("Registrar", expanded=False):
 
-    c1, c2 = st.columns(2)
-    c3, c4 = st.columns(2)
+    with st.form("form", clear_on_submit=True):
 
-    col_mes, col_ano = c1.columns(2)
+        c1, c2 = st.columns(2)
+        c3, c4 = st.columns(2)
 
-    today = date.today()
+        col_mes, col_ano = c1.columns(2)
 
-    mes_num = col_mes.selectbox("Mês", list(range(1, 13)), index=today.month - 1, format_func=lambda x: f"{x:02d}")
-    anos = list(range(2024, 2031))
-    ano = col_ano.selectbox("Ano", anos, index=anos.index(today.year))
+        today = date.today()
 
-    mes = f"{ano}-{mes_num:02d}"
+        mes_num = col_mes.selectbox("Mês", list(range(1, 13)), index=today.month - 1, format_func=lambda x: f"{x:02d}")
+        anos = list(range(2024, 2031))
+        ano = col_ano.selectbox("Ano", anos, index=anos.index(today.year))
 
-    operadora = c2.text_input("Operadora")
-    circuito = c3.text_input("Circuito")
-    desconto = c4.number_input("Desconto (R$)", min_value=0.0)
+        mes = f"{ano}-{mes_num:02d}"
 
-    submit = st.form_submit_button("Salvar")
+        operadora = c2.text_input("Operadora")
+        circuito = c3.text_input("Circuito")
+        desconto = c4.number_input("Desconto (R$)", min_value=0.0)
 
-    if submit:
-        if operadora and circuito:
-            if insert_row(mes, operadora, circuito, float(desconto)):
-                st.success("Registro salvo")
-                st.rerun()
-        else:
-            st.error("Preencha todos os campos")
+        submit = st.form_submit_button("Salvar")
+
+        if submit:
+            if operadora and circuito:
+                if insert_row(mes, operadora, circuito, float(desconto)):
+                    st.success("Registro salvo")
+                    st.rerun()
+            else:
+                st.error("Preencha todos os campos")
 
 st.divider()
 
