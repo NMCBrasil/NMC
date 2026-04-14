@@ -10,42 +10,36 @@ from pathlib import Path
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 # ======================
-# 🎨 TEMA (SEM QUEBRAR STREAMLIT)
+# 🎨 TEMA (AZUL MAIS VIVO)
 # ======================
 st.markdown("""
     <style>
         .stApp {
-            background-color: #a9c9f7;
+            background-color: #7fb3f5;
         }
 
-        /* Sidebar */
         section[data-testid="stSidebar"] {
-            background-color: #9bbdf0;
+            background-color: #6fa8f2;
         }
 
-        /* Títulos */
         h1, h2, h3 {
             color: black;
         }
 
-        /* Labels */
         label {
             color: black !important;
         }
 
-        /* Inputs */
         .stTextInput input, .stNumberInput input {
             background-color: #ffffff;
             color: black;
         }
 
-        /* Select */
         div[data-baseweb="select"] > div {
             background-color: #ffffff;
             color: black;
         }
 
-        /* KPI */
         div[data-testid="metric-container"] {
             background-color: #ffffff;
             border-radius: 8px;
