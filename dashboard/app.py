@@ -10,7 +10,7 @@ from pathlib import Path
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 # ======================
-# 🎨 TEMA HUGHES (AZUL MAIS CLARO)
+# 🎨 TEMA
 # ======================
 st.markdown("""
     <style>
@@ -50,31 +50,36 @@ st.markdown("""
 
         div[data-testid="metric-container"] {
             background-color: #3b7cc4;
-            border-radius: 10px;
-            padding: 10px;
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        hr {
+            border: 1px solid #ffffff33;
         }
     </style>
 """, unsafe_allow_html=True)
 
 # ======================
-# 🖼️ LOGO + TÍTULO
+# HEADER
 # ======================
-col_logo, col_title = st.columns([1,5])
+col_logo, col_title = st.columns([1,6])
 
 with col_logo:
     logo_path = Path(__file__).parent / "logo.png"
-    st.image(str(logo_path), width=140)
+    st.image(str(logo_path), width=120)
 
 with col_title:
-    st.title("📊 Dashboard de Operadoras")
+    st.title("Dashboard de Operadoras")
     st.caption("Controle de descontos por circuito")
+
+st.divider()
 
 # ======================
 # SUPABASE
 # ======================
 url = "https://whbwdmmgrylwehdarupk.supabase.co"
 key = "sb_publishable_iU9EdbgP5pxbjxzTtxwmAg_6Vqw03uW"
-
 supabase = create_client(url, key)
 
 # ======================
@@ -88,27 +93,20 @@ def load_data():
 
     df = pd.DataFrame(res.data)
     df.columns = df.columns.str.lower()
-
     df["mes_dt"] = pd.to_datetime(df["mes"], format="%Y-%m", errors="coerce")
-
     return df
 
 # ======================
 # INSERT
 # ======================
 def insert_row(mes, operadora, circuito, desconto):
-    try:
-        res = supabase.table("registros").insert({
-            "mes": mes,
-            "operadora": operadora,
-            "circuito": circuito,
-            "desconto": desconto
-        }).execute()
-
-        return bool(res.data)
-    except Exception as e:
-        st.error(f"Erro ao inserir: {e}")
-        return False
+    res = supabase.table("registros").insert({
+        "mes": mes,
+        "operadora": operadora,
+        "circuito": circuito,
+        "desconto": desconto
+    }).execute()
+    return bool(res.data)
 
 # ======================
 # DELETE
@@ -121,46 +119,37 @@ def delete_row(row_id):
 # ======================
 st.subheader("➕ Novo Registro")
 
-with st.form("form", clear_on_submit=True):
+with st.container():
+    with st.form("form", clear_on_submit=True):
 
-    c1, c2 = st.columns(2)
-    c3, c4 = st.columns(2)
+        c1, c2 = st.columns(2)
+        c3, c4 = st.columns(2)
 
-    col_mes, col_ano = c1.columns(2)
+        col_mes, col_ano = c1.columns(2)
 
-    today = date.today()
+        today = date.today()
 
-    mes_num = col_mes.selectbox(
-        "Mês",
-        list(range(1, 13)),
-        index=today.month - 1,
-        format_func=lambda x: f"{x:02d}"
-    )
+        mes_num = col_mes.selectbox("Mês", list(range(1, 13)), index=today.month - 1, format_func=lambda x: f"{x:02d}")
+        anos = list(range(2024, 2031))
+        ano = col_ano.selectbox("Ano", anos, index=anos.index(today.year))
 
-    anos = list(range(2024, 2031))
-    ano = col_ano.selectbox(
-        "Ano",
-        anos,
-        index=anos.index(today.year)
-    )
+        mes = f"{ano}-{mes_num:02d}"
 
-    mes = f"{ano}-{mes_num:02d}"
+        operadora = c2.text_input("Operadora")
+        circuito = c3.text_input("Circuito")
+        desconto = c4.number_input("Desconto (R$)", min_value=0.0)
 
-    operadora = c2.text_input("📡 Operadora")
-    circuito = c3.text_input("🔌 Circuito")
-    desconto = c4.number_input("💰 Desconto (R$)", min_value=0.0)
+        submit = st.form_submit_button("Salvar")
 
-    submit = st.form_submit_button("Salvar")
+        if submit:
+            if operadora and circuito:
+                if insert_row(mes, operadora, circuito, float(desconto)):
+                    st.success("Registro salvo")
+                    st.rerun()
+            else:
+                st.error("Preencha todos os campos")
 
-    if submit:
-        if operadora and circuito:
-            ok = insert_row(mes, operadora, circuito, float(desconto))
-
-            if ok:
-                st.success(f"✅ Registro salvo ({mes_num:02d}/{ano})")
-                st.rerun()
-        else:
-            st.error("Preencha todos os campos")
+st.divider()
 
 # ======================
 # DATA
@@ -174,68 +163,66 @@ if df.empty:
 # ======================
 # KPIs
 # ======================
-st.subheader("📌 Indicadores")
+st.subheader("📊 Indicadores")
 
 c1, c2, c3 = st.columns(3)
 
-c1.metric("💰 Total", f"R$ {df['desconto'].sum():,.2f}")
-c2.metric("📄 Registros", len(df))
-c3.metric("🏢 Operadoras", df["operadora"].nunique())
+c1.metric("Total (R$)", f"{df['desconto'].sum():,.2f}")
+c2.metric("Registros", len(df))
+c3.metric("Operadoras", df["operadora"].nunique())
 
 st.divider()
 
 # ======================
-# 📊 GRÁFICOS
+# GRÁFICOS
 # ======================
-st.subheader("📊 Análise")
+st.subheader("📈 Análise")
 
-col1, col2 = st.columns(2)
+g1, g2 = st.columns(2)
 
-col1.markdown("**Descontos por Operadora**")
-operadora_data = df.groupby("operadora")["desconto"].sum().sort_values(ascending=False)
-col1.bar_chart(operadora_data)
+with g1:
+    st.markdown("**Por Operadora**")
+    st.bar_chart(df.groupby("operadora")["desconto"].sum())
 
-col2.markdown("**Evolução por Mês**")
-evolucao_data = (
-    df.dropna(subset=["mes_dt"])
-    .groupby("mes_dt")["desconto"]
-    .sum()
-    .sort_index()
-)
-col2.line_chart(evolucao_data)
+with g2:
+    st.markdown("**Evolução Mensal**")
+    evolucao = (
+        df.dropna(subset=["mes_dt"])
+        .groupby("mes_dt")["desconto"]
+        .sum()
+        .sort_index()
+    )
+    st.line_chart(evolucao)
 
 st.divider()
 
 # ======================
-# 📋 REGISTROS
+# REGISTROS
 # ======================
 st.subheader("📋 Registros")
 
 df = df.sort_values("mes_dt", ascending=False)
 
-col1, col2, col3, col4, col5 = st.columns([2,2,3,2,1])
+h1, h2, h3, h4, h5 = st.columns([2,2,3,2,1])
 
-col1.markdown("**Mês/Ano**")
-col2.markdown("**Operadora**")
-col3.markdown("**Circuito**")
-col4.markdown("**Valor (R$)**")
-col5.markdown("")
+h1.markdown("**Mês/Ano**")
+h2.markdown("**Operadora**")
+h3.markdown("**Circuito**")
+h4.markdown("**Valor (R$)**")
+h5.markdown("")
 
 st.divider()
 
-for i, row in df.iterrows():
-    col1, col2, col3, col4, col5 = st.columns([2,2,3,2,1])
+for _, row in df.iterrows():
+    c1, c2, c3, c4, c5 = st.columns([2,2,3,2,1])
 
-    if pd.notna(row["mes_dt"]):
-        mes_formatado = row["mes_dt"].strftime("%m/%Y")
-    else:
-        mes_formatado = row["mes"]
+    mes_formatado = row["mes_dt"].strftime("%m/%Y") if pd.notna(row["mes_dt"]) else row["mes"]
 
-    col1.write(mes_formatado)
-    col2.write(row["operadora"])
-    col3.write(row["circuito"])
-    col4.write(f"R$ {row['desconto']:.2f}")
+    c1.write(mes_formatado)
+    c2.write(row["operadora"])
+    c3.write(row["circuito"])
+    c4.write(f"R$ {row['desconto']:.2f}")
 
-    if col5.button("🗑️", key=f"del_{row['id']}"):
+    if c5.button("🗑️", key=f"del_{row['id']}"):
         delete_row(row["id"])
         st.rerun()
