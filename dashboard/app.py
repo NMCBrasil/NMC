@@ -8,7 +8,61 @@ from datetime import date
 # ======================
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
-st.title("📊 Dashboard de Operadoras")
+# ======================
+# 🎨 TEMA HUGHES
+# ======================
+st.markdown("""
+    <style>
+        .stApp {
+            background-color: #0b1f3a;
+            color: white;
+        }
+
+        h1, h2, h3 {
+            color: #ffffff;
+        }
+
+        section[data-testid="stSidebar"] {
+            background-color: #08162b;
+        }
+
+        .stButton > button {
+            background-color: #ff6a00;
+            color: white;
+            border-radius: 8px;
+            border: none;
+        }
+
+        .stButton > button:hover {
+            background-color: #e65c00;
+        }
+
+        .stTextInput input, .stNumberInput input {
+            background-color: #122b4a;
+            color: white;
+        }
+
+        div[data-baseweb="select"] {
+            background-color: #122b4a;
+            color: white;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# ======================
+# 🖼️ LOGO + TÍTULO
+# ======================
+col_logo, col_title = st.columns([1,5])
+
+with col_logo:
+    st.image(
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Hughes_Network_Systems_logo.svg/512px-Hughes_Network_Systems_logo.svg.png",
+        width=120
+    )
+
+with col_title:
+    st.title("📊 Dashboard de Operadoras")
+
 st.caption("Controle de descontos por circuito")
 
 # ======================
@@ -31,7 +85,6 @@ def load_data():
     df = pd.DataFrame(res.data)
     df.columns = df.columns.str.lower()
 
-    # Converter mês corretamente
     df["mes_dt"] = pd.to_datetime(df["mes"], format="%Y-%m", errors="coerce")
 
     return df
@@ -73,7 +126,7 @@ with st.form("form", clear_on_submit=True):
     c1, c2 = st.columns(2)
     c3, c4 = st.columns(2)
 
-    # 🔥 MÊS + ANO OBRIGATÓRIO
+    # Mês obrigatório
     col_mes, col_ano = c1.columns(2)
 
     today = date.today()
@@ -92,7 +145,6 @@ with st.form("form", clear_on_submit=True):
         index=anos.index(today.year)
     )
 
-    # formato correto pro banco
     mes = f"{ano}-{mes_num:02d}"
 
     operadora = c2.text_input("📡 Operadora")
@@ -135,18 +187,26 @@ c3.metric("🏢 Operadoras", df["operadora"].nunique())
 st.divider()
 
 # ======================
-# 📊 GRÁFICO CORRIGIDO
+# 📊 GRÁFICOS
 # ======================
-st.subheader("📊 Evolução dos Descontos")
+st.subheader("📊 Análise")
 
-chart_data = (
+col1, col2 = st.columns(2)
+
+# Operadora
+col1.markdown("**Descontos por Operadora**")
+operadora_data = df.groupby("operadora")["desconto"].sum().sort_values(ascending=False)
+col1.bar_chart(operadora_data)
+
+# Evolução
+col2.markdown("**Evolução por Mês**")
+evolucao_data = (
     df.dropna(subset=["mes_dt"])
     .groupby("mes_dt")["desconto"]
     .sum()
     .sort_index()
 )
-
-st.line_chart(chart_data)
+col2.line_chart(evolucao_data)
 
 st.divider()
 
@@ -155,7 +215,6 @@ st.divider()
 # ======================
 st.subheader("📋 Registros")
 
-# 🔥 ordenar por data (mais recente primeiro)
 df = df.sort_values("mes_dt", ascending=False)
 
 # Cabeçalho
@@ -173,7 +232,6 @@ st.divider()
 for i, row in df.iterrows():
     col1, col2, col3, col4, col5 = st.columns([2,2,3,2,1])
 
-    # Formatar mês bonito
     if pd.notna(row["mes_dt"]):
         mes_formatado = row["mes_dt"].strftime("%m/%Y")
     else:
