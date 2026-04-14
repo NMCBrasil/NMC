@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from supabase import create_client
+from datetime import date
 
 # ======================
 # CONFIG
@@ -8,7 +9,7 @@ from supabase import create_client
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 st.title("📊 Dashboard de Operadoras")
-st.caption("Controle de descontos por circuito e operadora")
+st.caption("Controle de descontos por circuito")
 
 # ======================
 # SUPABASE
@@ -25,17 +26,13 @@ def load_data():
     res = supabase.table("registros").select("*").execute()
 
     if not res.data:
-        return pd.DataFrame(columns=["id", "mes", "operadora", "circuito", "desconto", "created_at"])
+        return pd.DataFrame(columns=["id","mes","operadora","circuito","desconto"])
 
     df = pd.DataFrame(res.data)
     df.columns = df.columns.str.lower()
 
-    # Converter mês
+    # Converter mês corretamente
     df["mes_dt"] = pd.to_datetime(df["mes"], format="%Y-%m", errors="coerce")
-
-    # Converter created_at
-    if "created_at" in df.columns:
-        df["created_at"] = pd.to_datetime(df["created_at"], errors="coerce")
 
     return df
 
@@ -63,11 +60,7 @@ def insert_row(mes, operadora, circuito, desconto):
 # DELETE
 # ======================
 def delete_row(row_id):
-    try:
-        supabase.table("registros").delete().eq("id", row_id).execute()
-        st.toast("Registro excluído com sucesso")
-    except Exception as e:
-        st.error(f"Erro ao excluir: {e}")
+    supabase.table("registros").delete().eq("id", row_id).execute()
 
 
 # ======================
@@ -76,23 +69,44 @@ def delete_row(row_id):
 st.subheader("➕ Novo Registro")
 
 with st.form("form", clear_on_submit=True):
+
     c1, c2 = st.columns(2)
     c3, c4 = st.columns(2)
 
-    mes = c1.text_input("📅 Mês (YYYY-MM)", placeholder="Ex: 2026-02")
-    operadora = c2.text_input("📡 Operadora")
+    # 🔥 MÊS + ANO OBRIGATÓRIO
+    col_mes, col_ano = c1.columns(2)
 
+    today = date.today()
+
+    mes_num = col_mes.selectbox(
+        "Mês",
+        list(range(1, 13)),
+        index=today.month - 1,
+        format_func=lambda x: f"{x:02d}"
+    )
+
+    anos = list(range(2024, 2031))
+    ano = col_ano.selectbox(
+        "Ano",
+        anos,
+        index=anos.index(today.year)
+    )
+
+    # formato correto pro banco
+    mes = f"{ano}-{mes_num:02d}"
+
+    operadora = c2.text_input("📡 Operadora")
     circuito = c3.text_input("🔌 Circuito")
     desconto = c4.number_input("💰 Desconto (R$)", min_value=0.0)
 
-    submit = st.form_submit_button("💾 Salvar")
+    submit = st.form_submit_button("Salvar")
 
     if submit:
-        if mes and operadora and circuito:
+        if operadora and circuito:
             ok = insert_row(mes, operadora, circuito, float(desconto))
 
             if ok:
-                st.success("✅ Registro salvo!")
+                st.success(f"✅ Registro salvo ({mes_num:02d}/{ano})")
                 st.rerun()
         else:
             st.error("Preencha todos os campos")
@@ -108,81 +122,68 @@ if df.empty:
     st.stop()
 
 # ======================
-# FILTROS
-# ======================
-with st.sidebar:
-    st.markdown("### 🔎 Filtros")
-
-    mes_f = st.selectbox("Mês", ["Todos"] + sorted(df["mes"].dropna().unique()))
-    op_f = st.selectbox("Operadora", ["Todas"] + sorted(df["operadora"].dropna().unique()))
-
-filtered = df.copy()
-
-if mes_f != "Todos":
-    filtered = filtered[filtered["mes"] == mes_f]
-
-if op_f != "Todas":
-    filtered = filtered[filtered["operadora"] == op_f]
-
-# ======================
 # KPIs
 # ======================
 st.subheader("📌 Indicadores")
 
 c1, c2, c3 = st.columns(3)
 
-c1.metric("💰 Total", f"R$ {filtered['desconto'].sum():,.2f}")
-c2.metric("📄 Registros", len(filtered))
-c3.metric("🏢 Operadoras", filtered["operadora"].nunique())
+c1.metric("💰 Total", f"R$ {df['desconto'].sum():,.2f}")
+c2.metric("📄 Registros", len(df))
+c3.metric("🏢 Operadoras", df["operadora"].nunique())
 
 st.divider()
 
 # ======================
-# GRÁFICOS
+# 📊 GRÁFICO CORRIGIDO
 # ======================
-st.subheader("📊 Análise")
-
-c1, c2 = st.columns(2)
-
-c1.markdown("**Descontos por Operadora**")
-c1.bar_chart(filtered.groupby("operadora")["desconto"].sum())
-
-c2.markdown("**Evolução por Mês**")
+st.subheader("📊 Evolução dos Descontos")
 
 chart_data = (
-    filtered.dropna(subset=["mes_dt"])
-    .sort_values("mes_dt")
+    df.dropna(subset=["mes_dt"])
     .groupby("mes_dt")["desconto"]
     .sum()
+    .sort_index()
 )
 
-c2.line_chart(chart_data)
+st.line_chart(chart_data)
 
 st.divider()
 
 # ======================
-# TABELA ORDENADA + DATA + DELETE
+# 📋 REGISTROS
 # ======================
 st.subheader("📋 Registros")
 
-# 🔥 Ordenar por operadora (A-Z)
-filtered = filtered.sort_values("operadora")
+# 🔥 ordenar por data (mais recente primeiro)
+df = df.sort_values("mes_dt", ascending=False)
 
-for i, row in filtered.iterrows():
-    col1, col2, col3, col4, col5, col6 = st.columns([2,2,3,2,3,1])
+# Cabeçalho
+col1, col2, col3, col4, col5 = st.columns([2,2,3,2,1])
 
-    col1.write(row["mes"])
+col1.markdown("**Mês/Ano**")
+col2.markdown("**Operadora**")
+col3.markdown("**Circuito**")
+col4.markdown("**Valor (R$)**")
+col5.markdown("")
+
+st.divider()
+
+# Linhas
+for i, row in df.iterrows():
+    col1, col2, col3, col4, col5 = st.columns([2,2,3,2,1])
+
+    # Formatar mês bonito
+    if pd.notna(row["mes_dt"]):
+        mes_formatado = row["mes_dt"].strftime("%m/%Y")
+    else:
+        mes_formatado = row["mes"]
+
+    col1.write(mes_formatado)
     col2.write(row["operadora"])
     col3.write(row["circuito"])
     col4.write(f"R$ {row['desconto']:.2f}")
 
-    # Mostrar data/hora formatada
-    if pd.notna(row.get("created_at")):
-        data_formatada = row["created_at"].strftime("%d/%m/%Y %H:%M")
-        col5.write(data_formatada)
-    else:
-        col5.write("-")
-
-    if col6.button("🗑️", key=f"del_{row['id']}"):
+    if col5.button("🗑️", key=f"del_{row['id']}"):
         delete_row(row["id"])
         st.rerun()
