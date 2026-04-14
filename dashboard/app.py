@@ -103,7 +103,7 @@ def delete_row(row_id):
     supabase.table("registros").delete().eq("id", row_id).execute()
 
 # ======================
-# FORM (AGORA MINIMIZADO)
+# FORM
 # ======================
 st.subheader("➕ Novo Registro")
 
@@ -180,7 +180,7 @@ c3.metric("Operadoras", filtered["operadora"].nunique())
 st.divider()
 
 # ======================
-# GRÁFICOS
+# GRÁFICOS (COR AJUSTADA)
 # ======================
 st.subheader("📈 Análise")
 
@@ -188,7 +188,8 @@ g1, g2 = st.columns(2)
 
 with g1:
     st.markdown("**Descontos por Operadora**")
-    st.bar_chart(filtered.groupby("operadora")["desconto"].sum())
+    chart1 = filtered.groupby("operadora")["desconto"].sum()
+    st.bar_chart(chart1, color="#1f77b4")
 
 with g2:
     st.markdown("**Evolução Mensal**")
@@ -198,7 +199,7 @@ with g2:
         .sum()
         .sort_index()
     )
-    st.line_chart(evolucao)
+    st.line_chart(evolucao, color="#003f8c")
 
 st.divider()
 
