@@ -7,8 +7,13 @@ from supabase import create_client
 # ======================
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
-st.title("📊 Dashboard Operadoras")
-st.caption("Gestão de circuitos, operadoras e descontos")
+st.title("📊 Dashboard de Operadoras")
+
+st.markdown("""
+Sistema para controle de descontos por circuito e operadora.
+
+Use os filtros na lateral para refinar a análise.
+""")
 
 # ======================
 # SUPABASE
@@ -37,23 +42,26 @@ def load_data():
 
 
 # ======================
-# INSERT
+# INSERT (VALIDADO)
 # ======================
 def insert_row(mes, operadora, circuito, desconto):
     try:
-        supabase.table("registros").insert({
+        res = supabase.table("registros").insert({
             "mes": mes,
             "operadora": operadora,
-            "circuito": circuito,  # ✅ CORRETO
+            "circuito": circuito,
             "desconto": desconto
         }).execute()
 
+        return bool(res.data)
+
     except Exception as e:
         st.error(f"Erro ao inserir: {e}")
+        return False
 
 
 # ======================
-# DELETE
+# DELETE (COM CONFIRMAÇÃO)
 # ======================
 def delete_row(row_id):
     try:
@@ -66,23 +74,29 @@ def delete_row(row_id):
 # ======================
 # FORM
 # ======================
-st.header("➕ Adicionar registro")
+st.subheader("➕ Novo Registro")
 
-with st.form("form"):
-    c1, c2, c3, c4 = st.columns(4)
+with st.form("form", clear_on_submit=True):
+    c1, c2 = st.columns(2)
+    c3, c4 = st.columns(2)
 
-    mes = c1.text_input("Mês")
-    operadora = c2.text_input("Operadora")
-    circuito = c3.text_input("Circuito")  # nome alinhado com banco
-    desconto = c4.number_input("Desconto", step=1.0, value=0.0)
+    mes = c1.text_input("📅 Mês", placeholder="Ex: 2026-04")
+    operadora = c2.text_input("📡 Operadora", placeholder="Ex: Vivo")
 
-    submit = st.form_submit_button("Salvar")
+    circuito = c3.text_input("🔌 Circuito", placeholder="Ex: Link SP-01")
+    desconto = c4.number_input("💰 Desconto (R$)", min_value=0.0)
+
+    submit = st.form_submit_button("💾 Salvar Registro")
 
     if submit:
         if mes and operadora and circuito:
-            insert_row(mes, operadora, circuito, float(desconto))
-            st.success("Registro salvo!")
-            st.rerun()
+            ok = insert_row(mes, operadora, circuito, float(desconto))
+
+            if ok:
+                st.success("✅ Registro salvo com sucesso!")
+                st.rerun()
+            else:
+                st.error("❌ Falha ao salvar no banco")
         else:
             st.error("Preencha todos os campos obrigatórios")
 
@@ -97,13 +111,17 @@ if df.empty:
     st.stop()
 
 # ======================
-# FILTERS
+# SIDEBAR FILTROS (RECOLHIDOS MAS VISÍVEIS)
 # ======================
-st.sidebar.header("🔎 Filtros")
+with st.sidebar:
+    st.markdown("### 🔎 Filtros")
+    st.caption("Clique para expandir e filtrar os dados")
 
-mes_f = st.sidebar.selectbox("Mês", ["Todos"] + sorted(df["mes"].dropna().unique()))
-op_f = st.sidebar.selectbox("Operadora", ["Todas"] + sorted(df["operadora"].dropna().unique()))
+    with st.expander("Abrir filtros", expanded=False):
+        mes_f = st.selectbox("Mês", ["Todos"] + sorted(df["mes"].dropna().unique()))
+        op_f = st.selectbox("Operadora", ["Todas"] + sorted(df["operadora"].dropna().unique()))
 
+# Aplicar filtros
 filtered = df.copy()
 
 if mes_f != "Todos":
@@ -115,34 +133,40 @@ if op_f != "Todas":
 # ======================
 # KPIs
 # ======================
-st.subheader("📌 Resumo")
+st.subheader("📌 Indicadores")
 
 c1, c2, c3 = st.columns(3)
 
-c1.metric("💰 Total", f"R$ {filtered['desconto'].sum():,.2f}")
-c2.metric("📄 Registros", len(filtered))
-c3.metric("🏢 Operadoras", filtered["operadora"].nunique())
+c1.metric("💰 Total de Descontos", f"R$ {filtered['desconto'].sum():,.2f}")
+c2.metric("📄 Total de Registros", len(filtered))
+c3.metric("🏢 Operadoras Únicas", filtered["operadora"].nunique())
 
 st.divider()
 
 # ======================
 # GRÁFICOS
 # ======================
-st.subheader("📊 Visualização")
+st.subheader("📊 Análise de Dados")
 
 c1, c2 = st.columns(2)
 
+c1.markdown("**Descontos por Operadora**")
 c1.bar_chart(filtered.groupby("operadora")["desconto"].sum())
 
+c2.markdown("**Evolução por Mês**")
 chart_data = filtered.groupby("mes", as_index=False)["desconto"].sum()
 c2.line_chart(chart_data.set_index("mes"))
 
 st.divider()
 
 # ======================
-# TABELA COM DELETE
+# TABELA COM DELETE SEGURO
 # ======================
 st.subheader("📋 Dados cadastrados")
+
+# Controle de confirmação
+if "confirm_delete_id" not in st.session_state:
+    st.session_state.confirm_delete_id = None
 
 for _, row in filtered.iterrows():
 
@@ -151,12 +175,28 @@ for _, row in filtered.iterrows():
     if pd.isna(row_id):
         continue
 
-    c_del, c1, c2, c3, c4 = st.columns([0.6, 1.5, 2, 2, 2])
+    c_del, c1, c2, c3, c4 = st.columns([0.6, 1.2, 2, 2, 2])
 
+    # BOTÃO DELETE
     if c_del.button("🗑️", key=f"del_{row_id}"):
-        delete_row(row_id)
-        st.rerun()
+        st.session_state.confirm_delete_id = row_id
 
+    # CONFIRMAÇÃO
+    if st.session_state.confirm_delete_id == row_id:
+        st.warning(f"Confirmar exclusão do ID {row_id}?")
+
+        c_yes, c_no = st.columns(2)
+
+        if c_yes.button("✅ Confirmar", key=f"yes_{row_id}"):
+            delete_row(row_id)
+            st.session_state.confirm_delete_id = None
+            st.rerun()
+
+        if c_no.button("❌ Cancelar", key=f"no_{row_id}"):
+            st.session_state.confirm_delete_id = None
+            st.rerun()
+
+    # DADOS
     c1.write(f"🆔 {row_id}")
     c2.write(f"📅 {row.get('mes','')}")
     c3.write(f"📡 {row.get('operadora','')}")
