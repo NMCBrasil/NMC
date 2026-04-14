@@ -35,6 +35,9 @@ def load_data():
     df = pd.DataFrame(res.data)
     df.columns = df.columns.str.lower()
 
+    # Converter mês para data (resolve ordem errada)
+    df["mes_dt"] = pd.to_datetime(df["mes"], errors="coerce")
+
     if "created_at" in df.columns:
         df = df.drop(columns=["created_at"])
 
@@ -61,7 +64,7 @@ def insert_row(mes, operadora, circuito, desconto):
 
 
 # ======================
-# DELETE (COM CONFIRMAÇÃO)
+# DELETE
 # ======================
 def delete_row(row_id):
     try:
@@ -80,7 +83,7 @@ with st.form("form", clear_on_submit=True):
     c1, c2 = st.columns(2)
     c3, c4 = st.columns(2)
 
-    mes = c1.text_input("📅 Mês", placeholder="Ex: 2026-04")
+    mes = c1.text_input("📅 Mês", placeholder="Ex: 2026-02")
     operadora = c2.text_input("📡 Operadora", placeholder="Ex: Vivo")
 
     circuito = c3.text_input("🔌 Circuito", placeholder="Ex: Link SP-01")
@@ -111,11 +114,11 @@ if df.empty:
     st.stop()
 
 # ======================
-# SIDEBAR FILTROS (RECOLHIDOS MAS VISÍVEIS)
+# SIDEBAR FILTROS
 # ======================
 with st.sidebar:
     st.markdown("### 🔎 Filtros")
-    st.caption("Clique para expandir e filtrar os dados")
+    st.caption("Clique abaixo para visualizar os filtros")
 
     with st.expander("Abrir filtros", expanded=False):
         mes_f = st.selectbox("Mês", ["Todos"] + sorted(df["mes"].dropna().unique()))
@@ -144,7 +147,7 @@ c3.metric("🏢 Operadoras Únicas", filtered["operadora"].nunique())
 st.divider()
 
 # ======================
-# GRÁFICOS
+# GRÁFICOS (ORDENADOS)
 # ======================
 st.subheader("📊 Análise de Dados")
 
@@ -153,51 +156,60 @@ c1, c2 = st.columns(2)
 c1.markdown("**Descontos por Operadora**")
 c1.bar_chart(filtered.groupby("operadora")["desconto"].sum())
 
-c2.markdown("**Evolução por Mês**")
-chart_data = filtered.groupby("mes", as_index=False)["desconto"].sum()
-c2.line_chart(chart_data.set_index("mes"))
+c2.markdown("**Evolução por Mês")
+
+chart_data = (
+    filtered
+    .sort_values("mes_dt")
+    .groupby("mes_dt", as_index=False)["desconto"].sum()
+)
+
+chart_data = chart_data.set_index("mes_dt")
+
+c2.line_chart(chart_data)
 
 st.divider()
 
 # ======================
-# TABELA COM DELETE SEGURO
+# TABELA MELHORADA
 # ======================
 st.subheader("📋 Dados cadastrados")
 
-# Controle de confirmação
-if "confirm_delete_id" not in st.session_state:
-    st.session_state.confirm_delete_id = None
+display_df = filtered.copy()
 
-for _, row in filtered.iterrows():
+display_df = display_df.rename(columns={
+    "id": "ID",
+    "mes": "Mês",
+    "operadora": "Operadora",
+    "circuito": "Circuito",
+    "desconto": "Desconto (R$)"
+})
 
-    row_id = row.get("id")
+display_df = display_df.sort_values("mes_dt")
 
-    if pd.isna(row_id):
-        continue
+st.dataframe(
+    display_df[["ID", "Mês", "Operadora", "Circuito", "Desconto (R$)"]],
+    use_container_width=True
+)
 
-    c_del, c1, c2, c3, c4 = st.columns([0.6, 1.2, 2, 2, 2])
+# ======================
+# DELETE COM CONFIRMAÇÃO
+# ======================
+st.markdown("### 🗑️ Remover registro")
 
-    # BOTÃO DELETE
-    if c_del.button("🗑️", key=f"del_{row_id}"):
-        st.session_state.confirm_delete_id = row_id
+ids = display_df["ID"].tolist()
 
-    # CONFIRMAÇÃO
-    if st.session_state.confirm_delete_id == row_id:
-        st.warning(f"Confirmar exclusão do ID {row_id}?")
+selected_id = st.selectbox("Selecione o ID para excluir", ids)
 
-        c_yes, c_no = st.columns(2)
+if st.button("Excluir registro"):
+    st.warning(f"Confirma exclusão do ID {selected_id}?")
 
-        if c_yes.button("✅ Confirmar", key=f"yes_{row_id}"):
-            delete_row(row_id)
-            st.session_state.confirm_delete_id = None
-            st.rerun()
+    c1, c2 = st.columns(2)
 
-        if c_no.button("❌ Cancelar", key=f"no_{row_id}"):
-            st.session_state.confirm_delete_id = None
-            st.rerun()
+    if c1.button("✅ Confirmar exclusão"):
+        delete_row(selected_id)
+        st.success("Registro excluído")
+        st.rerun()
 
-    # DADOS
-    c1.write(f"🆔 {row_id}")
-    c2.write(f"📅 {row.get('mes','')}")
-    c3.write(f"📡 {row.get('operadora','')}")
-    c4.write(f"🔌 {row.get('circuito','N/A')}")
+    if c2.button("❌ Cancelar"):
+        st.info("Exclusão cancelada")
