@@ -9,12 +9,12 @@ from datetime import date
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 # ======================
-# 🎨 TEMA HUGHES
+# 🎨 TEMA (AZUL MAIS CLARO)
 # ======================
 st.markdown("""
     <style>
         .stApp {
-            background-color: #0b1f3a;
+            background-color: #1f4e79;
             color: white;
         }
 
@@ -23,7 +23,7 @@ st.markdown("""
         }
 
         section[data-testid="stSidebar"] {
-            background-color: #08162b;
+            background-color: #173a5e;
         }
 
         .stButton > button {
@@ -38,12 +38,12 @@ st.markdown("""
         }
 
         .stTextInput input, .stNumberInput input {
-            background-color: #122b4a;
+            background-color: #2b5d8a;
             color: white;
         }
 
         div[data-baseweb="select"] {
-            background-color: #122b4a;
+            background-color: #2b5d8a;
             color: white;
         }
     </style>
@@ -55,15 +55,11 @@ st.markdown("""
 col_logo, col_title = st.columns([1,5])
 
 with col_logo:
-    st.image(
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Hughes_Network_Systems_logo.svg/512px-Hughes_Network_Systems_logo.svg.png",
-        width=120
-    )
+    st.image("logo.png", width=140)
 
 with col_title:
     st.title("📊 Dashboard de Operadoras")
-
-st.caption("Controle de descontos por circuito")
+    st.caption("Controle de descontos por circuito")
 
 # ======================
 # SUPABASE
@@ -89,7 +85,6 @@ def load_data():
 
     return df
 
-
 # ======================
 # INSERT
 # ======================
@@ -103,18 +98,15 @@ def insert_row(mes, operadora, circuito, desconto):
         }).execute()
 
         return bool(res.data)
-
     except Exception as e:
         st.error(f"Erro ao inserir: {e}")
         return False
-
 
 # ======================
 # DELETE
 # ======================
 def delete_row(row_id):
     supabase.table("registros").delete().eq("id", row_id).execute()
-
 
 # ======================
 # FORM
@@ -126,7 +118,7 @@ with st.form("form", clear_on_submit=True):
     c1, c2 = st.columns(2)
     c3, c4 = st.columns(2)
 
-    # Mês obrigatório
+    # 📅 Mês + Ano obrigatório
     col_mes, col_ano = c1.columns(2)
 
     today = date.today()
@@ -163,7 +155,6 @@ with st.form("form", clear_on_submit=True):
         else:
             st.error("Preencha todos os campos")
 
-
 # ======================
 # DATA
 # ======================
@@ -187,7 +178,7 @@ c3.metric("🏢 Operadoras", df["operadora"].nunique())
 st.divider()
 
 # ======================
-# 📊 GRÁFICOS
+# 📊 GRÁFICOS (CORRIGIDOS)
 # ======================
 st.subheader("📊 Análise")
 
