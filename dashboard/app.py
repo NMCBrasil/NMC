@@ -25,16 +25,17 @@ def load_data():
     res = supabase.table("registros").select("*").execute()
 
     if not res.data:
-        return pd.DataFrame(columns=["id", "mes", "operadora", "circuito", "desconto"])
+        return pd.DataFrame(columns=["id", "mes", "operadora", "circuito", "desconto", "created_at"])
 
     df = pd.DataFrame(res.data)
     df.columns = df.columns.str.lower()
 
-    # Corrige mês (esperando formato YYYY-MM)
+    # Converter mês
     df["mes_dt"] = pd.to_datetime(df["mes"], format="%Y-%m", errors="coerce")
 
+    # Converter created_at
     if "created_at" in df.columns:
-        df = df.drop(columns=["created_at"])
+        df["created_at"] = pd.to_datetime(df["created_at"], errors="coerce")
 
     return df
 
@@ -143,11 +144,9 @@ st.subheader("📊 Análise")
 
 c1, c2 = st.columns(2)
 
-# Operadora
 c1.markdown("**Descontos por Operadora**")
 c1.bar_chart(filtered.groupby("operadora")["desconto"].sum())
 
-# Evolução correta
 c2.markdown("**Evolução por Mês**")
 
 chart_data = (
@@ -162,20 +161,28 @@ c2.line_chart(chart_data)
 st.divider()
 
 # ======================
-# TABELA + DELETE INLINE
+# TABELA ORDENADA + DATA + DELETE
 # ======================
 st.subheader("📋 Registros")
 
-filtered = filtered.sort_values("mes_dt", ascending=False)
+# 🔥 Ordenar por operadora (A-Z)
+filtered = filtered.sort_values("operadora")
 
 for i, row in filtered.iterrows():
-    col1, col2, col3, col4, col5 = st.columns([2,2,3,2,1])
+    col1, col2, col3, col4, col5, col6 = st.columns([2,2,3,2,3,1])
 
     col1.write(row["mes"])
     col2.write(row["operadora"])
     col3.write(row["circuito"])
     col4.write(f"R$ {row['desconto']:.2f}")
 
-    if col5.button("🗑️", key=f"del_{row['id']}"):
+    # Mostrar data/hora formatada
+    if pd.notna(row.get("created_at")):
+        data_formatada = row["created_at"].strftime("%d/%m/%Y %H:%M")
+        col5.write(data_formatada)
+    else:
+        col5.write("-")
+
+    if col6.button("🗑️", key=f"del_{row['id']}"):
         delete_row(row["id"])
         st.rerun()
