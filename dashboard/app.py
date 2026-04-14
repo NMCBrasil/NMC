@@ -59,7 +59,7 @@ with col_logo:
 
 with col_title:
     st.markdown("<h1 style='text-align:center;'>Dashboard de Operadoras</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align:center;'>Controle de descontos por circuito</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align:center;'>Controle de descontos</h3>", unsafe_allow_html=True)
 
 st.divider()
 
