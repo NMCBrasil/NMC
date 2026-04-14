@@ -56,7 +56,7 @@ col_logo, col_title = st.columns([1,6])
 
 with col_logo:
     logo_path = Path(__file__).parent / "logo.png"
-    st.image(str(logo_path), width=160)
+    st.image(str(logo_path), width=400)
 
 with col_title:
     st.markdown("<h1 style='text-align:center;'>Dashboard de Operadoras</h1>", unsafe_allow_html=True)
