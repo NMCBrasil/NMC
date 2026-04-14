@@ -10,56 +10,66 @@ from pathlib import Path
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 # ======================
-# 🎨 TEMA (AZUL AJUSTADO)
+# 🎨 TEMA (AJUSTADO FINAL)
 # ======================
 st.markdown("""
     <style>
         .stApp {
-            background-color: #9fc5ff;
-            color: #000000;
+            background-color: #9fc5f8;
+            color: black;
+        }
+
+        * {
+            color: black !important;
         }
 
         h1, h2, h3 {
-            color: #000000;
+            color: black !important;
         }
 
         section[data-testid="stSidebar"] {
-            background-color: #8bb8ff;
+            background-color: #8dbaf5;
         }
 
+        /* BOTÕES */
         .stButton > button {
-            background-color: #ff6a00;
-            color: white;
+            background-color: #ff6a00 !important;
+            color: white !important;
             border-radius: 8px;
             border: none;
         }
 
         .stButton > button:hover {
-            background-color: #e65c00;
+            background-color: #e65c00 !important;
         }
 
         /* INPUTS */
-        .stTextInput input, 
-        .stNumberInput input {
-            background-color: #9fc5ff !important;
+        .stTextInput input, .stNumberInput input {
+            background-color: #9fc5f8 !important;
             color: black !important;
         }
 
-        /* SELECTBOX (corrigido) */
+        /* SELECT */
         div[data-baseweb="select"] > div {
-            background-color: #9fc5ff !important;
+            background-color: #9fc5f8 !important;
             color: black !important;
         }
 
-        /* Dropdown aberto */
-        ul[role="listbox"] {
-            background-color: #9fc5ff !important;
+        /* SETAS DO NUMBER INPUT */
+        button[title="Increment"], 
+        button[title="Decrement"] {
+            background-color: #9fc5f8 !important;
             color: black !important;
+        }
+
+        /* GRÁFICOS */
+        canvas {
+            background-color: #9fc5f8 !important;
         }
 
         /* KPI */
         div[data-testid="metric-container"] {
-            background-color: #9fc5ff;
+            background-color: #9fc5f8;
             border-radius: 10px;
             padding: 10px;
         }
@@ -134,13 +144,7 @@ with st.form("form", clear_on_submit=True):
 
     today = date.today()
 
-    mes_num = col_mes.selectbox(
-        "Mês",
-        list(range(1, 13)),
-        index=today.month - 1,
-        format_func=lambda x: f"{x:02d}"
-    )
-
+    mes_num = col_mes.selectbox("Mês", list(range(1, 13)), index=today.month - 1, format_func=lambda x: f"{x:02d}")
     anos = list(range(2024, 2031))
     ano = col_ano.selectbox("Ano", anos, index=anos.index(today.year))
 
@@ -172,7 +176,7 @@ if df.empty:
     st.stop()
 
 # ======================
-# FILTRO
+# FILTROS
 # ======================
 with st.sidebar:
     st.markdown("### 🔎 Filtros")
