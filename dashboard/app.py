@@ -10,7 +10,7 @@ from pathlib import Path
 st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
 
 # ======================
-# 🎨 TEMA (AZUL MAIS VIVO)
+# 🎨 TEMA
 # ======================
 st.markdown("""
     <style>
@@ -178,31 +178,44 @@ c3.metric("Operadoras", filtered["operadora"].nunique())
 st.divider()
 
 # ======================
-# GRÁFICOS
+# GRÁFICOS (TÍTULOS VOLTARAM)
 # ======================
 st.subheader("📈 Análise")
 
 g1, g2 = st.columns(2)
 
-g1.bar_chart(filtered.groupby("operadora")["desconto"].sum())
+with g1:
+    st.markdown("**Descontos por Operadora**")
+    st.bar_chart(filtered.groupby("operadora")["desconto"].sum())
 
-evolucao = (
-    filtered.dropna(subset=["mes_dt"])
-    .groupby("mes_dt")["desconto"]
-    .sum()
-    .sort_index()
-)
-
-g2.line_chart(evolucao)
+with g2:
+    st.markdown("**Evolução Mensal**")
+    evolucao = (
+        filtered.dropna(subset=["mes_dt"])
+        .groupby("mes_dt")["desconto"]
+        .sum()
+        .sort_index()
+    )
+    st.line_chart(evolucao)
 
 st.divider()
 
 # ======================
-# REGISTROS
+# REGISTROS (CABEÇALHO VOLTOU)
 # ======================
 st.subheader("📋 Registros")
 
 filtered = filtered.sort_values("mes_dt", ascending=False)
+
+h1, h2, h3, h4, h5 = st.columns([2,2,3,2,1])
+
+h1.markdown("**Mês/Ano**")
+h2.markdown("**Operadora**")
+h3.markdown("**Circuito**")
+h4.markdown("**Valor (R$)**")
+h5.markdown("")
+
+st.divider()
 
 for _, row in filtered.iterrows():
     c1, c2, c3, c4, c5 = st.columns([2,2,3,2,1])
