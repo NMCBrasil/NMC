@@ -1,40 +1,61 @@
 import streamlit as st
 import pandas as pd
-from supabase import create_client, Client
+from supabase import create_client
+from postgrest.exceptions import APIError
 
-# ✅ conexão Supabase (via API)
+# ==========================
+# 🔹 Conexão Supabase
+# ==========================
 SUPABASE_URL = st.secrets["supabase_url"]
 SUPABASE_KEY = st.secrets["supabase_key"]
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ✅ buscar dados
-response = supabase.table("incidentes").select("*").execute()
-df = pd.DataFrame(response.data)
-
-# ✅ garantir que tem dados antes de processar
-if df.empty:
-    st.warning("Sem dados na tabela 'incidentes'")
-    st.stop()
-
-# ✅ converter datas
-df["data_inicio_evento"] = pd.to_datetime(df["data_inicio_evento"])
-df["data_fim_evento"] = pd.to_datetime(df["data_fim_evento"])
-
-# ✅ calcular downtime (em minutos)
-df["down_time"] = (
-    df["data_fim_evento"] - df["data_inicio_evento"]
-).dt.total_seconds() / 60
-
-# ✅ configuração da página
 st.set_page_config(page_title="Dashboard Circuitos", layout="wide")
 
 st.title("📊 Dashboard de Circuitos")
 
-# =========================
-# 🔹 KPIs
-# =========================
+# ==========================
+# 🔹 Buscar dados
+# ==========================
+try:
+    response = supabase.table("incidentes").select("*").execute()
+    data = response.data
 
+except APIError as e:
+    st.error("Erro ao acessar o Supabase (verifique RLS e permissões).")
+    st.stop()
+
+except Exception as e:
+    st.error("Erro geral de conexão.")
+    st.text(str(e))
+    st.stop()
+
+# ==========================
+# 🔹 Verificar dados
+# ==========================
+if not data:
+    st.warning("Tabela 'incidentes' está vazia ou sem acesso.")
+    st.stop()
+
+df = pd.DataFrame(data)
+
+# ==========================
+# 🔹 Converter datas
+# ==========================
+df["data_inicio_evento"] = pd.to_datetime(df["data_inicio_evento"])
+df["data_fim_evento"] = pd.to_datetime(df["data_fim_evento"])
+
+# ==========================
+# 🔹 Calcular downtime
+# ==========================
+df["down_time"] = (
+    df["data_fim_evento"] - df["data_inicio_evento"]
+).dt.total_seconds() / 60
+
+# ==========================
+# 🔹 KPIs
+# ==========================
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -45,13 +66,11 @@ with col2:
     st.metric("🔥 Maior Ofensora", top_operadora)
 
 with col3:
-    total_incidentes = len(df)
-    st.metric("📉 Total Incidentes", total_incidentes)
+    st.metric("📉 Total Incidentes", len(df))
 
-# =========================
+# ==========================
 # 🔹 Ranking Operadoras
-# =========================
-
+# ==========================
 st.subheader("📡 Ranking de Operadoras")
 
 operadoras = (
@@ -62,10 +81,9 @@ operadoras = (
 
 st.bar_chart(operadoras)
 
-# =========================
-# 🔹 Top Circuitos
-# =========================
-
+# ==========================
+# 🔹 Circuitos mais problemáticos
+# ==========================
 st.subheader("🚨 Circuitos mais problemáticos")
 
 circuitos = (
@@ -76,10 +94,10 @@ circuitos = (
 
 st.dataframe(circuitos, use_container_width=True)
 
-# =========================
-# 🔹 Tabela completa
-# =========================
-
+# ==========================
+# 🔹 Lista completa
+# ==========================
 st.subheader("📋 Lista de Incidentes")
 
 st.dataframe(df, use_container_width=True)
+``
