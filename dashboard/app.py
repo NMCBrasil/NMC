@@ -1,262 +1,45 @@
 import streamlit as st
 import pandas as pd
-from supabase import create_client
-from datetime import date
-from pathlib import Path
-import altair as alt
+from sqlalchemy import create_engine
 
-# ======================
-# CONFIG
-# ======================
-st.set_page_config(page_title="Dashboard Operadoras", layout="wide")
+# conexão segura
+db_url = st.secrets["db_url"]
+engine = create_engine(db_url)
 
-# ======================
-# 🎨 TEMA
-# ======================
-st.markdown("""
-    <style>
-        .stApp {
-            background-color: #6fa8f2;
-        }
+# query
+query = """
+SELECT 
+    *,
+    EXTRACT(EPOCH FROM (data_fim_evento - data_inicio_evento))/60 AS down_time
+FROM incidentes
+"""
 
-        section[data-testid="stSidebar"] {
-            background-color: #5e9df0;
-        }
+df = pd.read_sql(query, engine)
 
-        h1, h2, h3 {
-            color: black;
-        }
+st.title("📊 Dashboard de Circuitos")
 
-        label {
-            color: black !important;
-        }
+# 🔥 KPIs
+col1, col2 = st.columns(2)
 
-        .stTextInput input, .stNumberInput input {
-            background-color: #ffffff;
-            color: black;
-        }
+with col1:
+    st.metric("Total Downtime (min)", round(df["down_time"].sum(), 2))
 
-        div[data-baseweb="select"] > div {
-            background-color: #ffffff;
-            color: black;
-        }
-
-        div[data-testid="metric-container"] {
-            background-color: #ffffff;
-            border-radius: 8px;
-            padding: 10px;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-# ======================
-# HEADER
-# ======================
-col_logo, col_title = st.columns([1,6])
-
-with col_logo:
-    logo_path = Path(__file__).parent / "logo.png"
-    st.image(str(logo_path), width=400)
-
-with col_title:
-    st.markdown("<h1 style='text-align:center;'>Dashboard de Operadoras</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align:center;'>Controle de descontos</h3>", unsafe_allow_html=True)
-
-st.divider()
-
-# ======================
-# SUPABASE
-# ======================
-url = "https://whbwdmmgrylwehdarupk.supabase.co"
-key = "sb_publishable_iU9EdbgP5pxbjxzTtxwmAg_6Vqw03uW"
-supabase = create_client(url, key)
-
-# ======================
-# LOAD DATA
-# ======================
-def load_data():
-    res = supabase.table("registros").select("*").execute()
-
-    if not res.data:
-        return pd.DataFrame(columns=["id","mes","operadora","circuito","desconto"])
-
-    df = pd.DataFrame(res.data)
-    df.columns = df.columns.str.lower()
-    df["mes_dt"] = pd.to_datetime(df["mes"], format="%Y-%m", errors="coerce")
-    return df
-
-# ======================
-# INSERT
-# ======================
-def insert_row(mes, operadora, circuito, desconto):
-    res = supabase.table("registros").insert({
-        "mes": mes,
-        "operadora": operadora,
-        "circuito": circuito,
-        "desconto": desconto
-    }).execute()
-    return bool(res.data)
-
-# ======================
-# DELETE
-# ======================
-def delete_row(row_id):
-    supabase.table("registros").delete().eq("id", row_id).execute()
-
-# ======================
-# FORM
-# ======================
-st.subheader("➕ Novo Registro")
-
-with st.expander("Registrar", expanded=False):
-
-    with st.form("form", clear_on_submit=True):
-
-        c1, c2 = st.columns(2)
-        c3, c4 = st.columns(2)
-
-        col_mes, col_ano = c1.columns(2)
-
-        today = date.today()
-
-        mes_num = col_mes.selectbox("Mês", list(range(1, 13)), index=today.month - 1, format_func=lambda x: f"{x:02d}")
-        anos = list(range(2024, 2031))
-        ano = col_ano.selectbox("Ano", anos, index=anos.index(today.year))
-
-        mes = f"{ano}-{mes_num:02d}"
-
-        operadora = c2.text_input("Operadora")
-        circuito = c3.text_input("Circuito")
-        desconto = c4.number_input("Desconto (R$)", min_value=0.0)
-
-        submit = st.form_submit_button("Salvar")
-
-        if submit:
-            if operadora and circuito:
-                if insert_row(mes, operadora, circuito, float(desconto)):
-                    st.success("Registro salvo")
-                    st.rerun()
-            else:
-                st.error("Preencha todos os campos")
-
-st.divider()
-
-# ======================
-# DATA
-# ======================
-df = load_data()
-
-if df.empty:
-    st.warning("Nenhum dado cadastrado.")
-    st.stop()
-
-# ======================
-# FILTROS
-# ======================
-with st.sidebar:
-    st.markdown("### 🔎 Filtros")
-
-    mes_f = st.selectbox("Mês", ["Todos"] + sorted(df["mes"].dropna().unique()))
-    op_f = st.selectbox("Operadora", ["Todas"] + sorted(df["operadora"].dropna().unique()))
-
-filtered = df.copy()
-
-if mes_f != "Todos":
-    filtered = filtered[filtered["mes"] == mes_f]
-
-if op_f != "Todas":
-    filtered = filtered[filtered["operadora"] == op_f]
-
-# ======================
-# KPIs
-# ======================
-st.subheader("📊 Indicadores")
-
-c1, c2, c3 = st.columns(3)
-
-c1.metric("Total (R$)", f"{filtered['desconto'].sum():,.2f}")
-c2.metric("Registros", len(filtered))
-c3.metric("Operadoras", filtered["operadora"].nunique())
-
-st.divider()
-
-# ======================
-# GRÁFICOS (FUNDO CORRETO)
-# ======================
-st.subheader("📈 Análise")
-
-g1, g2 = st.columns(2)
-
-with g1:
-    st.markdown("**Descontos por Operadora**")
-
-    chart1 = (
-        filtered.groupby("operadora")["desconto"]
-        .sum()
-        .reset_index()
+with col2:
+    st.metric(
+        "Maior Ofensora",
+        df.groupby("operadora")["down_time"].sum().idxmax()
     )
 
-    bar = alt.Chart(chart1).mark_bar(color="white").encode(
-        x="operadora",
-        y="desconto"
-    ).configure_view(
-        fill='#6fa8f2'
-    ).configure(
-        background='#6fa8f2'
-    )
+# 🔥 Ranking
+st.subheader("Ranking de Operadoras")
+operadoras = df.groupby("operadora")["down_time"].sum().sort_values(ascending=False)
+st.bar_chart(operadoras)
 
-    st.altair_chart(bar, use_container_width=True)
+# 🔥 Circuitos
+st.subheader("Top Circuitos Problemáticos")
+circuitos = df.groupby("id_circuito")["down_time"].sum().sort_values(ascending=False)
+st.dataframe(circuitos)
 
-with g2:
-    st.markdown("**Evolução Mensal**")
-
-    evolucao = (
-        filtered.dropna(subset=["mes_dt"])
-        .groupby("mes_dt")["desconto"]
-        .sum()
-        .reset_index()
-    )
-
-    line = alt.Chart(evolucao).mark_line(color="white").encode(
-        x="mes_dt:T",
-        y="desconto"
-    ).configure_view(
-        fill='#6fa8f2'
-    ).configure(
-        background='#6fa8f2'
-    )
-
-    st.altair_chart(line, use_container_width=True)
-
-st.divider()
-
-# ======================
-# RESTANTE IGUAL
-# ======================
-st.subheader("📋 Registros")
-
-filtered = filtered.sort_values("mes_dt", ascending=False)
-
-h1, h2, h3, h4, h5 = st.columns([2,2,3,2,1])
-
-h1.markdown("**Mês/Ano**")
-h2.markdown("**Operadora**")
-h3.markdown("**Circuito**")
-h4.markdown("**Valor (R$)**")
-h5.markdown("")
-
-st.divider()
-
-for _, row in filtered.iterrows():
-    c1, c2, c3, c4, c5 = st.columns([2,2,3,2,1])
-
-    mes_formatado = row["mes_dt"].strftime("%m/%Y") if pd.notna(row["mes_dt"]) else row["mes"]
-
-    c1.write(mes_formatado)
-    c2.write(row["operadora"])
-    c3.write(row["circuito"])
-    c4.write(f"R$ {row['desconto']:.2f}")
-
-    if c5.button("🗑️", key=f"del_{row['id']}"):
-        delete_row(row["id"])
-        st.rerun()
+# 🔥 Tabela completa
+st.subheader("Incidentes")
+st.dataframe(df)
