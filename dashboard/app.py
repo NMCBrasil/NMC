@@ -1,45 +1,85 @@
 import streamlit as st
 import pandas as pd
-from sqlalchemy import create_engine
+from supabase import create_client, Client
 
-# conexão segura
-db_url = st.secrets["db_url"]
-engine = create_engine(db_url)
+# ✅ conexão Supabase (via API)
+SUPABASE_URL = st.secrets["supabase_url"]
+SUPABASE_KEY = st.secrets["supabase_key"]
 
-# query
-query = """
-SELECT 
-    *,
-    EXTRACT(EPOCH FROM (data_fim_evento - data_inicio_evento))/60 AS down_time
-FROM incidentes
-"""
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-df = pd.read_sql(query, engine)
+# ✅ buscar dados
+response = supabase.table("incidentes").select("*").execute()
+df = pd.DataFrame(response.data)
+
+# ✅ garantir que tem dados antes de processar
+if df.empty:
+    st.warning("Sem dados na tabela 'incidentes'")
+    st.stop()
+
+# ✅ converter datas
+df["data_inicio_evento"] = pd.to_datetime(df["data_inicio_evento"])
+df["data_fim_evento"] = pd.to_datetime(df["data_fim_evento"])
+
+# ✅ calcular downtime (em minutos)
+df["down_time"] = (
+    df["data_fim_evento"] - df["data_inicio_evento"]
+).dt.total_seconds() / 60
+
+# ✅ configuração da página
+st.set_page_config(page_title="Dashboard Circuitos", layout="wide")
 
 st.title("📊 Dashboard de Circuitos")
 
-# 🔥 KPIs
-col1, col2 = st.columns(2)
+# =========================
+# 🔹 KPIs
+# =========================
+
+col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric("Total Downtime (min)", round(df["down_time"].sum(), 2))
+    st.metric("⛔ Total Downtime (min)", round(df["down_time"].sum(), 2))
 
 with col2:
-    st.metric(
-        "Maior Ofensora",
-        df.groupby("operadora")["down_time"].sum().idxmax()
-    )
+    top_operadora = df.groupby("operadora")["down_time"].sum().idxmax()
+    st.metric("🔥 Maior Ofensora", top_operadora)
 
-# 🔥 Ranking
-st.subheader("Ranking de Operadoras")
-operadoras = df.groupby("operadora")["down_time"].sum().sort_values(ascending=False)
+with col3:
+    total_incidentes = len(df)
+    st.metric("📉 Total Incidentes", total_incidentes)
+
+# =========================
+# 🔹 Ranking Operadoras
+# =========================
+
+st.subheader("📡 Ranking de Operadoras")
+
+operadoras = (
+    df.groupby("operadora")["down_time"]
+    .sum()
+    .sort_values(ascending=False)
+)
+
 st.bar_chart(operadoras)
 
-# 🔥 Circuitos
-st.subheader("Top Circuitos Problemáticos")
-circuitos = df.groupby("id_circuito")["down_time"].sum().sort_values(ascending=False)
-st.dataframe(circuitos)
+# =========================
+# 🔹 Top Circuitos
+# =========================
 
-# 🔥 Tabela completa
-st.subheader("Incidentes")
-st.dataframe(df)
+st.subheader("🚨 Circuitos mais problemáticos")
+
+circuitos = (
+    df.groupby("id_circuito")["down_time"]
+    .sum()
+    .sort_values(ascending=False)
+)
+
+st.dataframe(circuitos, use_container_width=True)
+
+# =========================
+# 🔹 Tabela completa
+# =========================
+
+st.subheader("📋 Lista de Incidentes")
+
+st.dataframe(df, use_container_width=True)
