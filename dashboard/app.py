@@ -100,4 +100,3 @@ st.dataframe(circuitos, use_container_width=True)
 st.subheader("📋 Lista de Incidentes")
 
 st.dataframe(df, use_container_width=True)
-``
