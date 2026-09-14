@@ -39,17 +39,18 @@ def classificar_linha(line):
     else:
         return "Outros"
 
-# Regras confiáveis
+# Regras confiáveis com impacto crítico
 rules = {
-    "Hostname": ("Hostname divergente", "Pode afetar SNMP/logs", "Padronizar nomenclatura"),
-    "IP Address": ("Endereço IP diferente", "Pode impactar gestão/NTP/TACACS", "Alinhar IPs de Loopback/VLAN"),
-    "NTP": ("Configuração NTP divergente", "Logs podem ficar fora de sincronismo", "Configurar NTP em ambos"),
-    "VLAN": ("Configuração de VLAN diferente", "Pode afetar comunicação entre redes", "Uniformizar VLANs críticas"),
-    "ACL": ("ACL diferente", "Pode afetar regras de firewall", "Revisar políticas de segurança"),
-    "Crypto": ("Configuração de criptografia diferente", "Pode afetar VPN/segurança", "Padronizar certificados/chaves"),
-    "Rotas": ("Rotas diferentes", "Pode afetar conectividade", "Alinhar tabela de rotas"),
-    "Console/VTY": ("Configuração de console diferente", "Acesso administrativo pode variar", "Padronizar senha e AAA"),
-    "Interface": ("Configuração de interface diferente", "Pode afetar conectividade física", "Padronizar VLAN/descrição"),
+    "Hostname": ("Hostname divergente", "🟡 Pode afetar SNMP/logs", "Padronizar nomenclatura"),
+    "IP Address": ("Endereço IP diferente", "🔴 Pode quebrar conectividade de gestão/roteamento", "Alinhar IPs de Loopback/WAN"),
+    "NTP": ("Configuração NTP divergente", "🟡 Logs fora de sincronismo", "Configurar NTP em ambos"),
+    "VLAN": ("Configuração de VLAN diferente", "🔴 Pode causar queda de tráfego entre redes", "Uniformizar VLANs críticas"),
+    "ACL": ("ACL diferente", "🔴 Pode bloquear tráfego inesperadamente", "Revisar políticas de segurança"),
+    "Crypto": ("Configuração de criptografia diferente", "🔴 Pode impedir VPN/segurança", "Padronizar certificados/chaves"),
+    "Rotas": ("Rotas diferentes", "🔴 Pode causar perda de tráfego", "Alinhar tabela de rotas"),
+    "Console/VTY": ("Configuração de console diferente", "🟡 Acesso administrativo pode variar", "Padronizar senha e AAA"),
+    "Interface": ("Configuração de interface diferente", "🔴 Diferença de VLAN/status pode derrubar tráfego", "Padronizar VLAN/descrição"),
+    "Outros": ("Configuração diferente", "🟢 Sem impacto crítico", "Verificar se necessário"),
 }
 
 # Lista arquivos disponíveis
@@ -83,7 +84,7 @@ if len(files) >= 2:
             linhas1 = grupos_device1.get(categoria, [])
             linhas2 = grupos_device2.get(categoria, [])
             if linhas1 != linhas2:
-                obs, impacto, sugestao = rules.get(categoria, ("Configuração diferente", "", ""))
+                obs, impacto, sugestao = rules.get(categoria, ("Configuração diferente", "🟡 Atenção", "Revisar"))
                 resumo.append({
                     "Categoria": categoria,
                     "Device 1": "\n".join(linhas1) if linhas1 else "—",
@@ -92,12 +93,19 @@ if len(files) >= 2:
                     "Impacto": impacto,
                     "Sugestão": sugestao
                 })
+            else:
+                # Mostrar também categorias iguais para confiança
+                resumo.append({
+                    "Categoria": categoria,
+                    "Device 1": "\n".join(linhas1) if linhas1 else "—",
+                    "Device 2": "\n".join(linhas2) if linhas2 else "—",
+                    "Observação": "Sem diferenças",
+                    "Impacto": "🟢 Ok",
+                    "Sugestão": "—"
+                })
 
         st.subheader("🤖 Relatório Inteligente")
-        if resumo:
-            df = pd.DataFrame(resumo)
-            st.dataframe(df, use_container_width=True)
-        else:
-            st.info("As configurações são muito semelhantes. Ainda assim, verifique hostname, IPs, VLANs, NTP e AAA para garantir padronização.")
+        df = pd.DataFrame(resumo)
+        st.dataframe(df, use_container_width=True)
 else:
     st.warning("⚠️ É necessário pelo menos dois arquivos .txt para comparar.")
