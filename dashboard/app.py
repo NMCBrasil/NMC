@@ -1,273 +1,72 @@
 import streamlit as st
-import pandas as pd
-import plotly.express as px
-from supabase import create_client
+import difflib
+import os
 
-# ==================================================
-# CONFIG
-# ==================================================
-st.set_page_config(
-    page_title="Dashboard Circuitos",
-    layout="wide"
+st.set_page_config(page_title="Comparador de Configurações", layout="wide")
+
+st.title("🔎 Comparador de Configurações de Rede")
+
+# Pasta onde ficam os arquivos de configuração
+CONFIG_DIR = "configs"
+os.makedirs(CONFIG_DIR, exist_ok=True)
+
+st.sidebar.header("Upload de Configurações")
+uploaded_files = st.sidebar.file_uploader(
+    "Carregar arquivos .txt de configuração",
+    type=["txt"],
+    accept_multiple_files=True
 )
 
-st.title("📊 Dashboard de Circuitos")
+# Salva os arquivos enviados
+if uploaded_files:
+    for file in uploaded_files:
+        with open(os.path.join(CONFIG_DIR, file.name), "wb") as f:
+            f.write(file.getbuffer())
+    st.sidebar.success("Arquivos salvos em 'configs/'")
 
-# ==================================================
-# CONEXÃO SUPABASE
-# ==================================================
-supabase_url = st.secrets["supabase_url"]
-supabase_key = st.secrets["supabase_key"]
-
-supabase = create_client(supabase_url, supabase_key)
-
-# ==================================================
-# CACHE
-# ==================================================
-@st.cache_data(ttl=300)
-def carregar_dados():
-
-    response = (
-        supabase
-        .table("incidentes")
-        .select("*")
-        .execute()
-    )
-
-    return pd.DataFrame(response.data)
-
-# ==================================================
-# FORMULÁRIO NOVO INCIDENTE
-# ==================================================
-st.subheader("➕ Adicionar Incidente")
-
-with st.form("novo_incidente"):
-
+# Lista arquivos disponíveis
+files = [f for f in os.listdir(CONFIG_DIR) if f.endswith(".txt")]
+if len(files) < 2:
+    st.warning("⚠️ É necessário pelo menos dois arquivos .txt na pasta 'configs' para comparar.")
+else:
     col1, col2 = st.columns(2)
-
     with col1:
-        id_circuito = st.text_input("Circuito")
-
-        operadora = st.selectbox(
-            "Operadora",
-            [
-                "Claro",
-                "Vivo",
-                "TIM",
-                "Oi",
-                "Algar",
-                "Hughes",
-                "Outros"
-            ]
-        )
-
-        data_inicio = st.datetime_input("Início da Falha")
-
+        file1 = st.selectbox("Configuração 1", files)
     with col2:
-        data_fim = st.datetime_input("Fim da Falha")
+        file2 = st.selectbox("Configuração 2", files)
 
-        status = st.selectbox(
-            "Status",
-            [
-                "Aberto",
-                "Encerrado"
-            ]
-        )
-
-        observacao = st.text_area("Observação")
-
-    enviar = st.form_submit_button("Salvar Incidente")
-
-    if enviar:
-
-        try:
-
-            dados = {
-                "id_circuito": id_circuito,
-                "operadora": operadora,
-                "data_inicio_evento": str(data_inicio),
-                "data_fim_evento": (
-                    str(data_fim)
-                    if status == "Encerrado"
-                    else None
-                ),
-                "status": status,
-                "observacao": observacao
-            }
-
-            (
-                supabase
-                .table("incidentes")
-                .insert(dados)
-                .execute()
+    if st.button("Comparar"):
+        with open(os.path.join(CONFIG_DIR, file1)) as f1, open(os.path.join(CONFIG_DIR, file2)) as f2:
+            diff = difflib.unified_diff(
+                f1.readlines(), f2.readlines(),
+                fromfile=file1, tofile=file2
             )
+            diff_text = "".join(diff)
 
-            st.success("✅ Incidente cadastrado com sucesso!")
+        st.subheader("📄 Diferenças encontradas")
+        st.code(diff_text if diff_text else "Nenhuma diferença encontrada.", language="diff")
 
-            st.cache_data.clear()
+        # Relatório inteligente simples
+        resumo = []
+        c1 = open(os.path.join(CONFIG_DIR, file1)).read().splitlines()
+        c2 = open(os.path.join(CONFIG_DIR, file2)).read().splitlines()
+        max_len = max(len(c1), len(c2))
 
-        except Exception as e:
-            st.error(f"Erro ao salvar: {e}")
+        for i in range(max_len):
+            line1 = c1[i] if i < len(c1) else ""
+            line2 = c2[i] if i < len(c2) else ""
+            if line1 != line2:
+                if line1 and line2:
+                    resumo.append(f"Linha {i+1}: alterada de '{line1}' → '{line2}'")
+                elif line1 and not line2:
+                    resumo.append(f"Linha {i+1}: removida na segunda config ('{line1}')")
+                elif not line1 and line2:
+                    resumo.append(f"Linha {i+1}: adicionada na segunda config ('{line2}')")
 
-# ==================================================
-# CARREGAR DADOS
-# ==================================================
-try:
-
-    df = carregar_dados()
-
-    if df.empty:
-        st.warning("Sem dados cadastrados.")
-        st.stop()
-
-except Exception as e:
-
-    st.error("Erro ao acessar Supabase")
-    st.write(e)
-    st.stop()
-
-# ==================================================
-# TRATAMENTO DE DATAS
-# ==================================================
-df["data_inicio_evento"] = pd.to_datetime(
-    df["data_inicio_evento"],
-    errors="coerce"
-)
-
-df["data_fim_evento"] = pd.to_datetime(
-    df["data_fim_evento"],
-    errors="coerce"
-)
-
-# ==================================================
-# DOWNTIME
-# ==================================================
-df["down_time"] = (
-    df["data_fim_evento"].fillna(pd.Timestamp.now())
-    - df["data_inicio_evento"]
-).dt.total_seconds() / 60
-
-# ==================================================
-# SIDEBAR FILTROS
-# ==================================================
-st.sidebar.header("🔍 Filtros")
-
-operadora_filtro = st.sidebar.multiselect(
-    "Operadora",
-    options=df["operadora"].dropna().unique(),
-    default=df["operadora"].dropna().unique()
-)
-
-status_filtro = st.sidebar.multiselect(
-    "Status",
-    options=df["status"].dropna().unique(),
-    default=df["status"].dropna().unique()
-)
-
-df = df[
-    (df["operadora"].isin(operadora_filtro))
-    &
-    (df["status"].isin(status_filtro))
-]
-
-# ==================================================
-# KPIs
-# ==================================================
-st.subheader("📈 Indicadores")
-
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    st.metric(
-        "⛔ Downtime Total (min)",
-        round(df["down_time"].sum(), 2)
-    )
-
-with col2:
-
-    if not df.empty:
-        top_operadora = (
-            df.groupby("operadora")["down_time"]
-            .sum()
-            .idxmax()
-        )
-
-        st.metric(
-            "🔥 Maior Ofensora",
-            top_operadora
-        )
-
-with col3:
-    st.metric(
-        "📉 Total Incidentes",
-        len(df)
-    )
-
-with col4:
-
-    abertos = df[
-        df["status"] == "Aberto"
-    ]
-
-    st.metric(
-        "🟢 Incidentes Abertos",
-        len(abertos)
-    )
-
-# ==================================================
-# RANKING OPERADORAS
-# ==================================================
-st.subheader("📡 Ranking de Operadoras")
-
-operadoras = (
-    df.groupby("operadora")["down_time"]
-    .sum()
-    .sort_values(ascending=False)
-    .reset_index()
-)
-
-fig = px.bar(
-    operadoras,
-    x="operadora",
-    y="down_time",
-    title="Downtime por Operadora",
-    labels={
-        "operadora": "Operadora",
-        "down_time": "Downtime (min)"
-    }
-)
-
-st.plotly_chart(
-    fig,
-    use_container_width=True
-)
-
-# ==================================================
-# CIRCUITOS MAIS PROBLEMÁTICOS
-# ==================================================
-st.subheader("🚨 Circuitos Mais Problemáticos")
-
-circuitos = (
-    df.groupby("id_circuito")["down_time"]
-    .sum()
-    .sort_values(ascending=False)
-    .reset_index()
-)
-
-st.dataframe(
-    circuitos,
-    use_container_width=True
-)
-
-# ==================================================
-# LISTA COMPLETA
-# ==================================================
-st.subheader("📋 Lista de Incidentes")
-
-st.dataframe(
-    df.sort_values(
-        by="data_inicio_evento",
-        ascending=False
-    ),
-    use_container_width=True
-)
+        st.subheader("🤖 Relatório Inteligente")
+        if resumo:
+            for r in resumo:
+                st.write("- " + r)
+            st.info("Sugestão: revisar alterações críticas (AAA, VLANs, SNMP, NTP, senhas) para evitar falhas em backup/comutação.")
+        else:
+            st.success("Configs idênticas — nenhuma alteração necessária.")
