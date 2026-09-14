@@ -16,6 +16,18 @@ if uploaded_files:
             f.write(file.getbuffer())
     st.success("Arquivos salvos em 'configs/'")
 
+# Regras confiáveis
+rules = {
+    "hostname": ("Hostname divergente", "Pode afetar SNMP/logs", "Padronizar nomenclatura"),
+    "ip address": ("Endereço IP diferente", "Pode impactar gestão/NTP/TACACS", "Alinhar IPs de Loopback/VLAN"),
+    "ntp server": ("Configuração NTP divergente", "Logs podem ficar fora de sincronismo", "Configurar NTP em ambos"),
+    "vlan": ("Configuração de VLAN diferente", "Pode afetar comunicação entre redes", "Uniformizar VLANs críticas"),
+    "access-list": ("ACL diferente", "Pode afetar regras de firewall", "Revisar políticas de segurança"),
+    "crypto": ("Configuração de criptografia diferente", "Pode afetar VPN/segurança", "Padronizar certificados/chaves"),
+    "ip route": ("Rotas diferentes", "Pode afetar conectividade", "Alinhar tabela de rotas"),
+    "line con": ("Configuração de console diferente", "Acesso administrativo pode variar", "Padronizar senha e AAA"),
+}
+
 # Lista arquivos disponíveis
 files = [f for f in os.listdir(CONFIG_DIR) if f.endswith(".txt")]
 if len(files) >= 2:
@@ -35,31 +47,11 @@ if len(files) >= 2:
             line1 = c1[i] if i < len(c1) else ""
             line2 = c2[i] if i < len(c2) else ""
             if line1 != line2:
-                observacao = "Configuração diferente"
-                impacto = ""
-                sugestao = ""
-
-                # Regras simples de análise automática
-                if "hostname" in line1 or "hostname" in line2:
-                    observacao = "Hostname divergente"
-                    impacto = "Pode afetar SNMP/logs"
-                    sugestao = "Padronizar nomenclatura"
-                elif "ip address" in line1 or "ip address" in line2:
-                    observacao = "Endereço IP diferente"
-                    impacto = "Pode impactar gestão/NTP/TACACS"
-                    sugestao = "Alinhar IPs de Loopback/VLAN"
-                elif "ntp server" in line1 or "ntp server" in line2:
-                    observacao = "Configuração NTP divergente"
-                    impacto = "Logs podem ficar fora de sincronismo"
-                    sugestao = "Configurar NTP em ambos"
-                elif "vlan" in line1 or "vlan" in line2:
-                    observacao = "Configuração de VLAN diferente"
-                    impacto = "Pode afetar comunicação entre redes"
-                    sugestao = "Uniformizar VLANs críticas"
-                elif "line con" in line1 or "line con" in line2:
-                    observacao = "Configuração de console diferente"
-                    impacto = "Acesso administrativo pode variar"
-                    sugestao = "Padronizar senha e AAA"
+                observacao, impacto, sugestao = ("Configuração diferente", "", "")
+                for key, val in rules.items():
+                    if key in line1 or key in line2:
+                        observacao, impacto, sugestao = val
+                        break
 
                 resumo.append({
                     "Linha": i+1,
@@ -73,14 +65,8 @@ if len(files) >= 2:
         st.subheader("🤖 Relatório Inteligente")
         if resumo:
             df = pd.DataFrame(resumo)
-            st.dataframe(df)
+            st.dataframe(df, use_container_width=True)
         else:
-            # Mesmo sem diferenças linha a linha, sempre mostrar pontos de atenção
-            st.info("As configurações são muito semelhantes. Ainda assim, verifique:")
-            st.write("- Hostname e IP de Loopback")
-            st.write("- VLANs atribuídas em interfaces críticas")
-            st.write("- Configuração de NTP (presente em um, ausente em outro)")
-            st.write("- Senha de console e AAA")
-            st.write("Sugestão: alinhar esses pontos para evitar falhas em backup/comutação.")
+            st.info("As configurações são muito semelhantes. Ainda assim, verifique hostname, IPs, VLANs, NTP e AAA para garantir padronização.")
 else:
     st.warning("⚠️ É necessário pelo menos dois arquivos .txt para comparar.")
