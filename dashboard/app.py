@@ -1,34 +1,26 @@
 import streamlit as st
 import difflib
 import os
+import pandas as pd
+import plotly.express as px
 
 st.set_page_config(page_title="Comparador de Configurações", layout="wide")
-
 st.title("🔎 Comparador de Configurações de Rede")
 
-# Pasta onde ficam os arquivos de configuração
 CONFIG_DIR = "configs"
 os.makedirs(CONFIG_DIR, exist_ok=True)
 
-st.sidebar.header("Upload de Configurações")
-uploaded_files = st.sidebar.file_uploader(
-    "Carregar arquivos .txt de configuração",
-    type=["txt"],
-    accept_multiple_files=True
-)
-
-# Salva os arquivos enviados
+# Upload de arquivos
+uploaded_files = st.file_uploader("Carregar arquivos .txt", type=["txt"], accept_multiple_files=True)
 if uploaded_files:
     for file in uploaded_files:
         with open(os.path.join(CONFIG_DIR, file.name), "wb") as f:
             f.write(file.getbuffer())
-    st.sidebar.success("Arquivos salvos em 'configs/'")
+    st.success("Arquivos salvos em 'configs/'")
 
 # Lista arquivos disponíveis
 files = [f for f in os.listdir(CONFIG_DIR) if f.endswith(".txt")]
-if len(files) < 2:
-    st.warning("⚠️ É necessário pelo menos dois arquivos .txt na pasta 'configs' para comparar.")
-else:
+if len(files) >= 2:
     col1, col2 = st.columns(2)
     with col1:
         file1 = st.selectbox("Configuração 1", files)
@@ -46,7 +38,7 @@ else:
         st.subheader("📄 Diferenças encontradas")
         st.code(diff_text if diff_text else "Nenhuma diferença encontrada.", language="diff")
 
-        # Relatório inteligente simples
+        # Relatório inteligente
         resumo = []
         c1 = open(os.path.join(CONFIG_DIR, file1)).read().splitlines()
         c2 = open(os.path.join(CONFIG_DIR, file2)).read().splitlines()
@@ -57,16 +49,21 @@ else:
             line2 = c2[i] if i < len(c2) else ""
             if line1 != line2:
                 if line1 and line2:
-                    resumo.append(f"Linha {i+1}: alterada de '{line1}' → '{line2}'")
+                    resumo.append({"linha": i+1, "tipo": "alterada", "de": line1, "para": line2})
                 elif line1 and not line2:
-                    resumo.append(f"Linha {i+1}: removida na segunda config ('{line1}')")
+                    resumo.append({"linha": i+1, "tipo": "removida", "de": line1, "para": ""})
                 elif not line1 and line2:
-                    resumo.append(f"Linha {i+1}: adicionada na segunda config ('{line2}')")
+                    resumo.append({"linha": i+1, "tipo": "adicionada", "de": "", "para": line2})
 
-        st.subheader("🤖 Relatório Inteligente")
         if resumo:
-            for r in resumo:
-                st.write("- " + r)
-            st.info("Sugestão: revisar alterações críticas (AAA, VLANs, SNMP, NTP, senhas) para evitar falhas em backup/comutação.")
+            df = pd.DataFrame(resumo)
+            st.subheader("🤖 Relatório Inteligente")
+            st.dataframe(df)
+
+            # Gráfico resumo
+            fig = px.histogram(df, x="tipo", title="Resumo das Alterações")
+            st.plotly_chart(fig)
         else:
             st.success("Configs idênticas — nenhuma alteração necessária.")
+else:
+    st.warning("⚠️ É necessário pelo menos dois arquivos .txt para comparar.")
