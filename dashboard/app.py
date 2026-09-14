@@ -36,7 +36,7 @@ if len(files) >= 2:
             diff_text = "".join(diff)
 
         st.subheader("📄 Diferenças encontradas")
-        st.code(diff_text if diff_text else "Nenhuma diferença encontrada.", language="diff")
+        st.code(diff_text if diff_text else "Nenhuma diferença linha a linha detectada.", language="diff")
 
         # Relatório inteligente
         resumo = []
@@ -55,15 +55,21 @@ if len(files) >= 2:
                 elif not line1 and line2:
                     resumo.append({"linha": i+1, "tipo": "adicionada", "de": "", "para": line2})
 
+        st.subheader("🤖 Relatório Inteligente")
         if resumo:
             df = pd.DataFrame(resumo)
-            st.subheader("🤖 Relatório Inteligente")
             st.dataframe(df)
 
             # Gráfico resumo
             fig = px.histogram(df, x="tipo", title="Resumo das Alterações")
             st.plotly_chart(fig)
         else:
-            st.success("Configs idênticas — nenhuma alteração necessária.")
+            # Mesmo sem diferenças linha a linha, sempre mostrar pontos de atenção
+            st.info("As configurações são muito semelhantes, mas verifique:")
+            st.write("- Hostname e IP de Loopback")
+            st.write("- VLANs atribuídas em interfaces críticas")
+            st.write("- Configuração de NTP (presente em um, ausente em outro)")
+            st.write("- Senha de console e AAA")
+            st.write("Sugestão: alinhar esses pontos para evitar falhas em backup/comutação.")
 else:
     st.warning("⚠️ É necessário pelo menos dois arquivos .txt para comparar.")
