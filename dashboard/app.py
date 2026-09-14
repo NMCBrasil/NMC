@@ -16,16 +16,40 @@ if uploaded_files:
             f.write(file.getbuffer())
     st.success("Arquivos salvos em 'configs/'")
 
+# Função para classificar linhas por categoria
+def classificar_linha(line):
+    if line.startswith("hostname"):
+        return "Hostname"
+    elif line.startswith("interface"):
+        return "Interface"
+    elif "ip address" in line:
+        return "IP Address"
+    elif "ntp server" in line:
+        return "NTP"
+    elif "access-list" in line:
+        return "ACL"
+    elif "crypto" in line:
+        return "Crypto"
+    elif "ip route" in line:
+        return "Rotas"
+    elif "line con" in line or "line vty" in line:
+        return "Console/VTY"
+    elif "vlan" in line:
+        return "VLAN"
+    else:
+        return "Outros"
+
 # Regras confiáveis
 rules = {
-    "hostname": ("Hostname divergente", "Pode afetar SNMP/logs", "Padronizar nomenclatura"),
-    "ip address": ("Endereço IP diferente", "Pode impactar gestão/NTP/TACACS", "Alinhar IPs de Loopback/VLAN"),
-    "ntp server": ("Configuração NTP divergente", "Logs podem ficar fora de sincronismo", "Configurar NTP em ambos"),
-    "vlan": ("Configuração de VLAN diferente", "Pode afetar comunicação entre redes", "Uniformizar VLANs críticas"),
-    "access-list": ("ACL diferente", "Pode afetar regras de firewall", "Revisar políticas de segurança"),
-    "crypto": ("Configuração de criptografia diferente", "Pode afetar VPN/segurança", "Padronizar certificados/chaves"),
-    "ip route": ("Rotas diferentes", "Pode afetar conectividade", "Alinhar tabela de rotas"),
-    "line con": ("Configuração de console diferente", "Acesso administrativo pode variar", "Padronizar senha e AAA"),
+    "Hostname": ("Hostname divergente", "Pode afetar SNMP/logs", "Padronizar nomenclatura"),
+    "IP Address": ("Endereço IP diferente", "Pode impactar gestão/NTP/TACACS", "Alinhar IPs de Loopback/VLAN"),
+    "NTP": ("Configuração NTP divergente", "Logs podem ficar fora de sincronismo", "Configurar NTP em ambos"),
+    "VLAN": ("Configuração de VLAN diferente", "Pode afetar comunicação entre redes", "Uniformizar VLANs críticas"),
+    "ACL": ("ACL diferente", "Pode afetar regras de firewall", "Revisar políticas de segurança"),
+    "Crypto": ("Configuração de criptografia diferente", "Pode afetar VPN/segurança", "Padronizar certificados/chaves"),
+    "Rotas": ("Rotas diferentes", "Pode afetar conectividade", "Alinhar tabela de rotas"),
+    "Console/VTY": ("Configuração de console diferente", "Acesso administrativo pode variar", "Padronizar senha e AAA"),
+    "Interface": ("Configuração de interface diferente", "Pode afetar conectividade física", "Padronizar VLAN/descrição"),
 }
 
 # Lista arquivos disponíveis
@@ -40,24 +64,31 @@ if len(files) >= 2:
     if st.button("Comparar"):
         c1 = open(os.path.join(CONFIG_DIR, file1)).read().splitlines()
         c2 = open(os.path.join(CONFIG_DIR, file2)).read().splitlines()
-        max_len = max(len(c1), len(c2))
+
+        # Agrupamento por categoria
+        grupos_device1 = {}
+        for line in c1:
+            categoria = classificar_linha(line)
+            grupos_device1.setdefault(categoria, []).append(line)
+
+        grupos_device2 = {}
+        for line in c2:
+            categoria = classificar_linha(line)
+            grupos_device2.setdefault(categoria, []).append(line)
 
         resumo = []
-        for i in range(max_len):
-            line1 = c1[i] if i < len(c1) else ""
-            line2 = c2[i] if i < len(c2) else ""
-            if line1 != line2:
-                observacao, impacto, sugestao = ("Configuração diferente", "", "")
-                for key, val in rules.items():
-                    if key in line1 or key in line2:
-                        observacao, impacto, sugestao = val
-                        break
-
+        # Comparação por categoria
+        todas_categorias = set(grupos_device1.keys()) | set(grupos_device2.keys())
+        for categoria in todas_categorias:
+            linhas1 = grupos_device1.get(categoria, [])
+            linhas2 = grupos_device2.get(categoria, [])
+            if linhas1 != linhas2:
+                obs, impacto, sugestao = rules.get(categoria, ("Configuração diferente", "", ""))
                 resumo.append({
-                    "Linha": i+1,
-                    "Device 1": line1,
-                    "Device 2": line2,
-                    "Observação": observacao,
+                    "Categoria": categoria,
+                    "Device 1": "\n".join(linhas1) if linhas1 else "—",
+                    "Device 2": "\n".join(linhas2) if linhas2 else "—",
+                    "Observação": obs,
                     "Impacto": impacto,
                     "Sugestão": sugestao
                 })
